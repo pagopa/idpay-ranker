@@ -31,29 +31,26 @@ spring:
       servicebus:
         connection-string: ${SERVICEBUS_ONBOARDING_CONNECTION_STRING:}
     function:
-      definition: admissibilityProcessor;admissibilityProcessorOut;admissibilityDelayProducer;beneficiaryRuleBuilderConsumer;errors;rankingRequest;consumerCommands
+      definition: rankerProcessor;rankerProcessorOut;
     stream:
       bindings:
-        admissibilityProcessor-in-0:
+        rankerProcessor-in-0:
           destination: ${KAFKA_ONBOARDING_REQUEST_TOPIC:idpay-onboarding-request}
-#          group: ${KAFKA_ONBOARDING_REQUEST_GROUP_ID:idPayAdmissibilityProcessor}
-#          content-type: ${KAFKA_CONTENT_TYPE:application/json}
           binder: kafka-onboarding-request
           consumer.autoStartup: false
-        admissibilityProcessorOut-out-0:
-          destination: ${KAFKA_ONBOARDING_OUTCOME_TOPIC:idpay-onboarding-outcome}
+        rankerProcessorOut-out-0:
+          destination: ${KAFKA_ONBOARDING_OUTCOME_TOPIC:idpay-newqueue-outcome}
           content-type: ${KAFKA_CONTENT_TYPE:application/json}
           binder: kafka-onboarding-outcome
       servicebus:
         bindings:
-          admissibilityProcessor-in-0:
+          rankerProcessor-in-0:
             consumer:
               auto-complete: false
-          admissibilityDelayProducer-out-0:
-            producer:
-              entity-type: queue
       binders:
         kafka-onboarding-request:
+          type: servicebus
+        kafka-onboarding-outcome:
           type: servicebus
   data:
     mongodb:
@@ -90,7 +87,7 @@ logging:
     root: ${LOG_LEVEL_ROOT:INFO}
     it.gov.pagopa: ${LOG_LEVEL_PAGOPA:INFO}
     it.gov.pagopa.common.reactive.kafka.consumer: ${LOG_LEVEL_BASE_KAFKA_CONSUMER:INFO}
-    it.gov.pagopa.admissibility: ${LOG_LEVEL_ADMISSIBILITY:INFO}
+    it.gov.pagopa.ranker: ${LOG_LEVEL_RANKER:INFO}
     org.springframework.integration: ${LOG_LEVEL_SPRING_INTEGRATION:INFO}
     org.springframework.security: ${LOG_LEVEL_SPRING_SECURITY:INFO}
     org.springframework.ws: ${LOG_LEVEL_SPRING_WS:INFO}

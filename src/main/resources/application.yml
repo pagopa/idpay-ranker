@@ -27,44 +27,47 @@ spring:
     activate:
       on-profile: default
   cloud:
-    azure:
-      servicebus:
-        connection-string: ${SERVICEBUS_ONBOARDING_CONNECTION_STRING:}
-    function:
-      definition: rankerProcessor;rankerProcessorOut;
-    stream:
-      bindings:
-        rankerProcessor-in-0:
-          destination: ${KAFKA_ONBOARDING_REQUEST_TOPIC:idpay-onboarding-request}
-          binder: kafka-onboarding-request
-          consumer.autoStartup: false
-        rankerProcessorOut-out-0:
-          destination: ${KAFKA_ONBOARDING_OUTCOME_TOPIC:idpay-newqueue-outcome}
-          content-type: ${KAFKA_CONTENT_TYPE:application/json}
-          binder: kafka-onboarding-outcome
-      servicebus:
-        bindings:
-          rankerProcessor-in-0:
-            consumer:
-              auto-complete: false
-      binders:
-        kafka-onboarding-request:
-          type: servicebus
-        kafka-onboarding-outcome:
-          type: servicebus
+   function:
+     definition: rankerProcessor;rankerProcessorOut;
+   stream:
+     bindings:
+       rankerProcessor-in-0:
+         destination: ${SB_ONBOARDING_REQUEST_TOPIC:idpay-onboarding-request}
+         binder: onboarding
+         consumer.autoStartup: false
+       rankerProcessorOut-out-0:
+         destination: ${SB_ONBOARDING_OUTCOME_TOPIC:idpay-admissibility-request}
+         content-type: ${SB_CONTENT_TYPE:application/json}
+         binder: admissibility
+     servicebus:
+       bindings:
+         rankerProcessor-in-0:
+           consumer:
+             auto-complete: false
+     binders:
+       onboarding:
+         type: servicebus
+         default-candidate: true
+         environment:
+           spring.cloud.azure.servicebus.connection-string: ${SERVICEBUS_ONBOARDING_CONNECTION_STRING:}
+       admissibility:
+         type: servicebus
+         default-candidate: false
+         environment:
+           spring.cloud.azure.servicebus.connection-string: ${SERVICEBUS_ADMISSIBILITY_CONNECTION_STRING:}
   data:
-    mongodb:
-      uri: ${MONGODB_URI:mongodb://localhost:27017}
-      database: ${MONGODB_DBNAME:idpay}
-      # custom configured properties
-      config:
-        connectionPool:
-          maxSize: ${MONGODB_CONNECTIONPOOL_MAX_SIZE:100}
-          minSize: ${MONGODB_CONNECTIONPOOL_MIN_SIZE:0}
-          maxWaitTimeMS: ${MONGODB_CONNECTIONPOOL_MAX_WAIT_MS:120000}
-          maxConnectionLifeTimeMS: ${MONGODB_CONNECTIONPOOL_MAX_CONNECTION_LIFE_MS:0}
-          maxConnectionIdleTimeMS: ${MONGODB_CONNECTIONPOOL_MAX_CONNECTION_IDLE_MS:120000}
-          maxConnecting: ${MONGODB_CONNECTIONPOOL_MAX_CONNECTING:2}
+      mongodb:
+        uri: ${MONGODB_URI:mongodb://localhost:27017}
+        database: ${MONGODB_DBNAME:idpay}
+        # custom configured properties
+        config:
+          connectionPool:
+            maxSize: ${MONGODB_CONNECTIONPOOL_MAX_SIZE:100}
+            minSize: ${MONGODB_CONNECTIONPOOL_MIN_SIZE:0}
+            maxWaitTimeMS: ${MONGODB_CONNECTIONPOOL_MAX_WAIT_MS:120000}
+            maxConnectionLifeTimeMS: ${MONGODB_CONNECTIONPOOL_MAX_CONNECTION_LIFE_MS:0}
+            maxConnectionIdleTimeMS: ${MONGODB_CONNECTIONPOOL_MAX_CONNECTION_IDLE_MS:120000}
+            maxConnecting: ${MONGODB_CONNECTIONPOOL_MAX_CONNECTING:2}
 
 management:
   health:
@@ -74,7 +77,7 @@ management:
       probes.enabled: true
       group:
         readiness.include: "*"
-        liveness.include: livenessState,diskSpace,ping,binders,streams
+        liveness.include: livenessState,diskSpace,ping,binders
       logging.slow-indicator-threshold: ${HEALTH_ACTUATOR_LOGGER_TIMEOUT_DURATION:PT1S}
   endpoints:
     jmx:

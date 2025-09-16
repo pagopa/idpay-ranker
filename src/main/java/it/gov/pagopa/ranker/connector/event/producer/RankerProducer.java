@@ -9,23 +9,19 @@ import org.springframework.stereotype.Component;
 @Component
 public class RankerProducer {
 
-  //private final String binder;
-  private final String binder = "sb-onboarding-outcome";
+  private final String binder;
+  //private final String binder = "admissibility";
 
   private final StreamBridge streamBridge;
 
-//  public RankerProducer(StreamBridge streamBridge,
-//                        @Value("${spring.cloud.stream.bindings.kafka-onboarding-outcome}") String binder) {
-//    this.streamBridge = streamBridge;
-//    this.binder = binder;
-//  } FIXME
-
-  public RankerProducer(StreamBridge streamBridge) {
-    this.streamBridge = streamBridge;
+  public RankerProducer(@Value("${spring.cloud.stream.bindings.rankerProducer-out-0.binder}") String binder,
+                        StreamBridge streamBridge) {
+      this.binder = binder;
+      this.streamBridge = streamBridge;
   }
 
   public void sendSaveConsent(OnboardingDTO onboardingDTO) {
-    streamBridge.send("rankerProcessorOut-out-0", binder, onboardingDTO);
+    streamBridge.send("rankerProducer-out-0", binder, onboardingDTO);
   }
 
 }

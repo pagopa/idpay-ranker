@@ -11,7 +11,7 @@ import java.util.function.Consumer;
 public class RankerConsumer {
 
   @Bean
-  public Consumer<OnboardingDTO> consumerOnboarding(RankerService rankerService) {
+  public Consumer<OnboardingDTO> rankerProcessor(RankerService rankerService) {
     return rankerService::checkBudget;
   }
 

@@ -24,7 +24,7 @@ public class RankerService {
     }
 
     public void checkBudget(OnboardingDTO onboardingDTO) {
-        log.info("Sto leggendo il messaggio: " + onboardingDTO);
+        log.info("Reading message: " + onboardingDTO);
         rankerProducer.sendSaveConsent(onboardingDTO);
 
     }

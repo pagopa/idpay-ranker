@@ -33,8 +33,8 @@ spring:
      bindings:
        rankerProcessor-in-0:
          destination: ${SB_ONBOARDING_REQUEST_TOPIC:idpay-onboarding-request}
+         content-type: ${SB_CONTENT_TYPE:application/json}
          binder: onboarding
-         consumer.autoStartup: false
        rankerProducer-out-0:
          destination: ${SB_ONBOARDING_OUTCOME_TOPIC:idpay-admissibility-request}
          content-type: ${SB_CONTENT_TYPE:application/json}
@@ -43,7 +43,11 @@ spring:
        bindings:
          rankerProcessor-in-0:
            consumer:
-             auto-complete: false
+             auto-complete: true
+             entity-type: queue
+         rankerProducer-out-0:
+           producer:
+             entity-type: queue
      binders:
        onboarding:
          type: servicebus

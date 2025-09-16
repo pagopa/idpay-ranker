@@ -22,8 +22,8 @@ public class RankerProducer {
   }
 
   public void sendSaveConsent(OnboardingDTO onboardingDTO) {
-    streamBridge.send("rankerProducer-out-0", binder, onboardingDTO);
-    log.info("Sto inviando il messaggio: " + onboardingDTO);
+    streamBridge.send("rankerProducer-out-0", onboardingDTO);
+    log.info("Sending message: " + onboardingDTO);
   }
 
 }

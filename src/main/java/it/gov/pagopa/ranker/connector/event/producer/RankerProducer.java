@@ -2,15 +2,16 @@ package it.gov.pagopa.ranker.connector.event.producer;
 
 
 import it.gov.pagopa.ranker.domain.dto.OnboardingDTO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.stereotype.Component;
 
 @Component
+@Slf4j
 public class RankerProducer {
 
   private final String binder;
-  //private final String binder = "admissibility";
 
   private final StreamBridge streamBridge;
 
@@ -22,6 +23,7 @@ public class RankerProducer {
 
   public void sendSaveConsent(OnboardingDTO onboardingDTO) {
     streamBridge.send("rankerProducer-out-0", binder, onboardingDTO);
+    log.info("Sto inviando il messaggio: " + onboardingDTO);
   }
 
 }

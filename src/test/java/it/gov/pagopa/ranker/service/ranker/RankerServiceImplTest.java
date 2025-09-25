@@ -36,21 +36,24 @@ class RankerServiceImplTest {
     }
 
     @Test
-    void testUserAlreadyPreallocated() {
+    void testUserAlreadyPresentUser() {
         OnboardingDTO dto = OnboardingDTO.builder()
                 .userId("user1")
                 .initiativeId("initiative1")
                 .build();
 
-        Preallocation preallocation = Preallocation.builder()
-                .userId("user1")
-                .status(PreallocationStatus.PREALLOCATED)
-                .createdAt(LocalDateTime.now())
-                .build();
+        List<Preallocation> preallocations = new ArrayList<>();
+        preallocations.add(
+                Preallocation.builder()
+                        .userId("user1")
+                        .status(PreallocationStatus.PREALLOCATED)
+                        .createdAt(LocalDateTime.of(2025, 1, 1, 0, 0))
+                        .build()
+        );
 
         InitiativeCounters counters = InitiativeCounters.builder()
                 .id("initiative1")
-                .preallocationList(new ArrayList<>(List.of(preallocation)))
+                .preallocationList(preallocations)
                 .build();
 
         when(initiativeCountersRepository.findById("initiative1"))
@@ -58,9 +61,8 @@ class RankerServiceImplTest {
 
         rankerServiceImpl.execute(dto);
 
-        verifyNoInteractions(rankerProducer);
         verifyNoInteractions(initiativeCountersService);
-        verify(initiativeCountersRepository, never()).save(any());
+        verifyNoInteractions(rankerProducer);
     }
 
     @Test
@@ -74,6 +76,30 @@ class RankerServiceImplTest {
         InitiativeCounters counters = InitiativeCounters.builder()
                 .id("initiative1")
                 .preallocationList(new ArrayList<>())
+                .build();
+
+        when(initiativeCountersRepository.findById("initiative1"))
+                .thenReturn(Optional.of(counters));
+        when(initiativeCountersService.addedPreallocatedUser("initiative1", "user2", true)).thenReturn(1L);
+
+        rankerServiceImpl.execute(dto);
+
+        verify(initiativeCountersService, times(1)).addedPreallocatedUser("initiative1", "user2", true);
+        verify(rankerProducer, times(1)).sendSaveConsent(dto);
+        verify(initiativeCountersRepository, never()).save(any());
+    }
+
+    @Test
+    void testPreallocationListNull() {
+        OnboardingDTO dto = OnboardingDTO.builder()
+                .userId("user2")
+                .initiativeId("initiative1")
+                .verifyIsee(true)
+                .build();
+
+        InitiativeCounters counters = InitiativeCounters.builder()
+                .id("initiative1")
+                .preallocationList(null)
                 .build();
 
         when(initiativeCountersRepository.findById("initiative1"))

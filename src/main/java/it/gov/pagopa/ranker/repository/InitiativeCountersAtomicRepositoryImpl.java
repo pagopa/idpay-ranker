@@ -15,11 +15,11 @@ import java.time.LocalDateTime;
 @Repository
 public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCountersAtomicRepository {
 
-    private static final String FIELD_ID = "_id";
-    private static final String FIELD_ONBOARDED = "onboarded";
-    private static final String FIELD_RESERVED_BUDGET_CENTS = "reservedInitiativeBudgetCents";
-    private static final String FIELD_RESIDUAL_BUDGET_CENTS = "residualInitiativeBudgetCents";
-    private static final String FIELD_PREALLOCATION_LIST = "preallocationList";
+    private static final String FIELD_ID = InitiativeCounters.Fields.id;
+    private static final String FIELD_ONBOARDED = InitiativeCounters.Fields.onboarded;
+    private static final String FIELD_RESERVED_BUDGET_CENTS = InitiativeCounters.Fields.reservedInitiativeBudgetCents;
+    private static final String FIELD_RESIDUAL_BUDGET_CENTS = InitiativeCounters.Fields.residualInitiativeBudgetCents;
+    private static final String FIELD_PREALLOCATION_LIST = InitiativeCounters.Fields.preallocationList;
 
     private final MongoTemplate mongoTemplate;
 

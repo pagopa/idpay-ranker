@@ -41,12 +41,14 @@ public class RankerServiceImpl implements RankerService {
 
         InitiativeCounters existing = optional.get();
 
-        boolean alreadyPresent = existing.getPreallocationList().stream()
-                .anyMatch(p -> p.getUserId().equals(dto.getUserId()));
+        if(existing.getPreallocationList() != null && !existing.getPreallocationList().isEmpty()){
+            boolean alreadyPresent = existing.getPreallocationList().stream()
+                    .anyMatch(p -> p.getUserId().equals(dto.getUserId()));
 
-        if (alreadyPresent) {
-            log.info("User {} already preallocated for initiative {}", dto.getUserId(), dto.getInitiativeId());
-            return;
+            if (alreadyPresent) {
+                log.info("User {} already preallocated for initiative {}", dto.getUserId(), dto.getInitiativeId());
+                return;
+            }
         }
 
         initiativeCountersService.addedPreallocatedUser(

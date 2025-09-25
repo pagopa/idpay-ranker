@@ -19,6 +19,7 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
     private static final String FIELD_ONBOARDED = "onboarded";
     private static final String FIELD_RESERVED_BUDGET_CENTS = "reservedInitiativeBudgetCents";
     private static final String FIELD_RESIDUAL_BUDGET_CENTS = "residualInitiativeBudgetCents";
+    private static final String FIELD_PREALLOCATION_LIST = "preallocationList";
 
     private final MongoTemplate mongoTemplate;
 
@@ -37,7 +38,7 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
                         .inc(FIELD_ONBOARDED, 1L)
                         .inc(FIELD_RESERVED_BUDGET_CENTS, reservationCents)
                         .inc(FIELD_RESIDUAL_BUDGET_CENTS, -reservationCents)
-                        .addToSet("preallocationList",
+                        .addToSet(FIELD_PREALLOCATION_LIST,
                                 Preallocation.builder()
                                         .userId(userId)
                                         .status(PreallocationStatus.PREALLOCATED)

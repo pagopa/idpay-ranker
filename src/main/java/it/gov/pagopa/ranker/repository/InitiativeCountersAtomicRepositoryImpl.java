@@ -11,6 +11,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 
 @Repository
 public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCountersAtomicRepository {
@@ -19,7 +20,7 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
     private static final String FIELD_ONBOARDED = InitiativeCounters.Fields.onboarded;
     private static final String FIELD_RESERVED_BUDGET_CENTS = InitiativeCounters.Fields.reservedInitiativeBudgetCents;
     private static final String FIELD_RESIDUAL_BUDGET_CENTS = InitiativeCounters.Fields.residualInitiativeBudgetCents;
-    private static final String FIELD_PREALLOCATION_LIST = InitiativeCounters.Fields.preallocationList;
+    private static final String FIELD_PREALLOCATION_MAP = InitiativeCounters.Fields.preallocationMap;
 
     private final MongoTemplate mongoTemplate;
 
@@ -29,23 +30,28 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
 
     @Override
     public InitiativeCounters incrementOnboardedAndBudget(String initiativeId, String userId, long reservationCents) {
+        Query query = Query.query(Criteria
+                .where(FIELD_ID).is(initiativeId)
+                .and(FIELD_RESIDUAL_BUDGET_CENTS).gte(reservationCents)
+        );
+
+        Update update = new Update()
+                .inc(FIELD_ONBOARDED, 1L)
+                .inc(FIELD_RESERVED_BUDGET_CENTS, reservationCents)
+                .inc(FIELD_RESIDUAL_BUDGET_CENTS, -reservationCents)
+                .set(FIELD_PREALLOCATION_MAP + "." + userId,
+                        Preallocation.builder()
+                                .userId(userId)
+                                .status(PreallocationStatus.PREALLOCATED)
+                                .createdAt(LocalDateTime.now())
+                                .build()
+                )
+                .setOnInsert(FIELD_PREALLOCATION_MAP, new HashMap<>());
+
         return mongoTemplate.findAndModify(
-                Query.query(Criteria
-                        .where(FIELD_ID).is(initiativeId)
-                        .and(FIELD_RESIDUAL_BUDGET_CENTS).gte(reservationCents)
-                ),
-                new Update()
-                        .inc(FIELD_ONBOARDED, 1L)
-                        .inc(FIELD_RESERVED_BUDGET_CENTS, reservationCents)
-                        .inc(FIELD_RESIDUAL_BUDGET_CENTS, -reservationCents)
-                        .addToSet(FIELD_PREALLOCATION_LIST,
-                                Preallocation.builder()
-                                        .userId(userId)
-                                        .status(PreallocationStatus.PREALLOCATED)
-                                        .createdAt(LocalDateTime.now())
-                                        .build()
-                        ),
-                FindAndModifyOptions.options().returnNew(true),
+                query,
+                update,
+                FindAndModifyOptions.options().returnNew(true).upsert(true),
                 InitiativeCounters.class
         );
     }

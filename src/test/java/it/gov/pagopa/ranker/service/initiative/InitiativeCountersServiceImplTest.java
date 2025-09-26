@@ -9,7 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
+import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -32,7 +32,7 @@ class InitiativeCountersServiceImplTest {
                 .onboarded(5L)
                 .reservedInitiativeBudgetCents(200L)
                 .residualInitiativeBudgetCents(800L)
-                .preallocationList(new ArrayList<>())
+                .preallocationMap(new HashMap<>())
                 .build();
 
         long expectedReservation = initiativeCountersService.calculateReservationCents(true);
@@ -41,21 +41,19 @@ class InitiativeCountersServiceImplTest {
             counters.setOnboarded(counters.getOnboarded() + 1);
             counters.setReservedInitiativeBudgetCents(counters.getReservedInitiativeBudgetCents() + expectedReservation);
             counters.setResidualInitiativeBudgetCents(counters.getResidualInitiativeBudgetCents() - expectedReservation);
-            counters.getPreallocationList().add(
-                    Preallocation.builder()
-                            .userId("user1")
-                            .status(PreallocationStatus.PREALLOCATED)
-                            .createdAt(LocalDateTime.now())
-                            .build()
-            );
+            counters.getPreallocationMap().put("user1", Preallocation.builder()
+                    .userId("user1")
+                    .status(PreallocationStatus.PREALLOCATED)
+                    .createdAt(LocalDateTime.now())
+                    .build());
             return counters;
         });
 
         long rank = initiativeCountersService.addedPreallocatedUser("initiative1", "user1", true);
 
         assertEquals(6L, rank);
-        assertEquals(1, counters.getPreallocationList().size());
-        Preallocation preallocation = counters.getPreallocationList().getFirst();
+        assertEquals(1, counters.getPreallocationMap().size());
+        Preallocation preallocation = counters.getPreallocationMap().get("user1");
         assertEquals("user1", preallocation.getUserId());
         assertEquals(PreallocationStatus.PREALLOCATED, preallocation.getStatus());
         assertNotNull(preallocation.getCreatedAt());
@@ -68,7 +66,7 @@ class InitiativeCountersServiceImplTest {
                 .onboarded(0L)
                 .reservedInitiativeBudgetCents(0L)
                 .residualInitiativeBudgetCents(1000L)
-                .preallocationList(new ArrayList<>())
+                .preallocationMap(new HashMap<>())
                 .build();
 
         long expectedReservation = initiativeCountersService.calculateReservationCents(false);
@@ -77,21 +75,19 @@ class InitiativeCountersServiceImplTest {
             counters.setOnboarded(counters.getOnboarded() + 1);
             counters.setReservedInitiativeBudgetCents(counters.getReservedInitiativeBudgetCents() + expectedReservation);
             counters.setResidualInitiativeBudgetCents(counters.getResidualInitiativeBudgetCents() - expectedReservation);
-            counters.getPreallocationList().add(
-                    Preallocation.builder()
-                            .userId("user2")
-                            .status(PreallocationStatus.PREALLOCATED)
-                            .createdAt(LocalDateTime.now())
-                            .build()
-            );
+            counters.getPreallocationMap().put("user2", Preallocation.builder()
+                    .userId("user2")
+                    .status(PreallocationStatus.PREALLOCATED)
+                    .createdAt(LocalDateTime.now())
+                    .build());
             return counters;
         });
 
         long rank = initiativeCountersService.addedPreallocatedUser("initiative2", "user2", false);
 
         assertEquals(1L, rank);
-        assertEquals(1, counters.getPreallocationList().size());
-        Preallocation preallocation = counters.getPreallocationList().getFirst();
+        assertEquals(1, counters.getPreallocationMap().size());
+        Preallocation preallocation = counters.getPreallocationMap().get("user2");
         assertEquals("user2", preallocation.getUserId());
         assertEquals(PreallocationStatus.PREALLOCATED, preallocation.getStatus());
         assertNotNull(preallocation.getCreatedAt());

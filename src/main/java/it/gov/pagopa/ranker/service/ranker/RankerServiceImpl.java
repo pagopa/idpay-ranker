@@ -27,7 +27,6 @@ public class RankerServiceImpl implements RankerService {
         this.initiativeCountersService = initiativeCountersService;
     }
 
-
     @Override
     public void execute(OnboardingDTO dto) {
         log.info("Processing message: {}", dto);
@@ -41,14 +40,9 @@ public class RankerServiceImpl implements RankerService {
 
         InitiativeCounters existing = optional.get();
 
-        if(existing.getPreallocationList() != null && !existing.getPreallocationList().isEmpty()){
-            boolean alreadyPresent = existing.getPreallocationList().stream()
-                    .anyMatch(p -> p.getUserId().equals(dto.getUserId()));
-
-            if (alreadyPresent) {
-                log.info("User {} already preallocated for initiative {}", dto.getUserId(), dto.getInitiativeId());
-                return;
-            }
+        if(existing.getPreallocationMap() != null && existing.getPreallocationMap().containsKey(dto.getUserId())){
+            log.info("User {} already preallocated for initiative {}", dto.getUserId(), dto.getInitiativeId());
+            return;
         }
 
         initiativeCountersService.addedPreallocatedUser(

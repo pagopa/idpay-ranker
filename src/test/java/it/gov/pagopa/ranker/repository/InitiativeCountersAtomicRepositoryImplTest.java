@@ -1,6 +1,8 @@
 package it.gov.pagopa.ranker.repository;
 
 import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
+import it.gov.pagopa.ranker.domain.model.Preallocation;
+import it.gov.pagopa.ranker.enums.PreallocationStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,8 +13,10 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import java.time.LocalDateTime;
+import java.util.HashMap;
+
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -37,7 +41,16 @@ class InitiativeCountersAtomicRepositoryImplTest {
                 .onboarded(1L)
                 .reservedInitiativeBudgetCents(100L)
                 .residualInitiativeBudgetCents(900L)
+                .preallocationMap(new HashMap<>())
                 .build();
+
+        expected.getPreallocationMap().put("user1",
+                Preallocation.builder()
+                        .userId("user1")
+                        .status(PreallocationStatus.PREALLOCATED)
+                        .createdAt(LocalDateTime.now())
+                        .build()
+        );
 
         when(mongoTemplate.findAndModify(
                 any(Query.class),
@@ -50,6 +63,12 @@ class InitiativeCountersAtomicRepositoryImplTest {
 
         assertNotNull(result);
         assertEquals(expected, result);
+        assertTrue(result.getPreallocationMap().containsKey("user1"));
+        Preallocation preallocation = result.getPreallocationMap().get("user1");
+        assertEquals("user1", preallocation.getUserId());
+        assertEquals(PreallocationStatus.PREALLOCATED, preallocation.getStatus());
+        assertNotNull(preallocation.getCreatedAt());
+
         verify(mongoTemplate, times(1)).findAndModify(
                 any(Query.class),
                 any(Update.class),

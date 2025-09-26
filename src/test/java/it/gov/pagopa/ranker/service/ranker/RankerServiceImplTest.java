@@ -12,8 +12,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import static it.gov.pagopa.ranker.constants.ErrorMessages.RESOURCE_NOT_READY;
@@ -42,18 +42,16 @@ class RankerServiceImplTest {
                 .initiativeId("initiative1")
                 .build();
 
-        List<Preallocation> preallocations = new ArrayList<>();
-        preallocations.add(
-                Preallocation.builder()
-                        .userId("user1")
-                        .status(PreallocationStatus.PREALLOCATED)
-                        .createdAt(LocalDateTime.of(2025, 1, 1, 0, 0))
-                        .build()
-        );
+        Map<String, Preallocation> preallocationMap = new HashMap<>();
+        preallocationMap.put("user1", Preallocation.builder()
+                .userId("user1")
+                .status(PreallocationStatus.PREALLOCATED)
+                .createdAt(LocalDateTime.of(2025, 1, 1, 0, 0))
+                .build());
 
         InitiativeCounters counters = InitiativeCounters.builder()
                 .id("initiative1")
-                .preallocationList(preallocations)
+                .preallocationMap(preallocationMap)
                 .build();
 
         when(initiativeCountersRepository.findById("initiative1"))
@@ -75,7 +73,7 @@ class RankerServiceImplTest {
 
         InitiativeCounters counters = InitiativeCounters.builder()
                 .id("initiative1")
-                .preallocationList(new ArrayList<>())
+                .preallocationMap(new HashMap<>())
                 .build();
 
         when(initiativeCountersRepository.findById("initiative1"))
@@ -90,7 +88,7 @@ class RankerServiceImplTest {
     }
 
     @Test
-    void testPreallocationListNull() {
+    void testPreallocationMapNull() {
         OnboardingDTO dto = OnboardingDTO.builder()
                 .userId("user2")
                 .initiativeId("initiative1")
@@ -99,7 +97,7 @@ class RankerServiceImplTest {
 
         InitiativeCounters counters = InitiativeCounters.builder()
                 .id("initiative1")
-                .preallocationList(null)
+                .preallocationMap(null)
                 .build();
 
         when(initiativeCountersRepository.findById("initiative1"))

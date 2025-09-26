@@ -9,7 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 @Data
@@ -29,6 +30,6 @@ public class InitiativeCounters {
     private Long reservedInitiativeBudgetCents=0L;
     @Builder.Default
     private Long residualInitiativeBudgetCents=0L;
-
-    private List<Preallocation> preallocationList;
+    @Builder.Default
+    private Map<String, Preallocation> preallocationMap = new HashMap<>();
 }

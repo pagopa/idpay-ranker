@@ -11,7 +11,6 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
 
 @Repository
 public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCountersAtomicRepository {
@@ -45,8 +44,7 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
                                 .status(PreallocationStatus.PREALLOCATED)
                                 .createdAt(LocalDateTime.now())
                                 .build()
-                )
-                .setOnInsert(FIELD_PREALLOCATION_MAP, new HashMap<>());
+                );
 
         return mongoTemplate.findAndModify(
                 query,

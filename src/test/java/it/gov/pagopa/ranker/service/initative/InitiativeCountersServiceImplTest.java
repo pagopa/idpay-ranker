@@ -1,10 +1,9 @@
-package it.gov.pagopa.ranker.service.initiative;
+package it.gov.pagopa.ranker.service.initative;
 
 import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
 import it.gov.pagopa.ranker.domain.model.Preallocation;
 import it.gov.pagopa.ranker.enums.PreallocationStatus;
 import it.gov.pagopa.ranker.repository.InitiativeCountersAtomicRepository;
-import it.gov.pagopa.ranker.service.initative.InitiativeCountersServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

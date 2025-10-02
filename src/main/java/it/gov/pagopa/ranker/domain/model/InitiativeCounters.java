@@ -22,6 +22,7 @@ import java.util.Map;
 public class InitiativeCounters {
     @Id
     private String id;
+
     private Long initiativeBudgetCents;
 
     @Builder.Default

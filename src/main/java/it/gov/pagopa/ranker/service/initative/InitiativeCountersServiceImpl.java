@@ -14,10 +14,20 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
     }
 
     @Override
-    public long addedPreallocatedUser(String initiativeId, String userId, boolean verifyIsee) {
+    public long addedPreallocatedUser(String initiativeId, String userId, boolean verifyIsee, Long sequenceNumber, Long enqueuedTime) {
         long reservationCents = calculateReservationCents(verifyIsee);
 
-        InitiativeCounters updated = atomicRepository.incrementOnboardedAndBudget(initiativeId, userId, reservationCents);
+        sequenceNumber = sequenceNumber != null ? sequenceNumber : 0L;
+        enqueuedTime = enqueuedTime != null ? enqueuedTime : 0L;
+
+        InitiativeCounters updated = atomicRepository.incrementOnboardedAndBudget(
+                initiativeId,
+                userId,
+                reservationCents,
+                sequenceNumber,
+                enqueuedTime
+        );
+
         if (updated == null) {
             throw new IllegalArgumentException("Initiative not found or insufficient budget: " + initiativeId);
         }

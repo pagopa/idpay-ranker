@@ -2,7 +2,6 @@ package it.gov.pagopa.ranker.repository;
 
 import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
 import it.gov.pagopa.ranker.domain.model.Preallocation;
-import it.gov.pagopa.ranker.enums.PreallocationStatus;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -11,6 +10,8 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+
+import static it.gov.pagopa.ranker.enums.PreallocationStatus.PREALLOCATED;
 
 @Repository
 public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCountersAtomicRepository {
@@ -28,7 +29,10 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
     }
 
     @Override
-    public InitiativeCounters incrementOnboardedAndBudget(String initiativeId, String userId, long reservationCents) {
+    public InitiativeCounters incrementOnboardedAndBudget(
+            String initiativeId, String userId, long reservationCents,
+            Long sequenceNumber, Long enqueuedTime) {
+
         Query query = Query.query(Criteria
                 .where(FIELD_ID).is(initiativeId)
                 .and(FIELD_RESIDUAL_BUDGET_CENTS).gte(reservationCents)
@@ -41,8 +45,10 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
                 .set(FIELD_PREALLOCATION_MAP + "." + userId,
                         Preallocation.builder()
                                 .userId(userId)
-                                .status(PreallocationStatus.PREALLOCATED)
+                                .status(PREALLOCATED)
                                 .createdAt(LocalDateTime.now())
+                                .sequenceNumber(sequenceNumber)
+                                .enqueuedTime(enqueuedTime)
                                 .build()
                 );
 

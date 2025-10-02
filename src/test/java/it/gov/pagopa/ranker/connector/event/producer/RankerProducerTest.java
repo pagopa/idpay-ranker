@@ -36,4 +36,23 @@ class RankerProducerTest {
         assertEquals("user1", captured.getUserId());
         assertEquals("initiative1", captured.getInitiativeId());
     }
+
+//    @Test
+//    void testSendOnboardingKo() {
+//        OnboardingDTO dto = OnboardingDTO.builder()
+//                .userId("user2")
+//                .initiativeId("initiative2")
+//                .build();
+//
+//        rankerProducer.sendOnboardingKo(dto, "REASON");
+//
+//        ArgumentCaptor<OnboardingDTO> captor = ArgumentCaptor.forClass(OnboardingDTO.class);
+//        verify(streamBridge, times(1)).send(eq("rankerProducer-out-0"), captor.capture());
+//
+//        OnboardingDTO captured = captor.getValue();
+//        assertEquals("user2", captured.getUserId());
+//        assertEquals("initiative2", captured.getInitiativeId());
+//        assertEquals("Onboarding_KO", captured.getStatus());
+//        assertEquals("REASON", captured.getRejectionReason());
+//    }
 }

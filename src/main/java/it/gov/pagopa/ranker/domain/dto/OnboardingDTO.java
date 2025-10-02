@@ -36,4 +36,5 @@ public class OnboardingDTO {
     //New attribute
     String serviceId;
 
+    String rejectionReason;
 }

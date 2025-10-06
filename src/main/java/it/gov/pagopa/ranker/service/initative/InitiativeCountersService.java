@@ -1,8 +1,8 @@
 package it.gov.pagopa.ranker.service.initative;
 
-import org.joda.time.DateTime;
+import java.time.LocalDateTime;
 
 public interface InitiativeCountersService {
-    void addPreallocatedUser(String initiativeId, String userId, boolean verifyIsee, Long sequenceNumber, DateTime enqueuedTime);
+    void addPreallocatedUser(String initiativeId, String userId, boolean verifyIsee, Long sequenceNumber, LocalDateTime enqueuedTime);
     boolean hasAvailableBudget();
 }

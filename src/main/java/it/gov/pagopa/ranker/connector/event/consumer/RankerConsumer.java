@@ -20,7 +20,7 @@ import java.util.function.Consumer;
 
 @Slf4j
 @Configuration
-public class RankerConsumer implements ApplicationListener<ApplicationReadyEvent> {
+public class RankerConsumer{
 
   public static final String RANKER_PROCESSOR_BINDING_NAME = "rankerProcessor-in-0";
 
@@ -46,14 +46,15 @@ public class RankerConsumer implements ApplicationListener<ApplicationReadyEvent
     } catch (DuplicateKeyException e) {
       log.error("[BUDGET_CONTEXT] Budget exhausted.");
       stopConsumer();
+      log.info("[BUDGET_CONTEXT_STOP] Consumer stopped");
     }
   }
 
-  @Override
-  public void onApplicationEvent(ApplicationReadyEvent event) {
-    log.info("[BUDGET_CONTEXT_START] Application ready, performing initial budget check.");
-    checkResidualBudgetAndStartConsumer();
-  }
+//  @Override
+//  public void onApplicationEvent(ApplicationReadyEvent event) {
+//    log.info("[BUDGET_CONTEXT_START] Application ready, performing initial budget check.");
+//    checkResidualBudgetAndStartConsumer();
+//  }
 
   @Scheduled(cron = "${app.initiative.schedule-check-budget}")
   public void checkResidualBudgetAndStartConsumer() {
@@ -61,6 +62,7 @@ public class RankerConsumer implements ApplicationListener<ApplicationReadyEvent
     boolean hasAvailableBudget = initiativeCountersService.hasAvailableBudget();
     if (hasAvailableBudget){
       startConsumer();
+      log.info("[BUDGET_CONTEXT_START] Consumer started");
     }
   }
 
@@ -102,8 +104,8 @@ public class RankerConsumer implements ApplicationListener<ApplicationReadyEvent
     }
   }
 
-  @Override
-  public boolean supportsAsyncExecution() {
-    return ApplicationListener.super.supportsAsyncExecution();
-  }
+//  @Override
+//  public boolean supportsAsyncExecution() {
+//    return ApplicationListener.super.supportsAsyncExecution();
+//  }
 }

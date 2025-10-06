@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.joda.time.DateTime;
 
 import java.time.LocalDateTime;
 
@@ -19,5 +18,5 @@ public class Preallocation {
     private PreallocationStatus status;
     private LocalDateTime createdAt;
     private Long sequenceNumber;
-    private DateTime enqueuedTime;
+    private LocalDateTime enqueuedTime;
 }

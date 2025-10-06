@@ -5,9 +5,10 @@ import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
 import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
 
 @Slf4j
 @Service
@@ -23,7 +24,7 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
     }
 
     @Override
-    public void addPreallocatedUser(String initiativeId, String userId, boolean verifyIsee, Long sequenceNumber, DateTime enqueuedTime) {
+    public void addPreallocatedUser(String initiativeId, String userId, boolean verifyIsee, Long sequenceNumber, LocalDateTime enqueuedTime) {
         long reservationCents = calculateReservationCents(verifyIsee);
 
         try {
@@ -42,7 +43,7 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
 
     @Override
     public boolean hasAvailableBudget() {
-        InitiativeCounters initiativeCounter = initiativeCounterRepository.findByInitiativeId(initiativeId);
+        InitiativeCounters initiativeCounter = initiativeCounterRepository.findById(initiativeId).orElse(null);
         return initiativeCounter != null && initiativeCounter.getResidualInitiativeBudgetCents() >= 100;
     }
 

@@ -16,7 +16,5 @@ public interface InitiativeCountersRepository extends MongoRepository<Initiative
 
     @Query("{ 'residualInitiativeBudgetCents': { $gte: ?0 } }")
     List<InitiativeCounters> findByResidualBudgetGreaterThanEqual(long threshold);
-
-    InitiativeCounters findByInitiativeId(String initiativeId);
 }
 

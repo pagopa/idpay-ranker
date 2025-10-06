@@ -35,7 +35,7 @@ spring:
          destination: ${SB_ONBOARDING_REQUEST_TOPIC:idpay-onboarding-request}
          content-type: ${SB_CONTENT_TYPE:application/json}
          binder: onboarding
-         consumer.autoStartup: false
+         consumer.autoStartup: true
        rankerProducer-out-0:
          destination: ${SB_ONBOARDING_OUTCOME_TOPIC:idpay-admissibility-request}
          content-type: ${SB_CONTENT_TYPE:application/json}

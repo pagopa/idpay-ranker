@@ -6,12 +6,13 @@ import it.gov.pagopa.ranker.exception.MessageProcessingException;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
 import lombok.extern.slf4j.Slf4j;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
 @Service
 @Slf4j
@@ -62,11 +63,12 @@ public class RankerServiceImpl implements RankerService {
     private OnboardingDTO extractMessageHeader(Message<OnboardingDTO> message){
         OnboardingDTO onboardingDTO = message.getPayload();
 
-        Object seqObj = message.getHeaders().get("SequenceNumber");
-        Object enqObj = message.getHeaders().get("EnqueuedTimeUtc");
+        Object seqObj = message.getHeaders().get("azure_service_bus_sequence_number");
+        Object enqObj = message.getHeaders().get("azure_service_bus_enqueued_time");
 
         long sequenceNumber;
-        DateTime enqueuedTime;
+        ZoneId italyZone = ZoneId.of("Europe/Rome");
+        LocalDateTime enqueuedTime;
 
         if (seqObj instanceof Number number) {
             sequenceNumber = number.longValue();
@@ -74,14 +76,14 @@ public class RankerServiceImpl implements RankerService {
             throw new MessageProcessingException("Missing sequenceNumber.");
         }
 
-        DateTimeZone italyZone = DateTimeZone.forID("Europe/Rome");
-
         if (enqObj instanceof Instant instant) {
-            enqueuedTime = new DateTime(instant.toEpochMilli(), italyZone);
+            enqueuedTime = LocalDateTime.ofInstant(instant, italyZone);
         } else if (enqObj instanceof Number enqueuedNumber) {
-            enqueuedTime = new DateTime(enqueuedNumber.longValue(), italyZone);
+            enqueuedTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(enqueuedNumber.longValue()), italyZone);
         } else if (enqObj instanceof String str) {
-            enqueuedTime = DateTime.parse(str).withZone(italyZone);
+            enqueuedTime = LocalDateTime.parse(str);
+        } else if (enqObj instanceof OffsetDateTime time) {
+            enqueuedTime = time.atZoneSameInstant(italyZone).toLocalDateTime();
         } else {
             throw new MessageProcessingException("Missing enqueuedTime.");
         }

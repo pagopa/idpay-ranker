@@ -2,6 +2,7 @@ package it.gov.pagopa.ranker.repository;
 
 import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
 import it.gov.pagopa.ranker.domain.model.Preallocation;
+import org.joda.time.DateTime;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -31,7 +32,7 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
     @Override
     public InitiativeCounters incrementOnboardedAndBudget(
             String initiativeId, String userId, long reservationCents,
-            Long sequenceNumber, Long enqueuedTime) {
+            Long sequenceNumber, DateTime enqueuedTime) {
 
         Query query = Query.query(Criteria
                 .where(FIELD_ID).is(initiativeId)

@@ -1,38 +1,49 @@
 package it.gov.pagopa.ranker.service.initative;
 
+import com.mongodb.DuplicateKeyException;
 import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
-import it.gov.pagopa.ranker.repository.InitiativeCountersAtomicRepository;
+import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
+import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
+import lombok.extern.slf4j.Slf4j;
+import org.joda.time.DateTime;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 public class InitiativeCountersServiceImpl implements InitiativeCountersService {
 
-    private final InitiativeCountersAtomicRepository atomicRepository;
+    private final String initiativeId;
 
-    public InitiativeCountersServiceImpl(InitiativeCountersAtomicRepository atomicRepository) {
-        this.atomicRepository = atomicRepository;
+    private final InitiativeCountersRepository initiativeCounterRepository;
+
+    public InitiativeCountersServiceImpl(InitiativeCountersRepository initiativeCounterRepository, @Value("${app.initiative.identified}") String initiativeId) {
+        this.initiativeCounterRepository = initiativeCounterRepository;
+        this.initiativeId = initiativeId;
     }
 
     @Override
-    public long addedPreallocatedUser(String initiativeId, String userId, boolean verifyIsee, Long sequenceNumber, Long enqueuedTime) {
+    public void addPreallocatedUser(String initiativeId, String userId, boolean verifyIsee, Long sequenceNumber, DateTime enqueuedTime) {
         long reservationCents = calculateReservationCents(verifyIsee);
 
-        sequenceNumber = sequenceNumber != null ? sequenceNumber : 0L;
-        enqueuedTime = enqueuedTime != null ? enqueuedTime : 0L;
-
-        InitiativeCounters updated = atomicRepository.incrementOnboardedAndBudget(
-                initiativeId,
-                userId,
-                reservationCents,
-                sequenceNumber,
-                enqueuedTime
-        );
-
-        if (updated == null) {
-            throw new IllegalArgumentException("Initiative not found or insufficient budget: " + initiativeId);
+        try {
+            initiativeCounterRepository.incrementOnboardedAndBudget(
+                    initiativeId,
+                    userId,
+                    reservationCents,
+                    sequenceNumber,
+                    enqueuedTime
+            );
+        } catch (DuplicateKeyException e){
+            log.error("[RANKER] Budget exhausted for the initiative {}", initiativeId);
+            throw new BudgetExhaustedException("[RANKER] Budget exhausted for the initiative: " + initiativeId, e);
         }
+    }
 
-        return updated.getOnboarded();
+    @Override
+    public boolean hasAvailableBudget() {
+        InitiativeCounters initiativeCounter = initiativeCounterRepository.findByInitiativeId(initiativeId);
+        return initiativeCounter != null && initiativeCounter.getResidualInitiativeBudgetCents() >= 100;
     }
 
     public long calculateReservationCents(boolean verifyIsee) {

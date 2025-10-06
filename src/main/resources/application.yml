@@ -35,6 +35,7 @@ spring:
          destination: ${SB_ONBOARDING_REQUEST_TOPIC:idpay-onboarding-request}
          content-type: ${SB_CONTENT_TYPE:application/json}
          binder: onboarding
+         consumer.autoStartup: false
        rankerProducer-out-0:
          destination: ${SB_ONBOARDING_OUTCOME_TOPIC:idpay-admissibility-request}
          content-type: ${SB_CONTENT_TYPE:application/json}
@@ -129,3 +130,6 @@ app:
     response.timeout: ${RESPONSE_TIMEOUT:60000}
     read.handler.timeout: ${READ_TIMEOUT_HANDLER:60000}
     write.handler.timeout: ${WRITE_TIMEOUT_HANDLER:60000}
+  initiative:
+    identified: ${INITIATIVE_ID:68c4449d0d8426093743d00e}
+    schedule-check-budget: ${INITIATIVE_SCHEDULE_CHECK_BUDGET:0 */5 * * * *}

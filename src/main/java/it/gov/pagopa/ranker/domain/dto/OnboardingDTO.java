@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.joda.time.DateTime;
 
 import java.time.LocalDateTime;
 
@@ -37,4 +38,8 @@ public class OnboardingDTO {
     String serviceId;
 
     String rejectionReason;
+
+    Long sequenceNumber;
+
+    DateTime enqueuedTime;
 }

@@ -5,6 +5,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface InitiativeCountersRepository extends MongoRepository<InitiativeCounters, String>, InitiativeCountersAtomicRepository {
 
@@ -16,5 +17,9 @@ public interface InitiativeCountersRepository extends MongoRepository<Initiative
 
     @Query("{ 'residualInitiativeBudgetCents': { $gte: ?0 } }")
     List<InitiativeCounters> findByResidualBudgetGreaterThanEqual(long threshold);
+
+    @Override
+    @Query(value = "{ '_id': ?0 }", fields = "{ 'preallocationMap': 0 }")
+    Optional<InitiativeCounters> findById(String id);
 }
 

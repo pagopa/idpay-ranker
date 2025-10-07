@@ -17,6 +17,10 @@ public class OnboardingDTO {
 
     String initiativeId;
 
+    String name;
+
+    String surname;
+
     Boolean tc;
 
     Boolean verifyIsee;

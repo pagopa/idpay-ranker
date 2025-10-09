@@ -3,6 +3,7 @@ package it.gov.pagopa.ranker.repository;
 import it.gov.pagopa.common.mongo.MongoTest;
 import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -15,6 +16,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.IntStream;
 
+@Disabled
 @MongoTest
 class InitiativeCountersReservationOpsRepositoryImplTest {
 

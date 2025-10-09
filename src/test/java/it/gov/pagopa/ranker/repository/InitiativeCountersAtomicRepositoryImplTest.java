@@ -36,6 +36,9 @@ class InitiativeCountersAtomicRepositoryImplTest {
 
     @Test
     void testIncrementOnboardedAndBudget() {
+        LocalDateTime now = LocalDateTime.now();
+        Long sequenceNumber = 123L;
+
         InitiativeCounters expected = InitiativeCounters.builder()
                 .id("initiative1")
                 .onboarded(1L)
@@ -48,7 +51,9 @@ class InitiativeCountersAtomicRepositoryImplTest {
                 Preallocation.builder()
                         .userId("user1")
                         .status(PreallocationStatus.PREALLOCATED)
-                        .createdAt(LocalDateTime.now())
+                        .createdAt(now)
+                        .sequenceNumber(sequenceNumber)
+                        .enqueuedTime(now)
                         .build()
         );
 
@@ -59,7 +64,13 @@ class InitiativeCountersAtomicRepositoryImplTest {
                 eq(InitiativeCounters.class)
         )).thenReturn(expected);
 
-        InitiativeCounters result = repository.incrementOnboardedAndBudget("initiative1", "user1", 100L);
+        InitiativeCounters result = repository.incrementOnboardedAndBudget(
+                "initiative1",
+                "user1",
+                100L,
+                sequenceNumber,
+                now
+        );
 
         assertNotNull(result);
         assertEquals(expected, result);
@@ -67,6 +78,8 @@ class InitiativeCountersAtomicRepositoryImplTest {
         Preallocation preallocation = result.getPreallocationMap().get("user1");
         assertEquals("user1", preallocation.getUserId());
         assertEquals(PreallocationStatus.PREALLOCATED, preallocation.getStatus());
+        assertEquals(sequenceNumber, preallocation.getSequenceNumber());
+        assertEquals(now, preallocation.getEnqueuedTime());
         assertNotNull(preallocation.getCreatedAt());
 
         verify(mongoTemplate, times(1)).findAndModify(

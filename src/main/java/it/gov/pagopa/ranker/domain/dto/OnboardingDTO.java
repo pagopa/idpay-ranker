@@ -17,6 +17,10 @@ public class OnboardingDTO {
 
     String initiativeId;
 
+    String name;
+
+    String surname;
+
     Boolean tc;
 
     Boolean verifyIsee;
@@ -36,4 +40,9 @@ public class OnboardingDTO {
     //New attribute
     String serviceId;
 
+    String rejectionReason;
+
+    Long sequenceNumber;
+
+    LocalDateTime enqueuedTime;
 }

@@ -36,18 +36,13 @@ public class ErrorManager {
   }
 
   public static void logClientException(RuntimeException error, HttpServletRequest request) {
-    Throwable unwrappedException = error.getCause() instanceof ServiceException
-            ? error.getCause()
-            : error;
-
     String clientExceptionMessage = "";
 
-
     log.info("A {} occurred handling request {}{} at {}",
-            unwrappedException.getClass().getSimpleName() ,
+            ((Throwable) error).getClass().getSimpleName() ,
             getRequestDetails(request),
             clientExceptionMessage,
-            unwrappedException.getStackTrace().length > 0 ? unwrappedException.getStackTrace()[0] : "UNKNOWN");
+            error.getStackTrace().length > 0 ? error.getStackTrace()[0] : "UNKNOWN");
 
   }
 

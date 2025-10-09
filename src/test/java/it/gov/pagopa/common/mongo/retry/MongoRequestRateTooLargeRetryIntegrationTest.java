@@ -4,7 +4,6 @@ import it.gov.pagopa.common.mongo.DummySpringRepository;
 import it.gov.pagopa.common.mongo.config.MongoConfig;
 import it.gov.pagopa.common.mongo.retry.exception.MongoRequestRateTooLargeRetryExpiredException;
 import it.gov.pagopa.common.mongo.singleinstance.AutoConfigureSingleInstanceMongodb;
-import it.gov.pagopa.common.web.exception.ErrorManager;
 import it.gov.pagopa.common.web.exception.MongoExceptionHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
@@ -42,7 +41,6 @@ import org.springframework.web.bind.annotation.RestController;
         })
 @ContextConfiguration(classes = {
         MongoRequestRateTooLargeAutomaticRetryAspect.class,
-        ErrorManager.class,
         MongoExceptionHandler.class,
         MongoConfig.class,
 

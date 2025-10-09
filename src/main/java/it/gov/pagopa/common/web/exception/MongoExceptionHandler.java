@@ -24,12 +24,10 @@ import java.util.Optional;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class MongoExceptionHandler {
 
-  private final ErrorManager errorManager;
 
   private final ErrorDTO tooManyRequestsErrorDTO;
 
-  public MongoExceptionHandler(ErrorManager errorManager, @Nullable ErrorDTO tooManyRequestsErrorDTO) {
-    this.errorManager = errorManager;
+  public MongoExceptionHandler(@Nullable ErrorDTO tooManyRequestsErrorDTO) {
 
     this.tooManyRequestsErrorDTO = Optional.ofNullable(tooManyRequestsErrorDTO)
             .orElse(new ErrorDTO("TOO_MANY_REQUESTS", "Too Many Requests"));
@@ -39,13 +37,11 @@ public class MongoExceptionHandler {
   protected ResponseEntity<ErrorDTO> handleDataAccessException(
           DataAccessException ex, HttpServletRequest request) {
 
-    if (MongoRequestRateTooLargeRetryer.isRequestRateTooLargeException(ex)) {
-      Long retryAfterMs = MongoRequestRateTooLargeRetryer.getRetryAfterMs(ex);
 
-      return getErrorDTOResponseEntity(ex, request, retryAfterMs);
-    } else {
-      return errorManager.handleException(ex, request);
-    }
+    Long retryAfterMs = MongoRequestRateTooLargeRetryer.getRetryAfterMs(ex);
+
+    return getErrorDTOResponseEntity(ex, request, retryAfterMs);
+
   }
 
   @ExceptionHandler(MongoRequestRateTooLargeRetryExpiredException.class)
@@ -61,7 +57,7 @@ public class MongoExceptionHandler {
 
     log.info(
             "A MongoQueryException (RequestRateTooLarge) occurred handling request {}: HttpStatus 429 - {}",
-            ErrorManager.getRequestDetails(request), message);
+            getRequestDetails(request), message);
     log.debug("Something went wrong while accessing MongoDB", ex);
 
     final BodyBuilder bodyBuilder = ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
@@ -75,6 +71,10 @@ public class MongoExceptionHandler {
 
     return bodyBuilder
             .body(tooManyRequestsErrorDTO);
+  }
+
+  public static String getRequestDetails(HttpServletRequest request) {
+    return "%s %s".formatted(request.getMethod(), request.getRequestURI());
   }
 
 }

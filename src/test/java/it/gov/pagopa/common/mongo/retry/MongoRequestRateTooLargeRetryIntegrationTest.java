@@ -115,7 +115,7 @@ class MongoRequestRateTooLargeRetryIntegrationTest {
         mockMvc.perform(MockMvcRequestBuilders.get("/test")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isTooManyRequests())
-                .andExpect(MockMvcResultMatchers.content().json(EXPECTED_TOO_MANY_REQUESTS_ERROR, false));
+                .andExpect(MockMvcResultMatchers.content().json(EXPECTED_TOO_MANY_REQUESTS_ERROR));
 
         Assertions.assertEquals(1, counter[0]);
     }
@@ -125,7 +125,7 @@ class MongoRequestRateTooLargeRetryIntegrationTest {
         mockMvc.perform(MockMvcRequestBuilders.get("/test-api-retryable")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(MockMvcResultMatchers.status().isTooManyRequests())
-                .andExpect(MockMvcResultMatchers.content().json(EXPECTED_TOO_MANY_REQUESTS_ERROR, false));
+                .andExpect(MockMvcResultMatchers.content().json(EXPECTED_TOO_MANY_REQUESTS_ERROR));
 
         Assertions.assertEquals(counter[0], API_RETRYABLE_MAX_RETRY + 1);
     }

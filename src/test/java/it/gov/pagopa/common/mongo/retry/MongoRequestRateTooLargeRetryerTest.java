@@ -17,7 +17,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.mongodb.UncategorizedMongoDbException;
@@ -25,6 +24,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import java.util.Collections;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -47,7 +47,7 @@ public class MongoRequestRateTooLargeRetryerTest {
   private MemoryAppender memoryAppender;
 
   @BeforeEach
-  public void setup() {
+  void setup() {
     ch.qos.logback.classic.Logger logger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(
         MongoRequestRateTooLargeRetryer.class.getName());
     memoryAppender = new MemoryAppender();
@@ -89,7 +89,7 @@ public class MongoRequestRateTooLargeRetryerTest {
             );
             """;
     final MongoWriteException mongoWriteException = new MongoWriteException(
-            new WriteError(16500, writeErrorMessage, BsonDocument.parse("{}")), new ServerAddress());
+            new WriteError(16500, writeErrorMessage, BsonDocument.parse("{}")), new ServerAddress(), Collections.emptyList());
     return new DataIntegrityViolationException(mongoWriteException.getMessage(), mongoWriteException);
   }
 
@@ -99,7 +99,7 @@ public class MongoRequestRateTooLargeRetryerTest {
             Error=16500, RetryAfterMs=34, Details='Batch write error.'
             """;
     final MongoWriteException mongoWriteException = new MongoWriteException(
-            new WriteError(16500, writeErrorMessage, BsonDocument.parse("{}")), new ServerAddress());
+            new WriteError(16500, writeErrorMessage, BsonDocument.parse("{}")), new ServerAddress(), Collections.emptyList());
     return new DataIntegrityViolationException(mongoWriteException.getMessage(), mongoWriteException);
   }
 

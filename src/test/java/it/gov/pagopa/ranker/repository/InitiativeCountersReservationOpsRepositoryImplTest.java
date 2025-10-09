@@ -27,20 +27,20 @@ class InitiativeCountersReservationOpsRepositoryImplTest {
 
     @Test
     void testReservation() {
-        int N = 1000;
+        int n = 1000;
 
         final BigDecimal budget = BigDecimal.valueOf(100099);
         final Long budgetReservedPerRequestCents = euro2cents( BigDecimal.valueOf(100L));
-        final BigDecimal expectedBudgetReserved = BigDecimal.valueOf(N*100);
+        final BigDecimal expectedBudgetReserved = BigDecimal.valueOf(n*100);
         final BigDecimal expectedBudgetResidual = BigDecimal.valueOf(99);
 
         storeInitiative(budget);
 
-        final ExecutorService executorService = Executors.newFixedThreadPool(N);
+        final ExecutorService executorService = Executors.newFixedThreadPool(n);
         LocalDateTime now = LocalDateTime.now();
         Long sequenceNumber = 123L;
 
-        final List<Future<InitiativeCounters>> tasks = IntStream.range(0, N)
+        final List<Future<InitiativeCounters>> tasks = IntStream.range(0, n)
                 .mapToObj(i -> executorService.submit(() ->
                         initiativeCountersReservationOpsRepositoryImpl.incrementOnboardedAndBudget("prova", "user"+i, budgetReservedPerRequestCents, sequenceNumber+i, now)))
                 .toList();
@@ -53,8 +53,8 @@ class InitiativeCountersReservationOpsRepositoryImplTest {
             }
         }).count();
 
-        checkStoredBudgetReservation(expectedBudgetReserved, expectedBudgetResidual, N);
-        Assertions.assertEquals(N, successfulReservation);
+        checkStoredBudgetReservation(expectedBudgetReserved, expectedBudgetResidual, n);
+        Assertions.assertEquals(n, successfulReservation);
     }
 
     private void storeInitiative(BigDecimal budget) {

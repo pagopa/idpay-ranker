@@ -63,7 +63,7 @@ class InitiativeCountersServiceImplTest {
 
         assertTrue(ex.getMessage().contains("Budget exhausted"));
         verify(initiativeCountersRepositoryMock, times(1))
-                .incrementOnboardedAndBudget(eq(INITIATIVE_ID), eq(userId), eq(10000L), eq(sequenceNumber), eq(time));
+                .incrementOnboardedAndBudget(INITIATIVE_ID, userId, 10000L, sequenceNumber, time);
     }
 
     @Test

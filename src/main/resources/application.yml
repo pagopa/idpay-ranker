@@ -101,7 +101,7 @@ spring:
            spring.cloud.stream.kafka.binder:
              brokers: ${KAFKA_TRANSACTIONS_BROKER:${KAFKA_BROKER:}}
              configuration:
-               sasl.jaas.config: ${EVH_CONNECTION_REWARD_RESPONSE:}
+               sasl.jaas.config: ${EVH_CONNECTION_TRANSACTION:}
        kafka-errors:
          type: kafka
          environment:

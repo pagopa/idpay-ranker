@@ -1,11 +1,11 @@
 package it.gov.pagopa.ranker.service.initative;
 
-import com.mongodb.DuplicateKeyException;
 import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
 import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -23,7 +23,6 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
         this.initiativeId = initiativeId;
     }
 
-    @Override
     public void addPreallocatedUser(String initiativeId, String userId, boolean verifyIsee, Long sequenceNumber, LocalDateTime enqueuedTime) {
         long reservationCents = calculateReservationCents(verifyIsee);
 
@@ -44,10 +43,10 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
     @Override
     public boolean hasAvailableBudget() {
         InitiativeCounters initiativeCounter = initiativeCounterRepository.findById(initiativeId).orElse(null);
-        return initiativeCounter != null && initiativeCounter.getResidualInitiativeBudgetCents() >= 100;
+        return initiativeCounter != null && initiativeCounter.getResidualInitiativeBudgetCents() >= 10000;
     }
 
     public long calculateReservationCents(boolean verifyIsee) {
-        return verifyIsee ? 200L : 100L;
+        return verifyIsee ? 20000L : 10000L;
     }
 }

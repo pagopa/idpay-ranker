@@ -1,8 +1,7 @@
 package it.gov.pagopa.ranker.service.ranker;
 
-import it.gov.pagopa.ranker.domain.dto.OnboardingDTO;
-import org.springframework.messaging.Message;
+import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
 
 public interface RankerService {
-    void execute(Message<OnboardingDTO> dto);
+    void execute(ServiceBusReceivedMessage message);
 }

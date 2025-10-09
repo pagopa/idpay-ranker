@@ -1,187 +1,109 @@
-//package it.gov.pagopa.ranker.service.initative;
-//
-//import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
-//import it.gov.pagopa.ranker.domain.model.Preallocation;
-//import it.gov.pagopa.ranker.enums.PreallocationStatus;
-//import it.gov.pagopa.ranker.repository.InitiativeCountersAtomicRepository;
-//import org.junit.jupiter.api.BeforeEach;
-//import org.junit.jupiter.api.Test;
-//
-//import java.time.LocalDateTime;
-//import java.util.HashMap;
-//
-//import static org.junit.jupiter.api.Assertions.*;
-//import static org.mockito.Mockito.*;
-//
-//class InitiativeCountersServiceImplTest {
-//
-//    private InitiativeCountersAtomicRepository atomicRepository;
-//    private InitiativeCountersServiceImpl initiativeCountersService;
-//
-//    @BeforeEach
-//    void setUp() {
-//        atomicRepository = mock(InitiativeCountersAtomicRepository.class);
-//        initiativeCountersService = new InitiativeCountersServiceImpl(atomicRepository);
-//    }
-//
-//    @Test
-//    void testAddedPreallocatedUser_verifyIseeTrue() {
-//        InitiativeCounters counters = InitiativeCounters.builder()
-//                .id("initiative1")
-//                .onboarded(5L)
-//                .reservedInitiativeBudgetCents(200L)
-//                .residualInitiativeBudgetCents(800L)
-//                .preallocationMap(new HashMap<>())
-//                .build();
-//
-//        long expectedReservation = initiativeCountersService.calculateReservationCents(true);
-//        Long sequenceNumber = 123L;
-//        Long enqueuedTime = 456L;
-//
-//        when(atomicRepository.incrementOnboardedAndBudget(
-//                eq("initiative1"),
-//                eq("user1"),
-//                eq(expectedReservation),
-//                eq(sequenceNumber),
-//                eq(enqueuedTime)))
-//                .thenAnswer(invocation -> {
-//                    counters.setOnboarded(counters.getOnboarded() + 1);
-//                    counters.setReservedInitiativeBudgetCents(counters.getReservedInitiativeBudgetCents() + expectedReservation);
-//                    counters.setResidualInitiativeBudgetCents(counters.getResidualInitiativeBudgetCents() - expectedReservation);
-//                    counters.getPreallocationMap().put("user1", Preallocation.builder()
-//                            .userId("user1")
-//                            .status(PreallocationStatus.PREALLOCATED)
-//                            .createdAt(LocalDateTime.now())
-//                            .sequenceNumber(sequenceNumber)
-//                            .enqueuedTime(enqueuedTime)
-//                            .build());
-//                    return counters;
-//                });
-//
-//        long rank = initiativeCountersService.addedPreallocatedUser(
-//                "initiative1", "user1", true, sequenceNumber, enqueuedTime
-//        );
-//
-//        assertEquals(6L, rank);
-//        assertTrue(counters.getPreallocationMap().containsKey("user1"));
-//        Preallocation preallocation = counters.getPreallocationMap().get("user1");
-//        assertEquals("user1", preallocation.getUserId());
-//        assertEquals(PreallocationStatus.PREALLOCATED, preallocation.getStatus());
-//        assertEquals(sequenceNumber, preallocation.getSequenceNumber());
-//        assertEquals(enqueuedTime, preallocation.getEnqueuedTime());
-//        assertNotNull(preallocation.getCreatedAt());
-//    }
-//
-//    @Test
-//    void testAddedPreallocatedUser_verifyIseeFalse() {
-//        InitiativeCounters counters = InitiativeCounters.builder()
-//                .id("initiative2")
-//                .onboarded(0L)
-//                .reservedInitiativeBudgetCents(0L)
-//                .residualInitiativeBudgetCents(1000L)
-//                .preallocationMap(new HashMap<>())
-//                .build();
-//
-//        long expectedReservation = initiativeCountersService.calculateReservationCents(false);
-//        Long sequenceNumber = 111L;
-//        Long enqueuedTime = 222L;
-//
-//        when(atomicRepository.incrementOnboardedAndBudget(
-//                eq("initiative2"),
-//                eq("user2"),
-//                eq(expectedReservation),
-//                eq(sequenceNumber),
-//                eq(enqueuedTime)))
-//                .thenAnswer(invocation -> {
-//                    counters.setOnboarded(counters.getOnboarded() + 1);
-//                    counters.setReservedInitiativeBudgetCents(counters.getReservedInitiativeBudgetCents() + expectedReservation);
-//                    counters.setResidualInitiativeBudgetCents(counters.getResidualInitiativeBudgetCents() - expectedReservation);
-//                    counters.getPreallocationMap().put("user2", Preallocation.builder()
-//                            .userId("user2")
-//                            .status(PreallocationStatus.PREALLOCATED)
-//                            .createdAt(LocalDateTime.now())
-//                            .sequenceNumber(sequenceNumber)
-//                            .enqueuedTime(enqueuedTime)
-//                            .build());
-//                    return counters;
-//                });
-//
-//        long rank = initiativeCountersService.addedPreallocatedUser(
-//                "initiative2", "user2", false, sequenceNumber, enqueuedTime
-//        );
-//
-//        assertEquals(1L, rank);
-//        assertTrue(counters.getPreallocationMap().containsKey("user2"));
-//        Preallocation preallocation = counters.getPreallocationMap().get("user2");
-//        assertEquals("user2", preallocation.getUserId());
-//        assertEquals(PreallocationStatus.PREALLOCATED, preallocation.getStatus());
-//        assertEquals(sequenceNumber, preallocation.getSequenceNumber());
-//        assertEquals(enqueuedTime, preallocation.getEnqueuedTime());
-//        assertNotNull(preallocation.getCreatedAt());
-//    }
-//
-//    @Test
-//    void testAddedPreallocatedUser_throwsExceptionWhenAtomicRepositoryReturnsNull() {
-//        long expectedReservation = initiativeCountersService.calculateReservationCents(true);
-//        Long sequenceNumber = 1L;
-//        Long enqueuedTime = 2L;
-//
-//        when(atomicRepository.incrementOnboardedAndBudget(
-//                eq("initiativeX"),
-//                eq("userX"),
-//                eq(expectedReservation),
-//                eq(sequenceNumber),
-//                eq(enqueuedTime)))
-//                .thenReturn(null);
-//
-//        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
-//                initiativeCountersService.addedPreallocatedUser("initiativeX", "userX", true, sequenceNumber, enqueuedTime)
-//        );
-//
-//        assertEquals("Initiative not found or insufficient budget: initiativeX", exception.getMessage());
-//    }
-//
-//    @Test
-//    void testAddedPreallocatedUserWithNullSequenceAndEnqueuedTime() {
-//        InitiativeCounters counters = InitiativeCounters.builder()
-//                .id("initiative3")
-//                .onboarded(0L)
-//                .reservedInitiativeBudgetCents(0L)
-//                .residualInitiativeBudgetCents(1000L)
-//                .preallocationMap(new HashMap<>())
-//                .build();
-//
-//        long expectedReservation = initiativeCountersService.calculateReservationCents(true);
-//
-//        when(atomicRepository.incrementOnboardedAndBudget(
-//                eq("initiative3"),
-//                eq("user3"),
-//                eq(expectedReservation),
-//                any(Long.class),
-//                any(Long.class)
-//        )).thenAnswer(invocation -> {
-//            counters.setOnboarded(counters.getOnboarded() + 1);
-//            counters.setReservedInitiativeBudgetCents(counters.getReservedInitiativeBudgetCents() + expectedReservation);
-//            counters.setResidualInitiativeBudgetCents(counters.getResidualInitiativeBudgetCents() - expectedReservation);
-//            counters.getPreallocationMap().put("user3", Preallocation.builder()
-//                    .userId("user3")
-//                    .status(PreallocationStatus.PREALLOCATED)
-//                    .createdAt(LocalDateTime.now())
-//                    .sequenceNumber(invocation.getArgument(3))
-//                    .enqueuedTime(invocation.getArgument(4))
-//                    .build());
-//            return counters;
-//        });
-//
-//        long rank = initiativeCountersService.addedPreallocatedUser("initiative3", "user3", true, null, null);
-//
-//        assertEquals(1L, rank);
-//        assertTrue(counters.getPreallocationMap().containsKey("user3"));
-//    }
-//
-//    @Test
-//    void testCalculateReservationCents() {
-//        assertEquals(200L, initiativeCountersService.calculateReservationCents(true));
-//        assertEquals(100L, initiativeCountersService.calculateReservationCents(false));
-//    }
-//}
+package it.gov.pagopa.ranker.service.initative;
+
+import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
+import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
+import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DuplicateKeyException;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class InitiativeCountersServiceImplTest {
+    private static final String INITIATIVE_ID = "INITIATIVE_ID";
+    @Mock
+    private InitiativeCountersRepository initiativeCountersRepositoryMock;
+    private InitiativeCountersService initiativeCountersService;
+
+    @BeforeEach
+    void setUp() {
+        initiativeCountersService = new InitiativeCountersServiceImpl(initiativeCountersRepositoryMock, INITIATIVE_ID);
+    }
+
+    @Test
+    void testAddPreallocatedUser_success() {
+        // Given
+        String userId = "USER123";
+        boolean verifyIsee = true;
+        long sequenceNumber = 1L;
+        LocalDateTime time = LocalDateTime.now();
+
+        // When
+        initiativeCountersService.addPreallocatedUser(INITIATIVE_ID, userId, verifyIsee, sequenceNumber, time);
+
+        // Then
+        verify(initiativeCountersRepositoryMock, times(1))
+                .incrementOnboardedAndBudget(INITIATIVE_ID, userId, 20000L, sequenceNumber, time);
+    }
+
+    @Test
+    void testAddPreallocatedUser_budgetExhausted_throwsException() {
+        // Given
+        String userId = "USER999";
+        boolean verifyIsee = false;
+        long sequenceNumber = 10L;
+        LocalDateTime time = LocalDateTime.now();
+
+        doThrow(new DuplicateKeyException("Duplicate key"))
+                .when(initiativeCountersRepositoryMock)
+                .incrementOnboardedAndBudget(anyString(), anyString(), anyLong(), anyLong(), any(LocalDateTime.class));
+
+        // Then
+        BudgetExhaustedException ex = assertThrows(BudgetExhaustedException.class, () ->
+                initiativeCountersService.addPreallocatedUser(INITIATIVE_ID, userId, verifyIsee, sequenceNumber, time)
+        );
+
+        assertTrue(ex.getMessage().contains("Budget exhausted"));
+        verify(initiativeCountersRepositoryMock, times(1))
+                .incrementOnboardedAndBudget(eq(INITIATIVE_ID), eq(userId), eq(10000L), eq(sequenceNumber), eq(time));
+    }
+
+    @Test
+    void testHasAvailableBudget_true() {
+        // Given
+        InitiativeCounters counters = new InitiativeCounters();
+        counters.setResidualInitiativeBudgetCents(15000L);
+        when(initiativeCountersRepositoryMock.findById(INITIATIVE_ID)).thenReturn(Optional.of(counters));
+
+        // When
+        boolean result = initiativeCountersService.hasAvailableBudget();
+
+        // Then
+        assertTrue(result);
+    }
+
+    @Test
+    void testHasAvailableBudget_falseWhenNull() {
+        // Given
+        when(initiativeCountersRepositoryMock.findById(INITIATIVE_ID)).thenReturn(Optional.empty());
+
+        // When
+        boolean result = initiativeCountersService.hasAvailableBudget();
+
+        // Then
+        assertFalse(result);
+    }
+
+    @Test
+    void testHasAvailableBudget_falseWhenBelowThreshold() {
+        // Given
+        InitiativeCounters counters = new InitiativeCounters();
+        counters.setResidualInitiativeBudgetCents(9000L);
+        when(initiativeCountersRepositoryMock.findById(INITIATIVE_ID)).thenReturn(Optional.of(counters));
+
+        // When
+        boolean result = initiativeCountersService.hasAvailableBudget();
+
+        // Then
+        assertFalse(result);
+    }
+
+}

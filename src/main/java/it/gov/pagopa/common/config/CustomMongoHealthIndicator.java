@@ -1,4 +1,4 @@
-package it.gov.pagopa.common.mongo.config;
+package it.gov.pagopa.common.config;
 
 import org.bson.Document;
 import org.springframework.boot.actuate.health.AbstractHealthIndicator;

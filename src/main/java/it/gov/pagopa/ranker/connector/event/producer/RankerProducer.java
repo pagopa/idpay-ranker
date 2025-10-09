@@ -26,10 +26,4 @@ public class RankerProducer {
     log.info("Sending message: " + onboardingDTO);
   }
 
-//    public void sendOnboardingKo(OnboardingDTO onboardingDTO, String rejectionReason) {
-//        onboardingDTO.setStatus("Onboarding_KO");
-//        onboardingDTO.setRejectionReason(rejectionReason);
-//        streamBridge.send("rankerProducer-out-0", onboardingDTO);
-//        log.info("Sending OnboardingKo message: {}", onboardingDTO);
-//    }
 }

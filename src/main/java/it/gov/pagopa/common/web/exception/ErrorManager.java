@@ -27,24 +27,12 @@ public class ErrorManager {
 
     logClientException(error, request);
 
-    if(error instanceof ClientExceptionNoBody clientExceptionNoBody){
-      return ResponseEntity.status(clientExceptionNoBody.getHttpStatus()).build();
-    }
-    else {
-      ErrorDTO errorDTO;
-      HttpStatus httpStatus;
-      if (error instanceof ClientExceptionWithBody clientExceptionWithBody){
-        httpStatus = clientExceptionWithBody.getHttpStatus();
-        errorDTO = new ErrorDTO(clientExceptionWithBody.getCode(),  error.getMessage());
-      }
-      else {
-        httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-        errorDTO = defaultErrorDTO;
-      }
-      return ResponseEntity.status(httpStatus)
-              .contentType(MediaType.APPLICATION_JSON)
-              .body(errorDTO);
-    }
+    HttpStatus httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+
+    return ResponseEntity.status(httpStatus)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(defaultErrorDTO);
+
   }
 
   public static void logClientException(RuntimeException error, HttpServletRequest request) {
@@ -53,23 +41,14 @@ public class ErrorManager {
             : error;
 
     String clientExceptionMessage = "";
-    if(error instanceof ClientException clientException) {
-      clientExceptionMessage = ": HttpStatus %s - %s%s".formatted(
-              clientException.getHttpStatus(),
-              (clientException instanceof ClientExceptionWithBody clientExceptionWithBody) ? clientExceptionWithBody.getCode() + ": " : "",
-              clientException.getMessage()
-      );
-    }
 
-    if(!(error instanceof ClientException clientException) || clientException.isPrintStackTrace() || unwrappedException.getCause() != null){
-      log.error("Something went wrong handling request {}{}", getRequestDetails(request), clientExceptionMessage, unwrappedException);
-    } else {
-      log.info("A {} occurred handling request {}{} at {}",
-              unwrappedException.getClass().getSimpleName() ,
-              getRequestDetails(request),
-              clientExceptionMessage,
-              unwrappedException.getStackTrace().length > 0 ? unwrappedException.getStackTrace()[0] : "UNKNOWN");
-    }
+
+    log.info("A {} occurred handling request {}{} at {}",
+            unwrappedException.getClass().getSimpleName() ,
+            getRequestDetails(request),
+            clientExceptionMessage,
+            unwrappedException.getStackTrace().length > 0 ? unwrappedException.getStackTrace()[0] : "UNKNOWN");
+
   }
 
   public static String getRequestDetails(HttpServletRequest request) {

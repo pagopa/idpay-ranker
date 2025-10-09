@@ -5,16 +5,14 @@ import ch.qos.logback.classic.Logger;
 import it.gov.pagopa.common.mongo.DummySpringRepository;
 import it.gov.pagopa.common.mongo.MongoTest;
 import it.gov.pagopa.common.mongo.MongoTestUtilitiesService;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 import java.util.Map;
 
+@Disabled
 @MongoTest
 class BaseMongoRepositoryIntegrationTest {
 

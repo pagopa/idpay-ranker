@@ -56,13 +56,14 @@ class InitiativeCountersServiceImplTest {
                 .incrementOnboardedAndBudget(anyString(), anyString(), anyLong(), anyLong(), any(LocalDateTime.class));
 
         // Then
+        String initiative = INITIATIVE_ID.getFirst();
         BudgetExhaustedException ex = assertThrows(BudgetExhaustedException.class, () ->
-                initiativeCountersService.addPreallocatedUser(INITIATIVE_ID.getFirst(), userId, verifyIsee, sequenceNumber, time)
+                initiativeCountersService.addPreallocatedUser(initiative, userId, verifyIsee, sequenceNumber, time)
         );
 
         assertTrue(ex.getMessage().contains("Budget exhausted"));
         verify(initiativeCountersRepositoryMock, times(1))
-                .incrementOnboardedAndBudget(INITIATIVE_ID.getFirst(), userId, 10000L, sequenceNumber, time);
+                .incrementOnboardedAndBudget(initiative, userId, 10000L, sequenceNumber, time);
     }
 
     @Test

@@ -12,6 +12,7 @@ import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.test.annotation.DirtiesContext;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -76,4 +77,38 @@ class InitiativeCountersAtomicRepositoryImplTest {
                 eq(InitiativeCounters.class)
         );
     }
+
+
+    @Test
+    void testDecrementOnboardedAndBudget() {
+        InitiativeCounters expected = InitiativeCounters.builder()
+                .id("initiative1")
+                .onboarded(1L)
+                .reservedInitiativeBudgetCents(0L)
+                .residualInitiativeBudgetCents(1000L)
+                .preallocationMap(new HashMap<>())
+                .build();
+
+
+        when(mongoTemplate.findAndModify(
+                any(Query.class),
+                any(Update.class),
+                any(FindAndModifyOptions.class),
+                eq(InitiativeCounters.class)
+        )).thenReturn(expected);
+
+        InitiativeCounters result = repository.decrementOnboardedAndBudget("initiative1", "user1", 100L);
+
+        assertNotNull(result);
+        assertEquals(expected, result);
+        assertFalse(result.getPreallocationMap().containsKey("user1"));
+
+        verify(mongoTemplate, times(1)).findAndModify(
+                any(Query.class),
+                any(Update.class),
+                any(FindAndModifyOptions.class),
+                eq(InitiativeCounters.class)
+        );
+    }
+
 }

@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 @Service
 @Slf4j
 public class TransactionInProgressErrorNotifierServiceImpl implements TransactionInProgressErrorNotifierService {
-    private static final String KAFKA_BINDINGS_TRANSACTIONS = "rewardTrxConsumer-in-0";
+    private static final String KAFKA_BINDINGS_TRANSACTIONS = "trxProcessor-in-0";
 
     private final ErrorNotifierService errorNotifierService;
     private final KafkaConfiguration kafkaConfiguration;

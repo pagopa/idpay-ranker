@@ -26,7 +26,7 @@ spring:
       on-profile: default
   cloud:
    function:
-     definition: rankerProducer;
+     definition: rankerProducer;trxProcessor;errors
    stream:
      bindings:
 #       rankerProcessor-in-0:

@@ -140,7 +140,7 @@ public class TransactionInProgressServiceImplTest {
         verify(validator).validate(any());
         verify(transactionInProgressProcessorStrategyFactory).getStrategy(eq(SyncTrxStatus.EXPIRED));
         verify(transactionInProgressProcessorStrategy).processTransaction(any());
-        verify(transactionInProgressErrorNotifierService).notifyExpiredTransaction(any(),any(),eq(false),any());
+        verify(transactionInProgressErrorNotifierService).notifyExpiredTransaction(any(),any(),eq(true),any());
     }
 
     public ObjectMapper updateMapper(ObjectMapper mapper) {

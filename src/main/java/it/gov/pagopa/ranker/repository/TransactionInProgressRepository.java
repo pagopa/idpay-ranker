@@ -6,5 +6,5 @@ import jakarta.validation.constraints.NotNull;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 public interface TransactionInProgressRepository extends MongoRepository<TransactionInProgress, String> {
-    boolean findByIdAndStatus(@NotNull String id, @NotNull SyncTrxStatus status);
+    boolean existsByIdAndStatus(@NotNull String id, @NotNull SyncTrxStatus status);
 }

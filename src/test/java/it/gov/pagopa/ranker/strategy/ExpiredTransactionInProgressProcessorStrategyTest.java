@@ -45,7 +45,7 @@ public class ExpiredTransactionInProgressProcessorStrategyTest {
                 .thenReturn(true);
         when(initiativeCountersRepositoryMock.decrementOnboardedAndBudget(eq("INIT_1"),eq("USER_1"),eq(1000L)))
                 .thenReturn(new InitiativeCounters());
-        when(transactionInProgressRepositoryMock.findByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED))).thenReturn(true);
+        when(transactionInProgressRepositoryMock.existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED))).thenReturn(true);
         Assertions.assertDoesNotThrow(() -> expiredTransactionInProgressProcessorStrategy.processTransaction(transactionInProgressDTO));
         verify(initiativeCountersRepositoryMock).existsByInitiativeIdAndUserId(eq("INIT_1"),eq("USER_1"));
         verify(initiativeCountersRepositoryMock).decrementOnboardedAndBudget(eq("INIT_1"),eq("USER_1"),eq(1000L));
@@ -71,14 +71,14 @@ public class ExpiredTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setInitiativeId("INIT_1");
         transactionInProgressDTO.setVoucherAmountCents(1000L);
         transactionInProgressDTO.setUserId("USER_1");
-        when(transactionInProgressRepositoryMock.findByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED))).thenReturn(true);
+        when(transactionInProgressRepositoryMock.existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED))).thenReturn(true);
         when(initiativeCountersRepositoryMock.existsByInitiativeIdAndUserId(eq("INIT_1"), eq("USER_1")))
                 .thenReturn(true);
         when(initiativeCountersRepositoryMock.decrementOnboardedAndBudget(eq("INIT_1"),eq("USER_1"),eq(1000L)))
                 .thenThrow(new RuntimeException("error"));
         Assertions.assertThrows(RuntimeException.class,
                 () -> expiredTransactionInProgressProcessorStrategy.processTransaction(transactionInProgressDTO));
-        verify(transactionInProgressRepositoryMock).findByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED));
+        verify(transactionInProgressRepositoryMock).existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED));
         verify(initiativeCountersRepositoryMock).existsByInitiativeIdAndUserId(eq("INIT_1"),eq("USER_1"));
         verify(initiativeCountersRepositoryMock).decrementOnboardedAndBudget(eq("INIT_1"),eq("USER_1"),eq(1000L));
         verifyNoMoreInteractions(transactionInProgressRepositoryMock);
@@ -91,7 +91,7 @@ public class ExpiredTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setInitiativeId("INIT_1");
         transactionInProgressDTO.setVoucherAmountCents(1000L);
         transactionInProgressDTO.setUserId("USER_1");
-        when(transactionInProgressRepositoryMock.findByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED))).thenReturn(true);
+        when(transactionInProgressRepositoryMock.existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED))).thenReturn(true);
         when(initiativeCountersRepositoryMock.existsByInitiativeIdAndUserId(eq("INIT_1"), eq("USER_1")))
                 .thenReturn(true);
         when(initiativeCountersRepositoryMock.decrementOnboardedAndBudget(eq("INIT_1"),eq("USER_1"),eq(1000L)))

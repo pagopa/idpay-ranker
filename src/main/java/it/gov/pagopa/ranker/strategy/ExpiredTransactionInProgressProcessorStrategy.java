@@ -30,7 +30,7 @@ public class ExpiredTransactionInProgressProcessorStrategy implements Transactio
     public void processTransaction(TransactionInProgressDTO transactionInProgress) {
 
         String transactionInProgressId = transactionInProgress.getId();
-        if (!transactionInProgressRepository.findByIdAndStatus(
+        if (!transactionInProgressRepository.existsByIdAndStatus(
                 transactionInProgressId, SyncTrxStatus.EXPIRED)) {
             log.warn("[ExpiredTransactionInProgressProcessor] Provided transaction with id {} with status EXPIRED" +
                             " not found, no counter will be updated",

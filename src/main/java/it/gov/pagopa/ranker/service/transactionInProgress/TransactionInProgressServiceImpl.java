@@ -3,6 +3,7 @@ package it.gov.pagopa.ranker.service.transactionInProgress;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
+import it.gov.pagopa.ranker.exception.UnmanagedStrategyException;
 import it.gov.pagopa.ranker.strategy.TransactionInProgressProcessorStrategy;
 import it.gov.pagopa.ranker.strategy.TransactionInProgressProcessorStrategyFactory;
 import jakarta.validation.ConstraintValidator;
@@ -61,25 +62,27 @@ public class TransactionInProgressServiceImpl implements TransactionInProgressSe
             assert transactionInProgressDTO != null;
             log.error("[PROCESS_TRX_EH] Encountered violations for received transaction with id " +
                     transactionInProgressDTO.getId());
-            notifyError(transactionInProgressDTO, constraintViolationException);
+            notifyError(transactionInProgressDTO, false, constraintViolationException);
             return;
         }
 
         try {
             transactionInProgressProcessorStrategyFactory.getStrategy(transactionInProgressDTO.getStatus())
                     .processTransaction(transactionInProgressDTO);
+        } catch (UnmanagedStrategyException unmanagedStrategyException) {
+            log.debug("[PROCESS_TRX_EH] Unmanaged status {}", transactionInProgressDTO.getStatus());
         } catch (Exception e) {
-            notifyError(transactionInProgressDTO, e);
+            notifyError(transactionInProgressDTO, true, e);
         }
 
     }
 
-    private void notifyError(TransactionInProgressDTO transactionInProgressDTO, Exception e) {
+    private void notifyError(TransactionInProgressDTO transactionInProgressDTO, Boolean retry, Exception e) {
         try {
             transactionInProgressErrorNotifierService.notifyExpiredTransaction(
                     transactionInProgressErrorNotifierService.buildMessage(
                             transactionInProgressDTO, transactionInProgressDTO.getId()),
-                    "", false, e
+                    e.getMessage(), retry, e
             );
             log.info("Failed Transaction Event Processing: {}", e.getMessage(), e);
         } catch (Exception cryptException) {

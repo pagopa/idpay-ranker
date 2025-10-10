@@ -29,36 +29,44 @@ public class ExpiredTransactionInProgressProcessorStrategy implements Transactio
     @Override
     public void processTransaction(TransactionInProgressDTO transactionInProgress) {
 
-        if (!initiativeCountersRepository.existsByInitiativeIdAndUserId(
-                transactionInProgress.getInitiativeId(), transactionInProgress.getUserId())) {
-            log.warn("[ExpiredTransactionInProgressProcessor] received event for a transaction having initiative {}" +
-                    " and user {} that does not exist in the initiative map",
-                    transactionInProgress.getInitiativeId(), transactionInProgress.getUserId());
+        String transactionInProgressId = transactionInProgress.getId();
+        if (!transactionInProgressRepository.findByIdAndStatus(
+                transactionInProgressId, SyncTrxStatus.EXPIRED)) {
+            log.warn("[ExpiredTransactionInProgressProcessor] Provided transaction with id {} with status EXPIRED" +
+                            " not found, no counter will be updated",
+                    transactionInProgressId);
             return;
         }
 
-        try {
-            initiativeCountersRepository.decrementOnboardedAndBudget(
-                    transactionInProgress.getInitiativeId(),
-                    transactionInProgress.getUserId(),
-                    transactionInProgress.getVoucherAmountCents());
-        } catch (Exception e) {
-            log.error("[ExpiredTransactionInProgressProcessor] Error attempting to " +
-                    "decrement initiativeCounters given id {} initiativeId {} and userId {}",
-                        transactionInProgress.getId(),
+        if (!initiativeCountersRepository.existsByInitiativeIdAndUserId(
+                transactionInProgress.getInitiativeId(), transactionInProgress.getUserId())) {
+            log.warn("[ExpiredTransactionInProgressProcessor] received event for a transaction having initiative {}" +
+                    " and user {} that does not exist in the initiative map, will not update counter",
+                    transactionInProgress.getInitiativeId(), transactionInProgress.getUserId());
+        } else {
+            try {
+                initiativeCountersRepository.decrementOnboardedAndBudget(
                         transactionInProgress.getInitiativeId(),
                         transactionInProgress.getUserId(),
-                    e
-            );
-            throw e;
+                        transactionInProgress.getVoucherAmountCents());
+            } catch (Exception e) {
+                log.error("[ExpiredTransactionInProgressProcessor] Error attempting to " +
+                          "decrement initiativeCounters given id {} initiativeId {} and userId {}",
+                        transactionInProgressId,
+                        transactionInProgress.getInitiativeId(),
+                        transactionInProgress.getUserId(),
+                        e
+                );
+                throw e;
+            }
         }
 
         try {
-            transactionInProgressRepository.deleteById(transactionInProgress.getId());
+            transactionInProgressRepository.deleteById(transactionInProgressId);
         } catch (Exception e) {
             log.error("[ExpiredTransactionInProgressProcessor] Error attempting to " +
-                            "remove processed expired transactions given id {} initiativeId {} and userId {}",
-                    transactionInProgress.getId(),
+                      "remove processed expired transactions given id {} initiativeId {} and userId {}",
+                    transactionInProgressId,
                     transactionInProgress.getInitiativeId(),
                     transactionInProgress.getUserId(),
                     e

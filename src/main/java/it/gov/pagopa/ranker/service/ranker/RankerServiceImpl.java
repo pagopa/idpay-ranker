@@ -8,9 +8,11 @@ import it.gov.pagopa.ranker.domain.dto.OnboardingDTO;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import static it.gov.pagopa.utils.CommonConstants.ZONEID;
 
@@ -22,20 +24,28 @@ public class RankerServiceImpl implements RankerService {
     private final InitiativeCountersRepository initiativeCountersRepository;
     private final InitiativeCountersService initiativeCountersService;
     private final ObjectReader objectReader;
+    private final List<String> initiativesId;
 
     public RankerServiceImpl(RankerProducer rankerProducer,
                              InitiativeCountersRepository initiativeCountersRepository,
                              InitiativeCountersService initiativeCountersService,
-                             ObjectMapper objectMapper) {
+                             ObjectMapper objectMapper,
+                             @Value("${app.initiative.identified}") List<String> initiativesId) {
         this.rankerProducer = rankerProducer;
         this.initiativeCountersRepository = initiativeCountersRepository;
         this.initiativeCountersService = initiativeCountersService;
         this.objectReader = objectMapper.readerFor(OnboardingDTO.class);
+        this.initiativesId = initiativesId;
     }
 
     private void preallocate(OnboardingDTO dto) {
         if (initiativeCountersRepository.existsByInitiativeIdAndUserId(dto.getInitiativeId(), dto.getUserId())) {
             log.info("User {} already preallocated for initiative {}", dto.getUserId(), dto.getInitiativeId());
+            return;
+        }
+
+        if(!initiativesId.contains(dto.getInitiativeId())){
+            log.error("[RANKER_SERVICE] Skipped processing for initiativeId={} because it is not configured among handled initiatives", dto.getInitiativeId());
             return;
         }
 

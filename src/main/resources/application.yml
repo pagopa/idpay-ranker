@@ -120,7 +120,7 @@ app:
     read.handler.timeout: ${READ_TIMEOUT_HANDLER:60000}
     write.handler.timeout: ${WRITE_TIMEOUT_HANDLER:60000}
   initiative:
-    identified: ${INITIATIVE_ID:68dd003ccce8c534d1da22bc}
+    identified: ${INITIATIVE_ID:68dd003ccce8c534d1da22bc, 68de7fc681ce9e35a476e985}
     schedule-check-budget: ${INITIATIVE_SCHEDULE_CHECK_BUDGET:0 */5 * * * *}
 
 azure:

@@ -4,15 +4,14 @@ import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
-import java.util.Optional;
+import java.util.List;
 
 public interface InitiativeCountersRepository extends MongoRepository<InitiativeCounters, String>, InitiativeCountersAtomicRepository {
 
     @Query(value = "{ '_id': ?0, 'preallocationMap.?1': { $exists: true } }", exists = true)
     boolean existsByInitiativeIdAndUserId(String initiativeId, String userId);
 
-    @Override
-    @Query(value = "{ '_id': ?0 }", fields = "{ 'preallocationMap': 0 }")
-    Optional<InitiativeCounters> findById(String id);
+    @Query(value = "{ '_id': { $in: ?0 }, 'residualInitiativeBudgetCents': { $gte: ?1 } }", exists = true)
+    boolean existsByIdInAndResidualInitiativeBudgetCentsGreaterThanEqual(List<String> ids, long minResidual);
 }
 

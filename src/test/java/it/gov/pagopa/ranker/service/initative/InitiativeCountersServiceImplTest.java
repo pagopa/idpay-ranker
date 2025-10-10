@@ -1,6 +1,5 @@
 package it.gov.pagopa.ranker.service.initative;
 
-import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
 import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,14 +10,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DuplicateKeyException;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class InitiativeCountersServiceImplTest {
-    private static final String INITIATIVE_ID = "INITIATIVE_ID";
+    private static final List<String> INITIATIVE_ID = List.of("INITIATIVE_ID");
     @Mock
     private InitiativeCountersRepository initiativeCountersRepositoryMock;
     private InitiativeCountersService initiativeCountersService;
@@ -37,11 +36,11 @@ class InitiativeCountersServiceImplTest {
         LocalDateTime time = LocalDateTime.now();
 
         // When
-        initiativeCountersService.addPreallocatedUser(INITIATIVE_ID, userId, verifyIsee, sequenceNumber, time);
+        initiativeCountersService.addPreallocatedUser(INITIATIVE_ID.getFirst(), userId, verifyIsee, sequenceNumber, time);
 
         // Then
         verify(initiativeCountersRepositoryMock, times(1))
-                .incrementOnboardedAndBudget(INITIATIVE_ID, userId, 20000L, sequenceNumber, time);
+                .incrementOnboardedAndBudget(INITIATIVE_ID.getFirst(), userId, 20000L, sequenceNumber, time);
     }
 
     @Test
@@ -58,20 +57,18 @@ class InitiativeCountersServiceImplTest {
 
         // Then
         BudgetExhaustedException ex = assertThrows(BudgetExhaustedException.class, () ->
-                initiativeCountersService.addPreallocatedUser(INITIATIVE_ID, userId, verifyIsee, sequenceNumber, time)
+                initiativeCountersService.addPreallocatedUser(INITIATIVE_ID.getFirst(), userId, verifyIsee, sequenceNumber, time)
         );
 
         assertTrue(ex.getMessage().contains("Budget exhausted"));
         verify(initiativeCountersRepositoryMock, times(1))
-                .incrementOnboardedAndBudget(INITIATIVE_ID, userId, 10000L, sequenceNumber, time);
+                .incrementOnboardedAndBudget(INITIATIVE_ID.getFirst(), userId, 10000L, sequenceNumber, time);
     }
 
     @Test
     void testHasAvailableBudget_true() {
         // Given
-        InitiativeCounters counters = new InitiativeCounters();
-        counters.setResidualInitiativeBudgetCents(15000L);
-        when(initiativeCountersRepositoryMock.findById(INITIATIVE_ID)).thenReturn(Optional.of(counters));
+        when(initiativeCountersRepositoryMock.existsByIdInAndResidualInitiativeBudgetCentsGreaterThanEqual(INITIATIVE_ID, 10000)).thenReturn(true);
 
         // When
         boolean result = initiativeCountersService.hasAvailableBudget();
@@ -83,21 +80,7 @@ class InitiativeCountersServiceImplTest {
     @Test
     void testHasAvailableBudget_falseWhenNull() {
         // Given
-        when(initiativeCountersRepositoryMock.findById(INITIATIVE_ID)).thenReturn(Optional.empty());
-
-        // When
-        boolean result = initiativeCountersService.hasAvailableBudget();
-
-        // Then
-        assertFalse(result);
-    }
-
-    @Test
-    void testHasAvailableBudget_falseWhenBelowThreshold() {
-        // Given
-        InitiativeCounters counters = new InitiativeCounters();
-        counters.setResidualInitiativeBudgetCents(9000L);
-        when(initiativeCountersRepositoryMock.findById(INITIATIVE_ID)).thenReturn(Optional.of(counters));
+        when(initiativeCountersRepositoryMock.existsByIdInAndResidualInitiativeBudgetCentsGreaterThanEqual(INITIATIVE_ID, 10000)).thenReturn(false);
 
         // When
         boolean result = initiativeCountersService.hasAvailableBudget();

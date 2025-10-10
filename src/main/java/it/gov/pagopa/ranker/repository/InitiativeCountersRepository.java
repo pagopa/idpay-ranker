@@ -14,9 +14,5 @@ public interface InitiativeCountersRepository extends MongoRepository<Initiative
     @Query(value = "{ '_id': { $in: ?0 }, 'residualInitiativeBudgetCents': { $gte: ?1 } }", exists = true)
     boolean existsByIdInAndResidualInitiativeBudgetCentsGreaterThanEqual(List<String> ids, long minResidual);
 
-    @Query("{ 'residualInitiativeBudgetCents': { $gte: ?0 } }")
-    List<InitiativeCounters> findByResidualBudgetGreaterThanEqual(long threshold);
-
-    InitiativeCounters findByInitiativeId(String initiativeId);
 }
 

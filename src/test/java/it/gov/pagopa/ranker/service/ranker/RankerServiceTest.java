@@ -160,4 +160,21 @@ class RankerServiceTest {
                 any(LocalDateTime.class)
         );
     }
+
+    @Test
+    void testExecute_AnotherInitiative() throws Exception {
+        // Given
+        OnboardingDTO dto = new OnboardingDTO();
+        dto.setInitiativeId("another-initiative");
+        dto.setUserId("USR002");
+        dto.setVerifyIsee(null);
+
+        ServiceBusReceivedMessage message = buildMessage(dto);
+
+        // When
+        rankerService.execute(message);
+
+        // Then
+        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), anyBoolean(), any(), any());
+    }
 }

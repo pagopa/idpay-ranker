@@ -17,4 +17,6 @@ public class Preallocation {
     private String userId;
     private PreallocationStatus status;
     private LocalDateTime createdAt;
+    private Long sequenceNumber;
+    private LocalDateTime enqueuedTime;
 }

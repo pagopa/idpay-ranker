@@ -38,21 +38,21 @@ class TransactionErrorNotifierServiceImplTest {
         );
     }
 
-//    @Test
-//    void notifyTransaction() {
-//        KafkaConfiguration.KafkaInfoDTO kafkaInfoDTO = KafkaConfiguration.KafkaInfoDTO.builder()
-//                .type(BINDER_KAFKA_TYPE)
-//                .brokers(BINDER_BROKER)
-//                .destination("transaction-topic")
-//                .group("transaction-group")
-//                .build();
-//        when(kafkaConfiguration.getStream()).thenReturn(mock(KafkaConfiguration.Stream.class));
-//        when(kafkaConfiguration.getStream().getBindings()).thenReturn(Map.of("trxProcessor-in-0",kafkaInfoDTO));
-//        errorNotifyMock(kafkaInfoDTO,true,true);
-//        transactionErrorNotifierService.notifyExpiredTransaction(dummyMessage,DUMMY_MESSAGE,true,new Throwable(DUMMY_MESSAGE));
-//
-//        Mockito.verifyNoMoreInteractions(errorNotifierServiceMock);
-//    }
+    @Test
+    void notifyTransaction() {
+        KafkaConfiguration.KafkaInfoDTO kafkaInfoDTO = KafkaConfiguration.KafkaInfoDTO.builder()
+                .type(BINDER_KAFKA_TYPE)
+                .brokers(BINDER_BROKER)
+                .destination("transaction-topic")
+                .group("transaction-group")
+                .build();
+        when(kafkaConfiguration.getStream()).thenReturn(mock(KafkaConfiguration.Stream.class));
+        when(kafkaConfiguration.getStream().getBindings()).thenReturn(Map.of("trxProcessor-in-0",kafkaInfoDTO));
+        errorNotifyMock(kafkaInfoDTO,true,true);
+        transactionErrorNotifierService.notifyExpiredTransaction(dummyMessage,DUMMY_MESSAGE,true,new Throwable(DUMMY_MESSAGE));
+
+        Mockito.verifyNoMoreInteractions(errorNotifierServiceMock);
+    }
 
     @Test
     void testNotify() {

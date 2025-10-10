@@ -1,5 +1,6 @@
 package it.gov.pagopa.ranker.domain.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import it.gov.pagopa.ranker.enums.OperationType;
 import it.gov.pagopa.ranker.enums.SyncTrxStatus;
 import jakarta.validation.constraints.NotNull;
@@ -26,6 +27,7 @@ import java.util.Map;
 public class TransactionInProgressDTO {
 
   @NotNull
+  @JsonAlias("_id")
   private String id;
   private String trxCode;
   private String idTrxAcquirer;

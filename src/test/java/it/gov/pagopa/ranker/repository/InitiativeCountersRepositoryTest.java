@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -52,22 +53,18 @@ class InitiativeCountersRepositoryTest {
         assertFalse(result);
     }
 
+
     @Test
     void findById_retrieveInitiativeOk() {
-        Optional<InitiativeCounters> resultOpt = initiativeCountersRepository.findById("TEST");
+        boolean result = initiativeCountersRepository.existsByIdInAndResidualInitiativeBudgetCentsGreaterThanEqual(List.of("TEST"), 10000);
 
-        assertFalse(resultOpt.isEmpty());
-        InitiativeCounters result = resultOpt.get();
-        assertEquals(initiativeCounters.getInitiativeBudgetCents(),result.getInitiativeBudgetCents());
-        assertEquals(initiativeCounters.getResidualInitiativeBudgetCents(),result.getResidualInitiativeBudgetCents());
-        assertEquals(initiativeCounters.getReservedInitiativeBudgetCents(),result.getReservedInitiativeBudgetCents());
-        assertTrue(result.getPreallocationMap().isEmpty());
+        assertTrue(result);
     }
 
     @Test
     void findById_noRetrieveInitiative() {
-        Optional<InitiativeCounters> resultOpt = initiativeCountersRepository.findById("ANOTHER_INITIATIVE");
+        boolean result = initiativeCountersRepository.existsByIdInAndResidualInitiativeBudgetCentsGreaterThanEqual(List.of("ANOTHER_INITIATIVE"),10000);
 
-        assertTrue(resultOpt.isEmpty());
+        assertFalse(result);
     }
 }

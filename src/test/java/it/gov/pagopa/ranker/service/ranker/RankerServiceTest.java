@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DuplicateKeyException;
 
 import java.time.*;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -35,6 +36,7 @@ class RankerServiceTest {
     private ObjectMapper objectMapper;
 
     private RankerService rankerService;
+    private List<String> initiatives = List.of("INITIATIVE_ID");
 
     @BeforeEach
     void setup() {
@@ -43,7 +45,8 @@ class RankerServiceTest {
                 rankerProducer,
                 initiativeCountersRepository,
                 initiativeCountersService,
-                objectMapper
+                objectMapper,
+                initiatives
         );
     }
 
@@ -63,20 +66,20 @@ class RankerServiceTest {
     void testExecute_whenNewPreallocation_shouldAddAndSend() throws Exception {
         // Given
         OnboardingDTO dto = new OnboardingDTO();
-        dto.setInitiativeId("INIT123");
+        dto.setInitiativeId(initiatives.getFirst());
         dto.setUserId("USR001");
         dto.setVerifyIsee(true);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
-        when(initiativeCountersRepository.existsByInitiativeIdAndUserId("INIT123", "USR001")).thenReturn(false);
+        when(initiativeCountersRepository.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR001")).thenReturn(false);
 
         // When
         rankerService.execute(message);
 
         // Then
-        verify(initiativeCountersRepository).existsByInitiativeIdAndUserId("INIT123", "USR001");
+        verify(initiativeCountersRepository).existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR001");
         verify(initiativeCountersService).addPreallocatedUser(
-                eq("INIT123"),
+                eq(initiatives.getFirst()),
                 eq("USR001"),
                 eq(true),
                 eq(99L),
@@ -89,12 +92,12 @@ class RankerServiceTest {
     void testExecute_whenUserAlreadyPreallocated_shouldDoNothing() throws Exception {
         // Given
         OnboardingDTO dto = new OnboardingDTO();
-        dto.setInitiativeId("INIT123");
+        dto.setInitiativeId(initiatives.getFirst());
         dto.setUserId("USR_EXIST");
         dto.setVerifyIsee(false);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
-        when(initiativeCountersRepository.existsByInitiativeIdAndUserId("INIT123", "USR_EXIST")).thenReturn(true);
+        when(initiativeCountersRepository.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR_EXIST")).thenReturn(true);
 
         // When
         rankerService.execute(message);
@@ -138,23 +141,40 @@ class RankerServiceTest {
     void testExecute_whenVerifyIseeNull_shouldTreatAsFalse() throws Exception {
         // Given
         OnboardingDTO dto = new OnboardingDTO();
-        dto.setInitiativeId("INIT456");
+        dto.setInitiativeId(initiatives.getFirst());
         dto.setUserId("USR002");
         dto.setVerifyIsee(null);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
-        when(initiativeCountersRepository.existsByInitiativeIdAndUserId("INIT456", "USR002")).thenReturn(false);
+        when(initiativeCountersRepository.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR002")).thenReturn(false);
 
         // When
         rankerService.execute(message);
 
         // Then
         verify(initiativeCountersService).addPreallocatedUser(
-                eq("INIT456"),
+                eq(initiatives.getFirst()),
                 eq("USR002"),
                 eq(false),
                 eq(99L),
                 any(LocalDateTime.class)
         );
+    }
+
+    @Test
+    void testExecute_AnotherInitiative() throws Exception {
+        // Given
+        OnboardingDTO dto = new OnboardingDTO();
+        dto.setInitiativeId("another-initiative");
+        dto.setUserId("USR002");
+        dto.setVerifyIsee(null);
+
+        ServiceBusReceivedMessage message = buildMessage(dto);
+
+        // When
+        rankerService.execute(message);
+
+        // Then
+        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), anyBoolean(), any(), any());
     }
 }

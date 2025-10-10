@@ -15,6 +15,7 @@ import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
 import it.gov.pagopa.ranker.enums.SyncTrxStatus;
 import it.gov.pagopa.ranker.strategy.TransactionInProgressProcessorStrategy;
 import it.gov.pagopa.ranker.strategy.TransactionInProgressProcessorStrategyFactory;
+import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,13 +48,11 @@ public class TransactionInProgressServiceImplTest {
     @Spy
     ObjectMapper objectMapper;
 
-    @Spy
-    Validator validator;
-
     TransactionInProgressServiceImpl transactionInProgressService;
 
     @BeforeEach
     public void init() {
+        Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
         Mockito.reset(transactionInProgressProcessorStrategyFactory, transactionInProgressProcessorStrategy);
         updateMapper(objectMapper);
         transactionInProgressService = new TransactionInProgressServiceImpl(
@@ -76,7 +75,6 @@ public class TransactionInProgressServiceImplTest {
         Assertions.assertDoesNotThrow(() ->
                 transactionInProgressService.processTransactionInProgressEH(
                         objectMapper.writeValueAsString(transactionInProgressDTO)));
-        verify(validator).validate(any());
         verify(transactionInProgressProcessorStrategyFactory).getStrategy(eq(SyncTrxStatus.EXPIRED));
         verify(transactionInProgressProcessorStrategy).processTransaction(any());
         verifyNoInteractions(transactionInProgressErrorNotifierService);
@@ -90,12 +88,9 @@ public class TransactionInProgressServiceImplTest {
                         .status(SyncTrxStatus.EXPIRED)
                         .extendedAuthorization(true)
                         .build();
-        when(transactionInProgressProcessorStrategyFactory.getStrategy(eq(SyncTrxStatus.EXPIRED)))
-                .thenReturn(transactionInProgressProcessorStrategy);
         Assertions.assertDoesNotThrow(() ->
                 transactionInProgressService.processTransactionInProgressEH(
                         objectMapper.writeValueAsString(transactionInProgressDTO)));
-        verify(validator).validate(any());
         verifyNoInteractions(transactionInProgressProcessorStrategyFactory);
         verifyNoInteractions(transactionInProgressProcessorStrategy);
         verify(transactionInProgressErrorNotifierService).notifyExpiredTransaction(any(),any(),eq(false),any());
@@ -110,12 +105,9 @@ public class TransactionInProgressServiceImplTest {
                         .trxDate(OffsetDateTime.now())
                         .extendedAuthorization(true)
                         .build();
-        when(transactionInProgressProcessorStrategyFactory.getStrategy(eq(SyncTrxStatus.EXPIRED)))
-                .thenReturn(transactionInProgressProcessorStrategy);
         Assertions.assertDoesNotThrow(() ->
                 transactionInProgressService.processTransactionInProgressEH(
                         objectMapper.writeValueAsString(transactionInProgressDTO)));
-        verify(validator).validate(any());
         verifyNoInteractions(transactionInProgressProcessorStrategyFactory);
         verifyNoInteractions(transactionInProgressProcessorStrategy);
         verify(transactionInProgressErrorNotifierService).notifyExpiredTransaction(any(),any(),eq(false),any());
@@ -137,7 +129,6 @@ public class TransactionInProgressServiceImplTest {
         Assertions.assertDoesNotThrow(() ->
                 transactionInProgressService.processTransactionInProgressEH(
                         objectMapper.writeValueAsString(transactionInProgressDTO)));
-        verify(validator).validate(any());
         verify(transactionInProgressProcessorStrategyFactory).getStrategy(eq(SyncTrxStatus.EXPIRED));
         verify(transactionInProgressProcessorStrategy).processTransaction(any());
         verify(transactionInProgressErrorNotifierService).notifyExpiredTransaction(any(),any(),eq(true),any());

@@ -20,7 +20,6 @@ public class TransactionInProgressErrorNotifierServiceImpl implements Transactio
     public TransactionInProgressErrorNotifierServiceImpl(ErrorNotifierService errorNotifierService,
                                            KafkaConfiguration kafkaConfiguration) {
         this.errorNotifierService = errorNotifierService;
-
         this.kafkaConfiguration = kafkaConfiguration;
     }
 

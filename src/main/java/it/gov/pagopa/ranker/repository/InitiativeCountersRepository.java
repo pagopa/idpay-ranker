@@ -8,14 +8,15 @@ import java.util.List;
 
 public interface InitiativeCountersRepository extends MongoRepository<InitiativeCounters, String>, InitiativeCountersAtomicRepository {
 
-    @Query("{ '_id': ?0, 'preallocationMap.?1': { $exists: true } }")
-    InitiativeCounters findByInitiativeIdAndUserId(String initiativeId, String userId);
-
     @Query(value = "{ '_id': ?0, 'preallocationMap.?1': { $exists: true } }", exists = true)
     boolean existsByInitiativeIdAndUserId(String initiativeId, String userId);
+
+    @Query(value = "{ '_id': { $in: ?0 }, 'residualInitiativeBudgetCents': { $gte: ?1 } }", exists = true)
+    boolean existsByIdInAndResidualInitiativeBudgetCentsGreaterThanEqual(List<String> ids, long minResidual);
 
     @Query("{ 'residualInitiativeBudgetCents': { $gte: ?0 } }")
     List<InitiativeCounters> findByResidualBudgetGreaterThanEqual(long threshold);
 
     InitiativeCounters findByInitiativeId(String initiativeId);
 }
+

@@ -1,7 +1,7 @@
 package it.gov.pagopa.ranker.service.ranker;
 
-import it.gov.pagopa.ranker.domain.dto.OnboardingDTO;
+import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
 
 public interface RankerService {
-    void execute(OnboardingDTO dto);
+    void execute(ServiceBusReceivedMessage message);
 }

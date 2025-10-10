@@ -1,6 +1,7 @@
 package it.gov.pagopa.common.mongo.config;
 
 import com.mongodb.lang.NonNull;
+import it.gov.pagopa.common.mongo.repository.MongoRepositoryImpl;
 import lombok.Setter;
 import org.bson.types.Decimal128;
 import org.springframework.boot.autoconfigure.mongo.MongoClientSettingsBuilderCustomizer;
@@ -11,12 +12,17 @@ import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.convert.ReadingConverter;
 import org.springframework.data.convert.WritingConverter;
 import org.springframework.data.mongodb.core.convert.MongoCustomConversions;
+import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 @Configuration
+@EnableMongoRepositories(
+        basePackages = "it.gov.pagopa",
+        repositoryBaseClass = MongoRepositoryImpl.class
+)
 public class MongoConfig {
 
     @Configuration
@@ -78,4 +84,3 @@ public class MongoConfig {
 
     }
 }
-

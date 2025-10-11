@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import it.gov.pagopa.ranker.connector.event.producer.RankerProducer;
 import it.gov.pagopa.ranker.domain.dto.OnboardingDTO;
+import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
 import lombok.extern.slf4j.Slf4j;
@@ -21,35 +22,32 @@ import static it.gov.pagopa.utils.CommonConstants.ZONEID;
 public class RankerServiceImpl implements RankerService {
 
     private final RankerProducer rankerProducer;
-    private final InitiativeCountersRepository initiativeCountersRepository;
     private final InitiativeCountersService initiativeCountersService;
     private final ObjectReader objectReader;
     private final List<String> initiativesId;
 
     public RankerServiceImpl(RankerProducer rankerProducer,
-                             InitiativeCountersRepository initiativeCountersRepository,
                              InitiativeCountersService initiativeCountersService,
                              ObjectMapper objectMapper,
                              @Value("${app.initiative.identified}") List<String> initiativesId) {
         this.rankerProducer = rankerProducer;
-        this.initiativeCountersRepository = initiativeCountersRepository;
         this.initiativeCountersService = initiativeCountersService;
         this.objectReader = objectMapper.readerFor(OnboardingDTO.class);
         this.initiativesId = initiativesId;
     }
 
     private void preallocate(OnboardingDTO dto) {
-        if (initiativeCountersRepository.existsByInitiativeIdAndUserId(dto.getInitiativeId(), dto.getUserId())) {
+        if (this.initiativeCountersService.existsByInitiativeIdAndUserId(dto.getInitiativeId(), dto.getUserId())) {
             log.info("User {} already preallocated for initiative {}", dto.getUserId(), dto.getInitiativeId());
             return;
         }
 
-        if(!initiativesId.contains(dto.getInitiativeId())){
+        if(!this.initiativesId.contains(dto.getInitiativeId())){
             log.error("[RANKER_SERVICE] Skipped processing for initiativeId={} because it is not configured among handled initiatives", dto.getInitiativeId());
             return;
         }
 
-        initiativeCountersService.addPreallocatedUser(
+        this.initiativeCountersService.addPreallocatedUser(
                 dto.getInitiativeId(),
                 dto.getUserId(),
                 Boolean.TRUE.equals(dto.getVerifyIsee()),
@@ -58,7 +56,7 @@ public class RankerServiceImpl implements RankerService {
         );
 
         log.info("Preallocation added for user {} in initiative {}", dto.getUserId(), dto.getInitiativeId());
-        rankerProducer.sendSaveConsent(dto);
+        this.rankerProducer.sendSaveConsent(dto);
     }
 
     @Override

@@ -1,6 +1,7 @@
 package it.gov.pagopa.ranker.service.initative;
 
 import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
+import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,11 +21,13 @@ class InitiativeCountersServiceImplTest {
     private static final List<String> INITIATIVE_ID = List.of("INITIATIVE_ID");
     @Mock
     private InitiativeCountersRepository initiativeCountersRepositoryMock;
+    @Mock
+    private InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepositoryMock;
     private InitiativeCountersService initiativeCountersService;
 
     @BeforeEach
     void setUp() {
-        initiativeCountersService = new InitiativeCountersServiceImpl(initiativeCountersRepositoryMock, INITIATIVE_ID);
+        initiativeCountersService = new InitiativeCountersServiceImpl(initiativeCountersRepositoryMock, initiativeCountersPreallocationsRepositoryMock, INITIATIVE_ID);
     }
 
     @Test
@@ -40,7 +43,7 @@ class InitiativeCountersServiceImplTest {
 
         // Then
         verify(initiativeCountersRepositoryMock, times(1))
-                .incrementOnboardedAndBudget(INITIATIVE_ID.getFirst(), userId, 20000L, sequenceNumber, time);
+                .incrementOnboardedAndBudget(INITIATIVE_ID.getFirst(), 20000L);
     }
 
     @Test
@@ -53,7 +56,7 @@ class InitiativeCountersServiceImplTest {
 
         doThrow(new DuplicateKeyException("Duplicate key"))
                 .when(initiativeCountersRepositoryMock)
-                .incrementOnboardedAndBudget(anyString(), anyString(), anyLong(), anyLong(), any(LocalDateTime.class));
+                .incrementOnboardedAndBudget(anyString(), anyLong());
 
         // Then
         String initiative = INITIATIVE_ID.getFirst();
@@ -63,7 +66,7 @@ class InitiativeCountersServiceImplTest {
 
         assertTrue(ex.getMessage().contains("Budget exhausted"));
         verify(initiativeCountersRepositoryMock, times(1))
-                .incrementOnboardedAndBudget(initiative, userId, 10000L, sequenceNumber, time);
+                .incrementOnboardedAndBudget(initiative, 10000L);
     }
 
     @Test

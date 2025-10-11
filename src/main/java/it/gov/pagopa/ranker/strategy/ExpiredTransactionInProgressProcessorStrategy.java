@@ -3,8 +3,10 @@ package it.gov.pagopa.ranker.strategy;
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
 import it.gov.pagopa.ranker.domain.model.TransactionInProgress;
 import it.gov.pagopa.ranker.enums.SyncTrxStatus;
+import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
 import it.gov.pagopa.ranker.repository.TransactionInProgressRepository;
+import it.gov.pagopa.ranker.service.initative.InitiativeCountersServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -13,11 +15,13 @@ import org.springframework.stereotype.Service;
 public class ExpiredTransactionInProgressProcessorStrategy implements TransactionInProgressProcessorStrategy {
 
     private final InitiativeCountersRepository initiativeCountersRepository;
+    private final InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository;
     private final TransactionInProgressRepository transactionInProgressRepository;
 
     public ExpiredTransactionInProgressProcessorStrategy(
-            InitiativeCountersRepository initiativeCountersRepository, TransactionInProgressRepository transactionInProgressRepository) {
+            InitiativeCountersRepository initiativeCountersRepository, InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository, TransactionInProgressRepository transactionInProgressRepository) {
         this.initiativeCountersRepository = initiativeCountersRepository;
+        this.initiativeCountersPreallocationsRepository = initiativeCountersPreallocationsRepository;
         this.transactionInProgressRepository = transactionInProgressRepository;
     }
 
@@ -38,13 +42,14 @@ public class ExpiredTransactionInProgressProcessorStrategy implements Transactio
             return;
         }
 
-        if (!initiativeCountersRepository.existsByInitiativeIdAndUserId(
-                transactionInProgress.getInitiativeId(), transactionInProgress.getUserId())) {
+        if (!initiativeCountersPreallocationsRepository.existsById(
+                transactionInProgress.getInitiativeId()+ InitiativeCountersServiceImpl.ID_SEPARATOR + transactionInProgress.getUserId())) {
             log.warn("[ExpiredTransactionInProgressProcessor] received event for a transaction having initiative {}" +
-                    " and user {} that does not exist in the initiative map, will not update counter",
+                    " and user {} that does not exist in the initiative preallocation, will not update counter",
                     transactionInProgress.getInitiativeId(), transactionInProgress.getUserId());
         } else {
             try {
+                initiativeCountersPreallocationsRepository.deleteById(transactionInProgress.getInitiativeId() + InitiativeCountersServiceImpl.ID_SEPARATOR + transactionInProgress.getUserId());
                 initiativeCountersRepository.decrementOnboardedAndBudget(
                         transactionInProgress.getInitiativeId(),
                         transactionInProgress.getUserId(),

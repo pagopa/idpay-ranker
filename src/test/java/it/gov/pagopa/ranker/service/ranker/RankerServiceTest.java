@@ -5,8 +5,12 @@ import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.gov.pagopa.ranker.connector.event.producer.RankerProducer;
 import it.gov.pagopa.ranker.domain.dto.OnboardingDTO;
+import it.gov.pagopa.ranker.domain.model.InitiativeCountersPreallocations;
+import it.gov.pagopa.ranker.enums.PreallocationStatus;
+import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
+import it.gov.pagopa.ranker.service.initative.InitiativeCountersServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,7 +47,6 @@ class RankerServiceTest {
         objectMapper = new ObjectMapper();
         rankerService = new RankerServiceImpl(
                 rankerProducer,
-                initiativeCountersRepository,
                 initiativeCountersService,
                 objectMapper,
                 initiatives
@@ -71,13 +74,12 @@ class RankerServiceTest {
         dto.setVerifyIsee(true);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
-        when(initiativeCountersRepository.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR001")).thenReturn(false);
+        when(initiativeCountersService.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR001")).thenReturn(false);
 
         // When
         rankerService.execute(message);
 
         // Then
-        verify(initiativeCountersRepository).existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR001");
         verify(initiativeCountersService).addPreallocatedUser(
                 eq(initiatives.getFirst()),
                 eq("USR001"),
@@ -97,7 +99,7 @@ class RankerServiceTest {
         dto.setVerifyIsee(false);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
-        when(initiativeCountersRepository.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR_EXIST")).thenReturn(true);
+        when(initiativeCountersService.existsByInitiativeIdAndUserId(initiatives.getFirst(),  "USR_EXIST")).thenReturn(true);
 
         // When
         rankerService.execute(message);
@@ -129,7 +131,7 @@ class RankerServiceTest {
 
         ServiceBusReceivedMessage message = buildMessage(dto);
 
-        when(initiativeCountersRepository.existsByInitiativeIdAndUserId(any(), any()))
+        when(initiativeCountersService.existsByInitiativeIdAndUserId(any(), any()))
                 .thenThrow(new DuplicateKeyException("MESSAGE"));
 
         // Then
@@ -146,7 +148,7 @@ class RankerServiceTest {
         dto.setVerifyIsee(null);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
-        when(initiativeCountersRepository.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR002")).thenReturn(false);
+        when(initiativeCountersService.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR002")).thenReturn(false);
 
         // When
         rankerService.execute(message);

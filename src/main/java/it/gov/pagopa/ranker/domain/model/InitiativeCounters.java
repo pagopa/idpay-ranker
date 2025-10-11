@@ -9,9 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.HashMap;
-import java.util.Map;
-
 @Slf4j
 @Data
 @NoArgsConstructor
@@ -20,17 +17,15 @@ import java.util.Map;
 @Document(collection = "initiative_counters")
 @FieldNameConstants()
 public class InitiativeCounters {
+
     @Id
     private String id;
-
     private Long initiativeBudgetCents;
-
     @Builder.Default
     private Long onboarded=0L;
     @Builder.Default
     private Long reservedInitiativeBudgetCents=0L;
     @Builder.Default
     private Long residualInitiativeBudgetCents=0L;
-    @Builder.Default
-    private Map<String, Preallocation> preallocationMap = new HashMap<>();
+
 }

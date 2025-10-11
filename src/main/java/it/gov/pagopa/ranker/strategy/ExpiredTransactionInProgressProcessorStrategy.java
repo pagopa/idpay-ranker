@@ -43,13 +43,13 @@ public class ExpiredTransactionInProgressProcessorStrategy implements Transactio
         }
 
         if (!initiativeCountersPreallocationsRepository.existsById(
-                transactionInProgress.getInitiativeId()+ InitiativeCountersServiceImpl.ID_SEPARATOR + transactionInProgress.getUserId())) {
+                computePreallocationId(transactionInProgress))) {
             log.warn("[ExpiredTransactionInProgressProcessor] received event for a transaction having initiative {}" +
                     " and user {} that does not exist in the initiative preallocation, will not update counter",
                     transactionInProgress.getInitiativeId(), transactionInProgress.getUserId());
         } else {
             try {
-                initiativeCountersPreallocationsRepository.deleteById(transactionInProgress.getInitiativeId() + InitiativeCountersServiceImpl.ID_SEPARATOR + transactionInProgress.getUserId());
+                initiativeCountersPreallocationsRepository.deleteById(computePreallocationId(transactionInProgress));
                 initiativeCountersRepository.decrementOnboardedAndBudget(
                         transactionInProgress.getInitiativeId(),
                         transactionInProgress.getUserId(),
@@ -79,5 +79,9 @@ public class ExpiredTransactionInProgressProcessorStrategy implements Transactio
             throw e;
         }
 
+    }
+
+    private String computePreallocationId(TransactionInProgressDTO transactionInProgress) {
+        return transactionInProgress.getUserId() + InitiativeCountersServiceImpl.ID_SEPARATOR + transactionInProgress.getInitiativeId();
     }
 }

@@ -17,6 +17,7 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
 
     private static final String FIELD_ID = InitiativeCounters.Fields.id;
     private static final String FIELD_ONBOARDED = InitiativeCounters.Fields.onboarded;
+    private static final String FIELD_SPENT_BUDGET_CENTS = InitiativeCounters.Fields.spentInitiativeBudgetCents;
     private static final String FIELD_RESERVED_BUDGET_CENTS = InitiativeCounters.Fields.reservedInitiativeBudgetCents;
     private static final String FIELD_RESIDUAL_BUDGET_CENTS = InitiativeCounters.Fields.residualInitiativeBudgetCents;
 
@@ -66,4 +67,45 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
                 InitiativeCounters.class
         );
     }
+
+    @Override
+    public InitiativeCounters updateCounterForCaptured(
+            String initiativeId, String userId, Long effectiveAmountCents, Long voucherAmountCents) {
+        Query query = Query.query(Criteria
+                .where(FIELD_ID).is(initiativeId)
+        );
+
+        Update update = new Update()
+                .inc(FIELD_SPENT_BUDGET_CENTS, effectiveAmountCents)
+                .inc(FIELD_RESERVED_BUDGET_CENTS, -voucherAmountCents)
+                .inc(FIELD_RESIDUAL_BUDGET_CENTS, voucherAmountCents - effectiveAmountCents);
+
+
+        return mongoTemplate.findAndModify(
+                query,
+                update,
+                FindAndModifyOptions.options().returnNew(true).upsert(true),
+                InitiativeCounters.class
+        );
+    }
+
+    @Override
+    public InitiativeCounters updateCounterForRefunded(String initiativeId, String userId, Long effectiveAmountCents) {
+        Query query = Query.query(Criteria
+                .where(FIELD_ID).is(initiativeId)
+        );
+
+        Update update = new Update()
+                .inc(FIELD_SPENT_BUDGET_CENTS, -effectiveAmountCents)
+                .inc(FIELD_RESIDUAL_BUDGET_CENTS, effectiveAmountCents);
+
+
+        return mongoTemplate.findAndModify(
+                query,
+                update,
+                FindAndModifyOptions.options().returnNew(true).upsert(true),
+                InitiativeCounters.class
+        );
+    }
+
 }

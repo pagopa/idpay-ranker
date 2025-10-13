@@ -3,7 +3,6 @@ package it.gov.pagopa.ranker.strategy;
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
 import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
 import it.gov.pagopa.ranker.enums.SyncTrxStatus;
-import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
 import it.gov.pagopa.ranker.repository.TransactionInProgressRepository;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersServiceImpl;
@@ -26,16 +25,13 @@ public class ExpiredTransactionInProgressProcessorStrategyTest {
 
     @Mock
     private InitiativeCountersRepository initiativeCountersRepositoryMock;
-    
-    @Mock
-    private InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepositoryMock;
 
     private ExpiredTransactionInProgressProcessorStrategy expiredTransactionInProgressProcessorStrategy;
 
     @BeforeEach
     public void init() {
         Mockito.reset(initiativeCountersRepositoryMock, initiativeCountersRepositoryMock);
-        expiredTransactionInProgressProcessorStrategy = new ExpiredTransactionInProgressProcessorStrategy(initiativeCountersRepositoryMock, initiativeCountersPreallocationsRepositoryMock, transactionInProgressRepositoryMock);
+        expiredTransactionInProgressProcessorStrategy = new ExpiredTransactionInProgressProcessorStrategy(initiativeCountersRepositoryMock, transactionInProgressRepositoryMock);
     }
 
 
@@ -46,13 +42,13 @@ public class ExpiredTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setInitiativeId("INIT_1");
         transactionInProgressDTO.setVoucherAmountCents(1000L);
         transactionInProgressDTO.setUserId("USER_1");
-        when(initiativeCountersPreallocationsRepositoryMock.existsById(eq("INIT_1"+ InitiativeCountersServiceImpl.ID_SEPARATOR + "USER_1")))
+        when(initiativeCountersRepositoryMock.existsById(eq("INIT_1"+ InitiativeCountersServiceImpl.ID_SEPARATOR + "USER_1")))
                 .thenReturn(true);
         when(initiativeCountersRepositoryMock.decrementOnboardedAndBudget(eq("INIT_1"),eq("USER_1"),eq(1000L)))
                 .thenReturn(new InitiativeCounters());
         when(transactionInProgressRepositoryMock.existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED))).thenReturn(true);
         Assertions.assertDoesNotThrow(() -> expiredTransactionInProgressProcessorStrategy.processTransaction(transactionInProgressDTO));
-        verify(initiativeCountersPreallocationsRepositoryMock).existsById(eq("INIT_1" + InitiativeCountersServiceImpl.ID_SEPARATOR + "USER_1"));
+        verify(initiativeCountersRepositoryMock).existsById(eq("INIT_1" + InitiativeCountersServiceImpl.ID_SEPARATOR + "USER_1"));
         verify(initiativeCountersRepositoryMock).decrementOnboardedAndBudget(eq("INIT_1"),eq("USER_1"),eq(1000L));
         verify(transactionInProgressRepositoryMock).deleteById(eq(transactionInProgressDTO.getId()));
 
@@ -77,14 +73,14 @@ public class ExpiredTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setVoucherAmountCents(1000L);
         transactionInProgressDTO.setUserId("USER_1");
         when(transactionInProgressRepositoryMock.existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED))).thenReturn(true);
-        when(initiativeCountersPreallocationsRepositoryMock.existsById(eq("INIT_1" + InitiativeCountersServiceImpl.ID_SEPARATOR + "USER_1")))
+        when(initiativeCountersRepositoryMock.existsById(eq("INIT_1" + InitiativeCountersServiceImpl.ID_SEPARATOR + "USER_1")))
                 .thenReturn(true);
         when(initiativeCountersRepositoryMock.decrementOnboardedAndBudget(eq("INIT_1"),eq("USER_1"),eq(1000L)))
                 .thenThrow(new RuntimeException("error"));
         Assertions.assertThrows(RuntimeException.class,
                 () -> expiredTransactionInProgressProcessorStrategy.processTransaction(transactionInProgressDTO));
         verify(transactionInProgressRepositoryMock).existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED));
-        verify(initiativeCountersPreallocationsRepositoryMock).existsById(eq("INIT_1" + InitiativeCountersServiceImpl.ID_SEPARATOR + "USER_1"));
+        verify(initiativeCountersRepositoryMock).existsById(eq("INIT_1" + InitiativeCountersServiceImpl.ID_SEPARATOR + "USER_1"));
         verify(initiativeCountersRepositoryMock).decrementOnboardedAndBudget(eq("INIT_1"),eq("USER_1"),eq(1000L));
         verifyNoMoreInteractions(transactionInProgressRepositoryMock);
     }
@@ -97,13 +93,13 @@ public class ExpiredTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setVoucherAmountCents(1000L);
         transactionInProgressDTO.setUserId("USER_1");
         when(transactionInProgressRepositoryMock.existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED))).thenReturn(true);
-        when(initiativeCountersPreallocationsRepositoryMock.existsById(eq("INIT_1" + InitiativeCountersServiceImpl.ID_SEPARATOR + "USER_1")))
+        when(initiativeCountersRepositoryMock.existsById(eq("INIT_1" + InitiativeCountersServiceImpl.ID_SEPARATOR + "USER_1")))
                 .thenReturn(true);
         when(initiativeCountersRepositoryMock.decrementOnboardedAndBudget(eq("INIT_1"),eq("USER_1"),eq(1000L)))
                 .thenReturn(new InitiativeCounters());
         doThrow(new RuntimeException("error")).doNothing().when(transactionInProgressRepositoryMock).deleteById(eq("ID_1"));
         Assertions.assertThrows(Exception.class, () -> expiredTransactionInProgressProcessorStrategy.processTransaction(transactionInProgressDTO));
-        verify(initiativeCountersPreallocationsRepositoryMock).existsById(eq("INIT_1" + InitiativeCountersServiceImpl.ID_SEPARATOR + "USER_1"));
+        verify(initiativeCountersRepositoryMock).existsById(eq("INIT_1" + InitiativeCountersServiceImpl.ID_SEPARATOR + "USER_1"));
         verify(initiativeCountersRepositoryMock).decrementOnboardedAndBudget(eq("INIT_1"),eq("USER_1"),eq(1000L));
         verify(transactionInProgressRepositoryMock).deleteById(eq(transactionInProgressDTO.getId()));
     }

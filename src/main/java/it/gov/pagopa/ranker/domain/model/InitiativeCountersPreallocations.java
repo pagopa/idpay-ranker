@@ -17,12 +17,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Document(collection = "initiative_counters_preallocations")
 @FieldNameConstants()
 public class InitiativeCountersPreallocations {
 
-    @Id
-    private String id;
     private String initiativeId;
     private String userId;
     private PreallocationStatus status;

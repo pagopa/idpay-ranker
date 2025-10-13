@@ -1,7 +1,6 @@
 package it.gov.pagopa.ranker.service.initative;
 
 import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
-import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,7 +21,6 @@ class InitiativeCountersServiceImplTest {
     @Mock
     private InitiativeCountersRepository initiativeCountersRepositoryMock;
     @Mock
-    private InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepositoryMock;
     private InitiativeCountersService initiativeCountersService;
 
     @BeforeEach

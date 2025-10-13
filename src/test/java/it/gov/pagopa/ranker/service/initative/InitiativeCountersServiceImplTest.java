@@ -25,7 +25,7 @@ class InitiativeCountersServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        initiativeCountersService = new InitiativeCountersServiceImpl(initiativeCountersRepositoryMock, initiativeCountersPreallocationsRepositoryMock, INITIATIVE_ID);
+        initiativeCountersService = new InitiativeCountersServiceImpl(initiativeCountersRepositoryMock, INITIATIVE_ID);
     }
 
     @Test

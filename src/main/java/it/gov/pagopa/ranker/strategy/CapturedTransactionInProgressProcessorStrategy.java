@@ -48,7 +48,6 @@ public class CapturedTransactionInProgressProcessorStrategy implements Transacti
             try {
                 initiativeCountersRepository.updateCounterForCaptured(
                         transactionInProgress.getInitiativeId(),
-                        transactionInProgress.getUserId(),
                         transactionInProgress.getEffectiveAmountCents(),
                         transactionInProgress.getVoucherAmountCents());
             } catch (Exception e) {

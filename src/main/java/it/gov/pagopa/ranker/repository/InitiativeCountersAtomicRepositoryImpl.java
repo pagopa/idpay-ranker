@@ -49,7 +49,7 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
     }
 
     @Override
-    public InitiativeCounters decrementOnboardedAndBudget(String initiativeId, String userId, long reservationCents) {
+    public InitiativeCounters decrementOnboardedAndBudget(String initiativeId, long reservationCents) {
         Query query = Query.query(Criteria
                 .where(FIELD_ID).is(initiativeId)
         );
@@ -70,7 +70,7 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
 
     @Override
     public InitiativeCounters updateCounterForCaptured(
-            String initiativeId, String userId, Long effectiveAmountCents, Long voucherAmountCents) {
+            String initiativeId, Long effectiveAmountCents, Long voucherAmountCents) {
         Query query = Query.query(Criteria
                 .where(FIELD_ID).is(initiativeId)
         );
@@ -90,7 +90,7 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
     }
 
     @Override
-    public InitiativeCounters updateCounterForRefunded(String initiativeId, String userId, Long effectiveAmountCents) {
+    public InitiativeCounters updateCounterForRefunded(String initiativeId, Long effectiveAmountCents) {
         Query query = Query.query(Criteria
                 .where(FIELD_ID).is(initiativeId)
         );

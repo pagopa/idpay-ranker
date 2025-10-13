@@ -51,7 +51,6 @@ public class ExpiredTransactionInProgressProcessorStrategy implements Transactio
                 initiativeCountersRepository.deleteById(preallocationId);
                 initiativeCountersRepository.decrementOnboardedAndBudget(
                         transactionInProgress.getInitiativeId(),
-                        transactionInProgress.getUserId(),
                         transactionInProgress.getVoucherAmountCents());
             } catch (Exception e) {
                 log.error("[ExpiredTransactionInProgressProcessor] Error attempting to " +

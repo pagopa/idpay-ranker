@@ -32,7 +32,7 @@ public class RefundedTransactionInProgressProcessorStrategy implements Transacti
 
         String transactionInProgressId = transactionInProgress.getId();
         if (!transactionInProgressRepository.existsByIdAndStatus(
-                transactionInProgressId, SyncTrxStatus.CAPTURED)) {
+                transactionInProgressId, SyncTrxStatus.REFUNDED)) {
             log.warn("[RefundedTransactionInProgressProcessor] Provided transaction with id {} with status EXPIRED" +
                             " not found, no counter will be updated",
                     transactionInProgressId);
@@ -48,7 +48,6 @@ public class RefundedTransactionInProgressProcessorStrategy implements Transacti
             try {
                 initiativeCountersRepository.updateCounterForRefunded(
                         transactionInProgress.getInitiativeId(),
-                        transactionInProgress.getUserId(),
                         transactionInProgress.getEffectiveAmountCents());
             } catch (Exception e) {
                 log.error("[RefundedTransactionInProgressProcessor] Error attempting to " +

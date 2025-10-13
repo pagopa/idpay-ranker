@@ -83,7 +83,7 @@ class InitiativeCountersAtomicRepositoryImplTest {
                 eq(InitiativeCounters.class)
         )).thenReturn(expected);
 
-        InitiativeCounters result = repository.decrementOnboardedAndBudget("initiative1", "user1", 100L);
+        InitiativeCounters result = repository.decrementOnboardedAndBudget("initiative1", 100L);
 
         assertNotNull(result);
         assertEquals(expected, result);

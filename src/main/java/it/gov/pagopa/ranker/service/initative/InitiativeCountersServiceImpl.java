@@ -55,6 +55,7 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
                             .enqueuedTime(enqueuedTime)
                             .createdAt(LocalDateTime.now())
                             .status(PreallocationStatus.PREALLOCATED)
+                            .preallocatedAmountCents(reservationCents)
                             .build()
             );
 

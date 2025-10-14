@@ -4,6 +4,7 @@ import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
 import it.gov.pagopa.ranker.domain.model.InitiativeCountersPreallocations;
 import it.gov.pagopa.ranker.enums.PreallocationStatus;
 import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
+import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,12 +22,14 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
     public static final String ID_SEPARATOR = "_";
     private final List<String> initiativeId;
 
+    private final InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository;
     private final InitiativeCountersRepository initiativeCountersRepository;
 
     public InitiativeCountersServiceImpl(InitiativeCountersRepository initiativeCounterRepository,
-                                         @Value("${app.initiative.identified}") List<String> initiativeId) {
+                                         @Value("${app.initiative.identified}") List<String> initiativeId, InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository) {
         this.initiativeCountersRepository = initiativeCounterRepository;
         this.initiativeId = initiativeId;
+        this.initiativeCountersPreallocationsRepository = initiativeCountersPreallocationsRepository;
     }
 
     public boolean existsByInitiativeIdAndUserId(String initiativeId, String userId){
@@ -43,19 +46,15 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
                     reservationCents
             );
 
-            initiativeCountersRepository.save(
-                    InitiativeCounters.builder()
+            initiativeCountersPreallocationsRepository.save(
+                    InitiativeCountersPreallocations.builder()
                             .id(userId+ID_SEPARATOR+initiativeId)
-                            .preallocationData(
-                                InitiativeCountersPreallocations.builder()
-                                    .initiativeId(initiativeId)
-                                    .userId(userId)
-                                    .sequenceNumber(sequenceNumber)
-                                    .enqueuedTime(enqueuedTime)
-                                    .createdAt(LocalDateTime.now())
-                                    .status(PreallocationStatus.PREALLOCATED)
-                                    .build()
-                            )
+                            .initiativeId(initiativeId)
+                            .userId(userId)
+                            .sequenceNumber(sequenceNumber)
+                            .enqueuedTime(enqueuedTime)
+                            .createdAt(LocalDateTime.now())
+                            .status(PreallocationStatus.PREALLOCATED)
                             .build()
             );
 
@@ -67,7 +66,8 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
 
     @Override
     public boolean hasAvailableBudget() {
-        return initiativeCountersRepository.existsByIdInAndResidualInitiativeBudgetCentsGreaterThanEqual(initiativeId, 10000);
+        return initiativeCountersRepository.existsByIdInAndResidualInitiativeBudgetCentsGreaterThanEqual(
+                initiativeId, 10000);
     }
 
     public long calculateReservationCents(boolean verifyIsee) {

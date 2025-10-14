@@ -1,6 +1,7 @@
 package it.gov.pagopa.ranker.service.initative;
 
 import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
+import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,13 +20,16 @@ import static org.mockito.Mockito.*;
 class InitiativeCountersServiceImplTest {
     private static final List<String> INITIATIVE_ID = List.of("INITIATIVE_ID");
     @Mock
+    private InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository;
+    @Mock
     private InitiativeCountersRepository initiativeCountersRepositoryMock;
     @Mock
     private InitiativeCountersService initiativeCountersService;
 
     @BeforeEach
     void setUp() {
-        initiativeCountersService = new InitiativeCountersServiceImpl(initiativeCountersRepositoryMock, INITIATIVE_ID);
+        initiativeCountersService = new InitiativeCountersServiceImpl(
+                initiativeCountersRepositoryMock, INITIATIVE_ID, initiativeCountersPreallocationsRepository);
     }
 
     @Test

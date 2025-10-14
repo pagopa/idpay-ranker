@@ -2,22 +2,27 @@ package it.gov.pagopa.ranker.strategy;
 
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
 import it.gov.pagopa.ranker.enums.SyncTrxStatus;
+import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
 import it.gov.pagopa.ranker.repository.TransactionInProgressRepository;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import static it.gov.pagopa.utils.InitiativeCountersUtils.computePreallocationId;
+
 @Slf4j
 @Service
 public class RefundedTransactionInProgressProcessorStrategy implements TransactionInProgressProcessorStrategy {
 
+    private final InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository;
     private final InitiativeCountersRepository initiativeCountersRepository;
     private final TransactionInProgressRepository transactionInProgressRepository;
 
     public RefundedTransactionInProgressProcessorStrategy(
-            InitiativeCountersRepository initiativeCountersRepository,
+            InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository, InitiativeCountersRepository initiativeCountersRepository,
             TransactionInProgressRepository transactionInProgressRepository) {
+        this.initiativeCountersPreallocationsRepository = initiativeCountersPreallocationsRepository;
         this.initiativeCountersRepository = initiativeCountersRepository;
         this.transactionInProgressRepository = transactionInProgressRepository;
     }
@@ -39,7 +44,7 @@ public class RefundedTransactionInProgressProcessorStrategy implements Transacti
             return;
         }
 
-        if (!initiativeCountersRepository.existsById(
+        if (!initiativeCountersPreallocationsRepository.existsById(
                 computePreallocationId(transactionInProgress))) {
             log.warn("[RefundedTransactionInProgressProcessor] received event for a transaction having initiative {}" +
                     " and user {} that does not exist in the initiative preallocation, will not update counter",
@@ -61,10 +66,6 @@ public class RefundedTransactionInProgressProcessorStrategy implements Transacti
             }
         }
 
-    }
-
-    private String computePreallocationId(TransactionInProgressDTO transactionInProgress) {
-        return transactionInProgress.getUserId() + InitiativeCountersServiceImpl.ID_SEPARATOR + transactionInProgress.getInitiativeId();
     }
 
 }

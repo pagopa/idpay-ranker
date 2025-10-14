@@ -2,6 +2,7 @@ package it.gov.pagopa.ranker.strategy;
 
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
 import it.gov.pagopa.ranker.enums.SyncTrxStatus;
+import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
 import it.gov.pagopa.ranker.repository.TransactionInProgressRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -14,11 +15,13 @@ import static it.gov.pagopa.utils.InitiativeCountersUtils.computePreallocationId
 @Service
 public class ExpiredTransactionInProgressProcessorStrategy implements TransactionInProgressProcessorStrategy {
 
+    private final InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository;
     private final InitiativeCountersRepository initiativeCountersRepository;
     private final TransactionInProgressRepository transactionInProgressRepository;
 
     public ExpiredTransactionInProgressProcessorStrategy(
-            InitiativeCountersRepository initiativeCountersRepository, TransactionInProgressRepository transactionInProgressRepository) {
+            InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository, InitiativeCountersRepository initiativeCountersRepository, TransactionInProgressRepository transactionInProgressRepository) {
+        this.initiativeCountersPreallocationsRepository = initiativeCountersPreallocationsRepository;
         this.initiativeCountersRepository = initiativeCountersRepository;
         this.transactionInProgressRepository = transactionInProgressRepository;
     }
@@ -42,13 +45,13 @@ public class ExpiredTransactionInProgressProcessorStrategy implements Transactio
             return;
         }
 
-        if (!initiativeCountersRepository.existsById(preallocationId)) {
+        if (!initiativeCountersPreallocationsRepository.existsById(preallocationId)) {
             log.warn("[ExpiredTransactionInProgressProcessor] received event for a transaction having initiative {}" +
                     " and user {} that does not exist in the initiative preallocation, will not update counter",
                     transactionInProgress.getInitiativeId(), transactionInProgress.getUserId());
         } else {
             try {
-                initiativeCountersRepository.deleteById(preallocationId);
+                initiativeCountersPreallocationsRepository.deleteById(preallocationId);
                 initiativeCountersRepository.decrementOnboardedAndBudget(
                         transactionInProgress.getInitiativeId(),
                         transactionInProgress.getVoucherAmountCents());

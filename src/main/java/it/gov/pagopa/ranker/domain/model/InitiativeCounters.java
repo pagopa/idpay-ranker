@@ -29,6 +29,5 @@ public class InitiativeCounters {
     private Long reservedInitiativeBudgetCents=0L;
     @Builder.Default
     private Long residualInitiativeBudgetCents=0L;
-    private InitiativeCountersPreallocations preallocationData;
 
 }

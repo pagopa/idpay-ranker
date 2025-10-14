@@ -33,7 +33,7 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
     }
 
     public boolean existsByInitiativeIdAndUserId(String initiativeId, String userId){
-        return initiativeCountersRepository.existsById(userId+ID_SEPARATOR+initiativeId);
+        return initiativeCountersPreallocationsRepository.existsById(userId+ID_SEPARATOR+initiativeId);
     }
 
     @Transactional
@@ -46,7 +46,7 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
                     reservationCents
             );
 
-            initiativeCountersPreallocationsRepository.save(
+            initiativeCountersPreallocationsRepository.insert(
                     InitiativeCountersPreallocations.builder()
                             .id(userId+ID_SEPARATOR+initiativeId)
                             .initiativeId(initiativeId)

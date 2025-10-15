@@ -35,6 +35,8 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
                 .and(FIELD_RESIDUAL_BUDGET_CENTS).gte(reservationCents)
         );
 
+        query.restrict(InitiativeCounters.class);
+
         Update update = new Update()
                 .inc(FIELD_ONBOARDED, 1L)
                 .inc(FIELD_RESERVED_BUDGET_CENTS, reservationCents)
@@ -74,7 +76,6 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
                 .where(FIELD_ID).is(initiativeId)
         );
 
-
         Update update = new Update()
                 .inc(FIELD_SPENT_BUDGET_CENTS, effectiveAmountCents)
                 .inc(FIELD_RESERVED_BUDGET_CENTS, -voucherAmountCents)
@@ -97,7 +98,6 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
         Update update = new Update()
                 .inc(FIELD_SPENT_BUDGET_CENTS, -effectiveAmountCents)
                 .inc(FIELD_RESIDUAL_BUDGET_CENTS, effectiveAmountCents);
-
 
         return mongoTemplate.findAndModify(
                 query,

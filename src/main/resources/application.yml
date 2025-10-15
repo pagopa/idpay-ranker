@@ -26,7 +26,7 @@ spring:
       on-profile: default
   cloud:
    function:
-     definition: rankerProducer;
+     definition: rankerProducer;trxProcessor;errors
    stream:
      bindings:
 #       rankerProcessor-in-0:
@@ -38,12 +38,78 @@ spring:
          destination: ${SB_ONBOARDING_OUTCOME_TOPIC:idpay-admissibility-request}
          content-type: ${SB_CONTENT_TYPE:application/json}
          binder: admissibility
+       trxProcessor-in-0:
+         destination: ${KAFKA_TRANSACTION_TOPIC:idpay-transaction}
+         group: ${KAFKA_TRANSACTION_GROUP_ID:idpay-trx-consumer}
+         content-type: ${KAFKA_CONTENT_TYPE:application/json}
+         binder: kafka-transactions
+       errors-out-0:
+         destination: ${KAFKA_ERROR_TOPIC:idpay-errors}
+         content-type: ${KAFKA_CONTENT_TYPE:application/json}
+         binder: kafka-errors
+     kafka:
+       binder:
+         auto-create-topics: false
+         configuration:
+          heartbeat.interval.ms: ${KAFKA_TRANSACTIONS_BINDER_CONFIGURATION_HEARTBEAT_INTERVAL_MS:3000}
+          session.timeout.ms: ${KAFKA_TRANSACTIONS_BINDER_CONFIGURATION_SESSION_TIMEOUT_MS:60000}
+          request.timeout.ms: ${KAFKA_CONFIG_REQUEST_TIMEOUT_MS:60000}
+          sasl.mechanism: ${KAFKA_TRANSACTIONS_SASL_MECHANISM_00:PLAIN}
+          security.protocol: ${KAFKA_TRANSACTIONS_SECURITY_PROTOCOL:SASL_SSL}
+          connections.max.idle.ms: ${KAFKA_CONFIG_CONNECTION_MAX_IDLE_TIME:180000}
+          metadata.max.idle.ms: ${KAFKA_CONFIG_METADATA_MAX_IDLE_MS:180000}
+          metadata.max.age.ms: ${KAFKA_CONFIG_METADATA_MAX_AGE_INTERVAL:179000}
+          max.request.size: ${KAFKA_CONFIG_METADATA_MAX_REQUEST_SIZE:1000000}
+       bindings:
+         trxProcessor-in-0:
+            consumer:
+              startOffset: ${KAFKA_TRANSACTION_START_OFFSET:${KAFKA_CONSUMER_CONFIG_START_OFFSET:earliest}}
+              autoCommitOffset: false
+              ackMode: MANUAL_IMMEDIATE
+              ackTime: ${KAFKA_TRANSACTION_ACK_MILLIS:500}
+              standardHeaders: ${KAFKA_TRANSACTION_STANDARD_HEADERS:${KAFKA_CONSUMER_CONFIG_STANDARD_HEADERS:both}}
+              configuration:
+                max.poll:
+                  records: ${KAFKA_TRANSACTION_MAX_POLL_SIZE:${KAFKA_CONSUMER_CONFIG_MAX_POLL_SIZE:500}}
+                  interval.ms: ${KAFKA_TRANSACTION_INTERVAL_TIMEOUT_MS:${KAFKA_CONFIG_MAX_POLL_INTERVAL_TIMEOUT_MS:300000}}
+                connections.max.idle.ms: ${KAFKA_TRANSACTION_CONNECTIONS_MAX_IDLE_MS:${KAFKA_CONSUMER_CONFIG_CONNECTIONS_MAX_IDLE_MS:180000}}
+                socket.connection.setup.timeout:
+                  max.ms: ${KAFKA_TRANSACTION_CONNECTION_TIMEOUT_MAX_MS:${KAFKA_CONSUMER_CONFIG_CONNECTION_TIMEOUT_MAX_MS:200000}}
+                  ms: ${KAFKA_TRANSACTION_CONNECTION_TIMEOUT_MS:${KAFKA_CONSUMER_CONFIG_CONNECTION_TIMEOUT_MS:100000}}
+         errors-out-0:
+            producer:
+              configuration:
+                client.id: transactions-errors
+                connections.max.idle.ms: ${KAFKA_ERRORS_CONNECTION_MAX_IDLE_TIME:180000}
+                retry.backoff.ms: ${KAFKA_ERRORS_KAFKA_RETRY_MS:${KAFKA_RETRY_MS:10000}}
+                linger.ms: ${KAFKA_ERRORS_LINGER_MS:${KAFKA_LINGER_MS:2}}
+                batch.size: ${KAFKA_ERRORS_BATCH_SIZE:${KAFKA_BATCH_SIZE:16384}}
      servicebus:
        bindings:
          rankerProducer-out-0:
            producer:
              entity-type: queue
      binders:
+       kafka-transactions:
+         type: kafka
+         environment:
+           spring.cloud.stream.kafka.binder:
+             brokers: ${KAFKA_TRANSACTIONS_BROKER:${KAFKA_BROKER:}}
+             configuration:
+               sasl.jaas.config: ${EVH_CONNECTION_TRANSACTION:}
+       kafka-errors:
+         type: kafka
+         environment:
+           spring.cloud.stream.kafka.binder:
+             brokers: ${KAFKA_ERRORS_BROKER:${KAFKA_BROKER:}}
+             configuration:
+               sasl.jaas.config: ${KAFKA_ERRORS_SASL_JAAS_CONFIG:}
+               key.serializer: org.apache.kafka.common.serialization.StringSerializer
+       onboarding:
+         type: servicebus
+         default-candidate: true
+         environment:
+           spring.cloud.azure.servicebus.connection-string: ${SERVICEBUS_ONBOARDING_CONNECTION_STRING:}
        admissibility:
          type: servicebus
          default-candidate: false

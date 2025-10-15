@@ -43,7 +43,6 @@ class RankerServiceTest {
         objectMapper = new ObjectMapper();
         rankerService = new RankerServiceImpl(
                 rankerProducer,
-                initiativeCountersRepository,
                 initiativeCountersService,
                 objectMapper,
                 initiatives
@@ -71,13 +70,12 @@ class RankerServiceTest {
         dto.setVerifyIsee(true);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
-        when(initiativeCountersRepository.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR001")).thenReturn(false);
+        when(initiativeCountersService.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR001")).thenReturn(false);
 
         // When
         rankerService.execute(message);
 
         // Then
-        verify(initiativeCountersRepository).existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR001");
         verify(initiativeCountersService).addPreallocatedUser(
                 eq(initiatives.getFirst()),
                 eq("USR001"),
@@ -97,7 +95,7 @@ class RankerServiceTest {
         dto.setVerifyIsee(false);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
-        when(initiativeCountersRepository.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR_EXIST")).thenReturn(true);
+        when(initiativeCountersService.existsByInitiativeIdAndUserId(initiatives.getFirst(),  "USR_EXIST")).thenReturn(true);
 
         // When
         rankerService.execute(message);
@@ -129,7 +127,7 @@ class RankerServiceTest {
 
         ServiceBusReceivedMessage message = buildMessage(dto);
 
-        when(initiativeCountersRepository.existsByInitiativeIdAndUserId(any(), any()))
+        when(initiativeCountersService.existsByInitiativeIdAndUserId(any(), any()))
                 .thenThrow(new DuplicateKeyException("MESSAGE"));
 
         // Then
@@ -146,7 +144,7 @@ class RankerServiceTest {
         dto.setVerifyIsee(null);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
-        when(initiativeCountersRepository.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR002")).thenReturn(false);
+        when(initiativeCountersService.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR002")).thenReturn(false);
 
         // When
         rankerService.execute(message);

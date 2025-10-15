@@ -42,7 +42,7 @@ class InitiativeCountersReservationOpsRepositoryImplTest {
 
         final List<Future<InitiativeCounters>> tasks = IntStream.range(0, n)
                 .mapToObj(i -> executorService.submit(() ->
-                        initiativeCountersReservationOpsRepositoryImpl.incrementOnboardedAndBudget("prova", "user"+i, budgetReservedPerRequestCents, sequenceNumber+i, now)))
+                        initiativeCountersReservationOpsRepositoryImpl.incrementOnboardedAndBudget("prova",  budgetReservedPerRequestCents)))
                 .toList();
 
         final long successfulReservation = tasks.stream().filter(t -> {

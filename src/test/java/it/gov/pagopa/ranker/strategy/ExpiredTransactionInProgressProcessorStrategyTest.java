@@ -41,6 +41,13 @@ public class ExpiredTransactionInProgressProcessorStrategyTest {
                 transactionInProgressRepositoryMock);
     }
 
+    @Test
+    public void shouldReturnCapturedStatus() {
+        Assertions.assertEquals(
+                SyncTrxStatus.EXPIRED,
+                expiredTransactionInProgressProcessorStrategy.getProcessedStatus()
+        );
+    }
 
     @Test
     public void shouldExecuteDecrementAndTrxRemovalIfUserIsMapped() {
@@ -71,8 +78,32 @@ public class ExpiredTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setInitiativeId("INIT_1");
         transactionInProgressDTO.setVoucherAmountCents(1000L);
         transactionInProgressDTO.setUserId("USER_1");
+        when(transactionInProgressRepositoryMock.existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED)))
+                .thenReturn(false);
+        Assertions.assertDoesNotThrow(() -> expiredTransactionInProgressProcessorStrategy
+                .processTransaction(transactionInProgressDTO));
+        verify(transactionInProgressRepositoryMock).existsByIdAndStatus(any(),any());
         verifyNoInteractions(initiativeCountersRepositoryMock);
-        verifyNoInteractions(transactionInProgressRepositoryMock);
+        verifyNoInteractions(initiativeCountersPreallocationsRepository);
+    }
+
+    @Test
+    public void shouldNotExecuteUpdateIfPreallocationIsNotMapped() {
+        TransactionInProgressDTO transactionInProgressDTO = new TransactionInProgressDTO();
+        transactionInProgressDTO.setId("ID_1");
+        transactionInProgressDTO.setInitiativeId("INIT_1");
+        transactionInProgressDTO.setVoucherAmountCents(1000L);
+        transactionInProgressDTO.setUserId("USER_1");
+        String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
+        when(transactionInProgressRepositoryMock.existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED)))
+                .thenReturn(true);
+        when(initiativeCountersPreallocationsRepository.existsById(eq(preallocationId)))
+                .thenReturn(false);
+        Assertions.assertDoesNotThrow(() -> expiredTransactionInProgressProcessorStrategy
+                .processTransaction(transactionInProgressDTO));
+        verify(transactionInProgressRepositoryMock).existsByIdAndStatus(any(),any());
+        verify(initiativeCountersPreallocationsRepository).existsById(eq(preallocationId));
+        verifyNoInteractions(initiativeCountersRepositoryMock);
     }
 
     @Test

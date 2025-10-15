@@ -2,6 +2,8 @@ package it.gov.pagopa.ranker.service.transactionInProgress;
 
 import it.gov.pagopa.common.config.KafkaConfiguration;
 import it.gov.pagopa.common.kafka.service.ErrorNotifierService;
+import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
+import it.gov.pagopa.ranker.enums.SyncTrxStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,6 +15,7 @@ import org.springframework.messaging.support.MessageBuilder;
 
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -49,7 +52,8 @@ class TransactionErrorNotifierServiceImplTest {
         when(kafkaConfiguration.getStream()).thenReturn(mock(KafkaConfiguration.Stream.class));
         when(kafkaConfiguration.getStream().getBindings()).thenReturn(Map.of("trxProcessor-in-0",kafkaInfoDTO));
         errorNotifyMock(kafkaInfoDTO,true,false);
-        transactionErrorNotifierService.notifyExpiredTransaction(dummyMessage,DUMMY_MESSAGE,true,new Throwable(DUMMY_MESSAGE));
+        transactionErrorNotifierService.notifyExpiredTransaction(
+                dummyMessage,DUMMY_MESSAGE,true,new Throwable(DUMMY_MESSAGE));
 
         Mockito.verifyNoMoreInteractions(errorNotifierServiceMock);
     }
@@ -63,13 +67,27 @@ class TransactionErrorNotifierServiceImplTest {
                 .group("commands-group")
                 .build();
         errorNotifyMock(baseKafkaInfoDTO,true,true);
-        transactionErrorNotifierService.notify(baseKafkaInfoDTO,dummyMessage,DUMMY_MESSAGE,true,true,new Throwable(DUMMY_MESSAGE));
+        transactionErrorNotifierService.notify(baseKafkaInfoDTO,dummyMessage,DUMMY_MESSAGE,true,
+                true,new Throwable(DUMMY_MESSAGE));
 
         Mockito.verifyNoMoreInteractions(errorNotifierServiceMock);
     }
 
-    private void errorNotifyMock(KafkaConfiguration.BaseKafkaInfoDTO baseKafkaInfoDTO,boolean retryable, boolean resendApplication) {
-        when(errorNotifierServiceMock.notify(eq(baseKafkaInfoDTO), eq(dummyMessage), eq(DUMMY_MESSAGE), eq(retryable), eq(resendApplication), any()))
+    @Test
+    void testBuildMessage() {
+        TransactionInProgressDTO transactionInProgressDTO = TransactionInProgressDTO.builder()
+                .id("TEST").status(SyncTrxStatus.EXPIRED).build();
+        Message<TransactionInProgressDTO> transactionInProgressDTOMessage =
+                transactionErrorNotifierService.buildMessage(transactionInProgressDTO, transactionInProgressDTO.getId());
+        assertEquals(transactionInProgressDTO, transactionInProgressDTOMessage.getPayload());
+    }
+
+    private void errorNotifyMock(KafkaConfiguration.BaseKafkaInfoDTO baseKafkaInfoDTO,
+                                 boolean retryable, boolean resendApplication) {
+        when(errorNotifierServiceMock.notify(
+                eq(baseKafkaInfoDTO), eq(dummyMessage), eq(DUMMY_MESSAGE),
+                eq(retryable), eq(resendApplication), any()))
                 .thenReturn(true);
     }
+
 }

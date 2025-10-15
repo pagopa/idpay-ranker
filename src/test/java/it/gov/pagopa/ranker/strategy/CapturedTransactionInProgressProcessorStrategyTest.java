@@ -44,6 +44,14 @@ public class CapturedTransactionInProgressProcessorStrategyTest {
 
 
     @Test
+    public void shouldReturnCapturedStatus() {
+        Assertions.assertEquals(
+                SyncTrxStatus.CAPTURED,
+                capturedTransactionInProgressProcessorStrategy.getProcessedStatus()
+        );
+    }
+
+    @Test
     public void shouldExecuteUpdateIfUserIsMapped() {
         TransactionInProgressDTO transactionInProgressDTO = new TransactionInProgressDTO();
         transactionInProgressDTO.setId("ID_1");
@@ -72,8 +80,32 @@ public class CapturedTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setInitiativeId("INIT_1");
         transactionInProgressDTO.setVoucherAmountCents(1000L);
         transactionInProgressDTO.setUserId("USER_1");
+        when(transactionInProgressRepositoryMock.existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.CAPTURED)))
+                .thenReturn(false);
+        Assertions.assertDoesNotThrow(() -> capturedTransactionInProgressProcessorStrategy
+                .processTransaction(transactionInProgressDTO));
+        verify(transactionInProgressRepositoryMock).existsByIdAndStatus(any(),any());
         verifyNoInteractions(initiativeCountersRepositoryMock);
-        verifyNoInteractions(transactionInProgressRepositoryMock);
+        verifyNoInteractions(initiativeCountersPreallocationsRepository);
+    }
+
+    @Test
+    public void shouldNotExecuteUpdateIfPreallocationIsNotMapped() {
+        TransactionInProgressDTO transactionInProgressDTO = new TransactionInProgressDTO();
+        transactionInProgressDTO.setId("ID_1");
+        transactionInProgressDTO.setInitiativeId("INIT_1");
+        transactionInProgressDTO.setVoucherAmountCents(1000L);
+        transactionInProgressDTO.setUserId("USER_1");
+        String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
+        when(transactionInProgressRepositoryMock.existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.CAPTURED)))
+                .thenReturn(true);
+        when(initiativeCountersPreallocationsRepository.existsById(eq(preallocationId)))
+                .thenReturn(false);
+        Assertions.assertDoesNotThrow(() -> capturedTransactionInProgressProcessorStrategy
+                .processTransaction(transactionInProgressDTO));
+        verify(transactionInProgressRepositoryMock).existsByIdAndStatus(any(),any());
+        verify(initiativeCountersPreallocationsRepository).existsById(eq(preallocationId));
+        verifyNoInteractions(initiativeCountersRepositoryMock);
     }
 
     @Test

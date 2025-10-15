@@ -96,4 +96,63 @@ class InitiativeCountersAtomicRepositoryImplTest {
         );
     }
 
+    @Test
+    void testUpdateCounterForRefunded() {
+        InitiativeCounters expected = InitiativeCounters.builder()
+                .id("initiative1")
+                .onboarded(1L)
+                .reservedInitiativeBudgetCents(0L)
+                .residualInitiativeBudgetCents(1000L)
+                .build();
+
+        when(mongoTemplate.findAndModify(
+                any(Query.class),
+                any(Update.class),
+                any(FindAndModifyOptions.class),
+                eq(InitiativeCounters.class)
+        )).thenReturn(expected);
+
+        InitiativeCounters result = repository.updateCounterForRefunded("initiative1", 100L);
+
+        assertNotNull(result);
+        assertEquals(expected, result);
+
+        verify(mongoTemplate, times(1)).findAndModify(
+                any(Query.class),
+                any(Update.class),
+                any(FindAndModifyOptions.class),
+                eq(InitiativeCounters.class)
+        );
+    }
+
+    @Test
+    void testUpdateCounterForCaptured() {
+        InitiativeCounters expected = InitiativeCounters.builder()
+                .id("initiative1")
+                .onboarded(1L)
+                .reservedInitiativeBudgetCents(0L)
+                .residualInitiativeBudgetCents(1000L)
+                .build();
+
+        when(mongoTemplate.findAndModify(
+                any(Query.class),
+                any(Update.class),
+                any(FindAndModifyOptions.class),
+                eq(InitiativeCounters.class)
+        )).thenReturn(expected);
+
+        InitiativeCounters result = repository.updateCounterForCaptured(
+                "initiative1", 100L,100L);
+
+        assertNotNull(result);
+        assertEquals(expected, result);
+
+        verify(mongoTemplate, times(1)).findAndModify(
+                any(Query.class),
+                any(Update.class),
+                any(FindAndModifyOptions.class),
+                eq(InitiativeCounters.class)
+        );
+    }
+
 }

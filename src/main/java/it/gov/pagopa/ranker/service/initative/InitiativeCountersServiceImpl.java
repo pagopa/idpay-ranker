@@ -60,6 +60,7 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
             );
 
         } catch (DuplicateKeyException e){
+            //CosmosDB throw DuplicateKey even if the residualInitiativeBudgetCents is less than the minimum required and is not really a duplicated id
             log.error("[RANKER] Budget exhausted for the initiative {}", initiativeId);
             throw new BudgetExhaustedException("[RANKER] Budget exhausted for the initiative: " + initiativeId, e);
         }

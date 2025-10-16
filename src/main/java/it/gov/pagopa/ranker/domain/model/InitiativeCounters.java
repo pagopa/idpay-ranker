@@ -16,7 +16,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Builder
 @Document(collection = "initiative_counters")
 @FieldNameConstants()
-public class InitiativeCounters {
+public class  InitiativeCounters {
 
     @Id
     private String id;

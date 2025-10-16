@@ -56,13 +56,10 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
                 .where(FIELD_ID).is(initiativeId)
         );
 
-        query.restrict(InitiativeCounters.class);
-
         Update update = new Update()
                 .inc(FIELD_ONBOARDED, -1L)
                 .inc(FIELD_RESERVED_BUDGET_CENTS, -reservationCents)
                 .inc(FIELD_RESIDUAL_BUDGET_CENTS, +reservationCents);
-
 
         return mongoTemplate.findAndModify(
                 query,
@@ -79,13 +76,10 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
                 .where(FIELD_ID).is(initiativeId)
         );
 
-        query.restrict(InitiativeCounters.class);
-
         Update update = new Update()
                 .inc(FIELD_SPENT_BUDGET_CENTS, effectiveAmountCents)
                 .inc(FIELD_RESERVED_BUDGET_CENTS, -voucherAmountCents)
                 .inc(FIELD_RESIDUAL_BUDGET_CENTS, voucherAmountCents - effectiveAmountCents);
-
 
         return mongoTemplate.findAndModify(
                 query,
@@ -101,12 +95,9 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
                 .where(FIELD_ID).is(initiativeId)
         );
 
-        query.restrict(InitiativeCounters.class);
-
         Update update = new Update()
                 .inc(FIELD_SPENT_BUDGET_CENTS, -effectiveAmountCents)
                 .inc(FIELD_RESIDUAL_BUDGET_CENTS, effectiveAmountCents);
-
 
         return mongoTemplate.findAndModify(
                 query,

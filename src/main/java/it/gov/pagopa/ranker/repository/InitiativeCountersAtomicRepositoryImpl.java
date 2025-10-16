@@ -35,8 +35,6 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
                 .and(FIELD_RESIDUAL_BUDGET_CENTS).gte(reservationCents)
         );
 
-        query.restrict(InitiativeCounters.class);
-
         Update update = new Update()
                 .inc(FIELD_ONBOARDED, 1L)
                 .inc(FIELD_RESERVED_BUDGET_CENTS, reservationCents)

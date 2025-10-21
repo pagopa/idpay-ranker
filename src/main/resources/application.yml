@@ -1,0 +1,196 @@
+mongo:
+  request-rate-too-large:
+    api:
+      enabled: ${MONGO_REQUEST_RATE_TOO_LARGE_API_ENABLED:false}
+      max-retry: ${MONGO_REQUEST_RATE_TOO_LARGE_API_MAX_RETRY:0}
+      max-millis-elapsed: ${MONGO_REQUEST_RATE_TOO_LARGE_API_MAX_MILLIS_ELAPSED:200}
+    batch:
+      enabled: ${MONGO_REQUEST_RATE_TOO_LARGE_BATCH_ENABLED:true}
+      max-retry: ${MONGO_REQUEST_RATE_TOO_LARGE_BATCH_MAX_RETRY:5}
+      max-millis-elapsed: ${MONGO_REQUEST_RATE_TOO_LARGE_BATCH_MAX_MILLIS_ELAPSED:0}
+
+server:
+  port: ${RANKER_PORT:8080}
+
+reactor:
+  bufferSize:
+    small: ${REACTOR_BUFFER_SIZE:256}
+
+spring:
+  application:
+    name: "@project.artifactId@"
+    version: "@project.version@"
+  jmx.enabled: true
+  config:
+    activate:
+      on-profile: default
+  cloud:
+   function:
+     definition: rankerProducer;trxProcessor;errors
+   stream:
+     bindings:
+#       rankerProcessor-in-0:
+#         destination: ${SB_ONBOARDING_REQUEST_TOPIC:idpay-onboarding-request}
+#         content-type: ${SB_CONTENT_TYPE:application/json}
+#         binder: onboarding
+#         consumer.autoStartup: false
+       rankerProducer-out-0:
+         destination: ${SB_ONBOARDING_OUTCOME_TOPIC:idpay-admissibility-request}
+         content-type: ${SB_CONTENT_TYPE:application/json}
+         binder: admissibility
+       trxProcessor-in-0:
+         destination: ${KAFKA_TRANSACTION_TOPIC:idpay-transaction}
+         group: ${KAFKA_TRANSACTION_GROUP_ID:idpay-trx-consumer}
+         content-type: ${KAFKA_CONTENT_TYPE:application/json}
+         binder: kafka-transactions
+       errors-out-0:
+         destination: ${KAFKA_ERROR_TOPIC:idpay-errors}
+         content-type: ${KAFKA_CONTENT_TYPE:application/json}
+         binder: kafka-errors
+     kafka:
+       binder:
+         auto-create-topics: false
+         configuration:
+          heartbeat.interval.ms: ${KAFKA_TRANSACTIONS_BINDER_CONFIGURATION_HEARTBEAT_INTERVAL_MS:3000}
+          session.timeout.ms: ${KAFKA_TRANSACTIONS_BINDER_CONFIGURATION_SESSION_TIMEOUT_MS:60000}
+          request.timeout.ms: ${KAFKA_CONFIG_REQUEST_TIMEOUT_MS:60000}
+          sasl.mechanism: ${KAFKA_TRANSACTIONS_SASL_MECHANISM_00:PLAIN}
+          security.protocol: ${KAFKA_TRANSACTIONS_SECURITY_PROTOCOL:SASL_SSL}
+          connections.max.idle.ms: ${KAFKA_CONFIG_CONNECTION_MAX_IDLE_TIME:180000}
+          metadata.max.idle.ms: ${KAFKA_CONFIG_METADATA_MAX_IDLE_MS:180000}
+          metadata.max.age.ms: ${KAFKA_CONFIG_METADATA_MAX_AGE_INTERVAL:179000}
+          max.request.size: ${KAFKA_CONFIG_METADATA_MAX_REQUEST_SIZE:1000000}
+       bindings:
+         trxProcessor-in-0:
+            consumer:
+              startOffset: ${KAFKA_TRANSACTION_START_OFFSET:${KAFKA_CONSUMER_CONFIG_START_OFFSET:earliest}}
+              autoCommitOffset: false
+              ackMode: MANUAL_IMMEDIATE
+              ackTime: ${KAFKA_TRANSACTION_ACK_MILLIS:500}
+              standardHeaders: ${KAFKA_TRANSACTION_STANDARD_HEADERS:${KAFKA_CONSUMER_CONFIG_STANDARD_HEADERS:both}}
+              configuration:
+                max.poll:
+                  records: ${KAFKA_TRANSACTION_MAX_POLL_SIZE:${KAFKA_CONSUMER_CONFIG_MAX_POLL_SIZE:500}}
+                  interval.ms: ${KAFKA_TRANSACTION_INTERVAL_TIMEOUT_MS:${KAFKA_CONFIG_MAX_POLL_INTERVAL_TIMEOUT_MS:300000}}
+                connections.max.idle.ms: ${KAFKA_TRANSACTION_CONNECTIONS_MAX_IDLE_MS:${KAFKA_CONSUMER_CONFIG_CONNECTIONS_MAX_IDLE_MS:180000}}
+                socket.connection.setup.timeout:
+                  max.ms: ${KAFKA_TRANSACTION_CONNECTION_TIMEOUT_MAX_MS:${KAFKA_CONSUMER_CONFIG_CONNECTION_TIMEOUT_MAX_MS:200000}}
+                  ms: ${KAFKA_TRANSACTION_CONNECTION_TIMEOUT_MS:${KAFKA_CONSUMER_CONFIG_CONNECTION_TIMEOUT_MS:100000}}
+         errors-out-0:
+            producer:
+              configuration:
+                client.id: transactions-errors
+                connections.max.idle.ms: ${KAFKA_ERRORS_CONNECTION_MAX_IDLE_TIME:180000}
+                retry.backoff.ms: ${KAFKA_ERRORS_KAFKA_RETRY_MS:${KAFKA_RETRY_MS:10000}}
+                linger.ms: ${KAFKA_ERRORS_LINGER_MS:${KAFKA_LINGER_MS:2}}
+                batch.size: ${KAFKA_ERRORS_BATCH_SIZE:${KAFKA_BATCH_SIZE:16384}}
+     servicebus:
+       bindings:
+         rankerProducer-out-0:
+           producer:
+             entity-type: queue
+     binders:
+       kafka-transactions:
+         type: kafka
+         environment:
+           spring.cloud.stream.kafka.binder:
+             brokers: ${KAFKA_TRANSACTIONS_BROKER:${KAFKA_BROKER:}}
+             configuration:
+               sasl.jaas.config: ${EVH_CONNECTION_TRANSACTION:}
+       kafka-errors:
+         type: kafka
+         environment:
+           spring.cloud.stream.kafka.binder:
+             brokers: ${KAFKA_ERRORS_BROKER:${KAFKA_BROKER:}}
+             configuration:
+               sasl.jaas.config: ${KAFKA_ERRORS_SASL_JAAS_CONFIG:}
+               key.serializer: org.apache.kafka.common.serialization.StringSerializer
+       onboarding:
+         type: servicebus
+         default-candidate: true
+         environment:
+           spring.cloud.azure.servicebus.connection-string: ${SERVICEBUS_ONBOARDING_CONNECTION_STRING:}
+       admissibility:
+         type: servicebus
+         default-candidate: false
+         environment:
+           spring.cloud.azure.servicebus.connection-string: ${SERVICEBUS_ADMISSIBILITY_CONNECTION_STRING:}
+  data:
+      mongodb:
+        uri: ${MONGODB_URI:mongodb://localhost:27017}
+        database: ${MONGODB_DBNAME:idpay}
+        # custom configured properties
+        config:
+          connectionPool:
+            maxSize: ${MONGODB_CONNECTIONPOOL_MAX_SIZE:100}
+            minSize: ${MONGODB_CONNECTIONPOOL_MIN_SIZE:0}
+            maxWaitTimeMS: ${MONGODB_CONNECTIONPOOL_MAX_WAIT_MS:120000}
+            maxConnectionLifeTimeMS: ${MONGODB_CONNECTIONPOOL_MAX_CONNECTION_LIFE_MS:0}
+            maxConnectionIdleTimeMS: ${MONGODB_CONNECTIONPOOL_MAX_CONNECTION_IDLE_MS:120000}
+            maxConnecting: ${MONGODB_CONNECTIONPOOL_MAX_CONNECTING:2}
+
+management:
+  health:
+    mongo.enabled: ${HEALTH_MONGO_ENABLED:true}
+  endpoint:
+    health:
+      probes.enabled: true
+      group:
+        readiness.include: "*"
+        liveness.include: livenessState,diskSpace,ping,binders
+      logging.slow-indicator-threshold: ${HEALTH_ACTUATOR_LOGGER_TIMEOUT_DURATION:PT1S}
+  endpoints:
+    jmx:
+      exposure.include: "*"
+    web:
+      exposure.include: info, health
+
+logging:
+  level:
+    root: ${LOG_LEVEL_ROOT:INFO}
+    it.gov.pagopa: ${LOG_LEVEL_PAGOPA:INFO}
+    it.gov.pagopa.common.reactive.kafka.consumer: ${LOG_LEVEL_BASE_KAFKA_CONSUMER:INFO}
+    it.gov.pagopa.ranker: ${LOG_LEVEL_RANKER:INFO}
+    org.springframework.integration: ${LOG_LEVEL_SPRING_INTEGRATION:INFO}
+    org.springframework.security: ${LOG_LEVEL_SPRING_SECURITY:INFO}
+    org.springframework.ws: ${LOG_LEVEL_SPRING_WS:INFO}
+    org.springframework.cloud: ${LOG_LEVEL_SPRING_CLOUD:WARN}
+    org.springframework.data: ${LOG_LEVEL_SPRING_DATA:INFO}
+    org.springframework.hateoas: ${LOG_LEVEL_SPRING_HATEOAS:INFO}
+    org.springframework.boot: ${LOG_LEVEL_SPRING_BOOT:INFO}
+    org.springframework.boot.availability: ${LOG_LEVEL_SPRING_BOOT_AVAILABILITY:DEBUG}
+    org.springframework.kafka: ${LOG_LEVEL_SPRING_KAFKA:INFO}
+    org.springframework.batch: ${LOG_LEVEL_SPRING_BATCH:INFO}
+    io.swagger: ${LOG_LEVEL_IO_SWAGGER:WARN}
+    javax.persistence: ${LOG_LEVEL_JAVAX_PERSISTENCE:INFO}
+    org.hibernate: ${LOG_LEVEL_ORG_HIBERNATE:INFO}
+    org.kie: ${LOG_LEVEL_ORG_KIE:WARN}
+    org.drools: ${LOG_LEVEL_ORG_DROOLS:WARN}
+    org.drools.mvel.MVELConstraint: ${LOG_LEVEL_ORG_DROOLS_COMPILE:ERROR}
+    org.mongodb.driver: ${LOG_LEVEL_MONGODB_DRIVER:WARN}
+
+app:
+  threads:
+    # the size of the thread pool to handle @Scheduled tasks
+    schedule-max-number: ${THREADS_SCHEDULE_MAX_NUMBER:1}
+  onboarding-request:
+    max-retry: ${ONBOARDING_REQUEST_ERROR_MAX_RETRY:3}
+    delay-message:
+      next-day: ${ONBOARDING_REQUEST_DELAY_NEXT_DAY:false}
+      delay-minutes: ${ONBOARDING_REQUEST_DELAY_MINUTES:60}
+    delay-family-in-progress:
+      delay-minutes: ${ONBOARDING_FAMILY_REQUEST_IN_PROGRESS_DELAY_MINUTES:5}
+  web-client:
+    connect.timeout.millis: ${CONNECT_TIMEOUT_MILLIS:10000}
+    response.timeout: ${RESPONSE_TIMEOUT:60000}
+    read.handler.timeout: ${READ_TIMEOUT_HANDLER:60000}
+    write.handler.timeout: ${WRITE_TIMEOUT_HANDLER:60000}
+  initiative:
+    identified: ${INITIATIVE_ID:68dd003ccce8c534d1da22bc, 68de7fc681ce9e35a476e985}
+    schedule-check-budget: ${INITIATIVE_SCHEDULE_CHECK_BUDGET:0 */5 * * * *}
+
+azure:
+  servicebus:
+    onboarding-request:
+      connection-string: ${SERVICEBUS_ONBOARDING_CONNECTION_STRING:}
+      queue-name: ${SB_ONBOARDING_REQUEST_TOPIC:idpay-onboarding-request}

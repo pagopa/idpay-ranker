@@ -1,0 +1,93 @@
+package it.gov.pagopa.ranker.service.transactionInProgress;
+
+import it.gov.pagopa.common.config.KafkaConfiguration;
+import it.gov.pagopa.common.kafka.service.ErrorNotifierService;
+import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
+import it.gov.pagopa.ranker.enums.SyncTrxStatus;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
+
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class TransactionErrorNotifierServiceImplTest {
+    private static final String BINDER_KAFKA_TYPE = "kafka";
+    private static final String BINDER_BROKER = "broker";
+    private static final String DUMMY_MESSAGE = "DUMMY MESSAGE";
+    private static final Message<String> dummyMessage = MessageBuilder.withPayload(DUMMY_MESSAGE).build();
+    @Mock
+    private ErrorNotifierService errorNotifierServiceMock;
+
+    private TransactionInProgressErrorNotifierService transactionErrorNotifierService;
+    @Mock
+    private KafkaConfiguration kafkaConfiguration;
+
+    @BeforeEach
+    void setUp() {
+        transactionErrorNotifierService = new TransactionInProgressErrorNotifierServiceImpl(
+                errorNotifierServiceMock, kafkaConfiguration
+        );
+    }
+
+    @Test
+    void notifyTransaction() {
+        KafkaConfiguration.KafkaInfoDTO kafkaInfoDTO = KafkaConfiguration.KafkaInfoDTO.builder()
+                .type(BINDER_KAFKA_TYPE)
+                .brokers(BINDER_BROKER)
+                .destination("transaction-topic")
+                .group("transaction-group")
+                .build();
+        when(kafkaConfiguration.getStream()).thenReturn(mock(KafkaConfiguration.Stream.class));
+        when(kafkaConfiguration.getStream().getBindings()).thenReturn(Map.of("trxProcessor-in-0",kafkaInfoDTO));
+        errorNotifyMock(kafkaInfoDTO,true,false);
+        transactionErrorNotifierService.notifyExpiredTransaction(
+                dummyMessage,DUMMY_MESSAGE,true,new Throwable(DUMMY_MESSAGE));
+
+        Mockito.verifyNoMoreInteractions(errorNotifierServiceMock);
+    }
+
+    @Test
+    void testNotify() {
+        KafkaConfiguration.BaseKafkaInfoDTO baseKafkaInfoDTO = KafkaConfiguration.BaseKafkaInfoDTO.builder()
+                .type(BINDER_KAFKA_TYPE)
+                .brokers(BINDER_BROKER)
+                .destination("commands-topic")
+                .group("commands-group")
+                .build();
+        errorNotifyMock(baseKafkaInfoDTO,true,true);
+        transactionErrorNotifierService.notify(baseKafkaInfoDTO,dummyMessage,DUMMY_MESSAGE,true,
+                true,new Throwable(DUMMY_MESSAGE));
+
+        Mockito.verifyNoMoreInteractions(errorNotifierServiceMock);
+    }
+
+    @Test
+    void testBuildMessage() {
+        TransactionInProgressDTO transactionInProgressDTO = TransactionInProgressDTO.builder()
+                .id("TEST").status(SyncTrxStatus.EXPIRED).build();
+        Message<TransactionInProgressDTO> transactionInProgressDTOMessage =
+                transactionErrorNotifierService.buildMessage(transactionInProgressDTO, transactionInProgressDTO.getId());
+        assertEquals(transactionInProgressDTO, transactionInProgressDTOMessage.getPayload());
+    }
+
+    private void errorNotifyMock(KafkaConfiguration.BaseKafkaInfoDTO baseKafkaInfoDTO,
+                                 boolean retryable, boolean resendApplication) {
+        when(errorNotifierServiceMock.notify(
+                eq(baseKafkaInfoDTO), eq(dummyMessage), eq(DUMMY_MESSAGE),
+                eq(retryable), eq(resendApplication), any()))
+                .thenReturn(true);
+    }
+
+}

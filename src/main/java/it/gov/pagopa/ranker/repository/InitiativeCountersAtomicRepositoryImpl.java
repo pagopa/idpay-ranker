@@ -8,10 +8,6 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
-
-import static it.gov.pagopa.ranker.enums.PreallocationStatus.PREALLOCATED;
-
 @Repository
 public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCountersAtomicRepository {
 
@@ -100,9 +96,47 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
         return mongoTemplate.findAndModify(
                 query,
                 update,
-                FindAndModifyOptions.options().returnNew(true).upsert(true),
+                FindAndModifyOptions.options().returnNew(true),
                 InitiativeCounters.class
         );
+    }
+
+    @Override
+    public InitiativeCounters addSequenceToInitiative(String initiativeId, long sequenceNumber) {
+        Query query = Query.query(Criteria
+                .where(FIELD_ID).is(initiativeId)
+        );
+
+        query.restrict(InitiativeCounters.class);
+
+        Update update = new Update()
+                .addToSet(InitiativeCounters.Fields.sequenceIdsToProcess, sequenceNumber);
+
+
+        return mongoTemplate.findAndModify(
+                query,
+                update,
+                FindAndModifyOptions.options().returnNew(true),
+                InitiativeCounters.class);
+    }
+
+    @Override
+    public InitiativeCounters removeUnprocessedSequenceId(String initiativeId, Long sequenceNumber) {
+        Query query = Query.query(Criteria
+                .where(FIELD_ID).is(initiativeId)
+        );
+
+        query.restrict(InitiativeCounters.class);
+
+        Update update = new Update()
+                .pull(InitiativeCounters.Fields.sequenceIdsToProcess, sequenceNumber);
+
+
+        return mongoTemplate.findAndModify(
+                query,
+                update,
+                FindAndModifyOptions.options().returnNew(true),
+                InitiativeCounters.class);
     }
 
 }

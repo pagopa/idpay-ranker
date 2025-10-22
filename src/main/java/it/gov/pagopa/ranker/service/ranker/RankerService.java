@@ -4,4 +4,6 @@ import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
 
 public interface RankerService {
     void execute(ServiceBusReceivedMessage message);
+
+    void addSequenceIdToInitiative(ServiceBusReceivedMessage message);
 }

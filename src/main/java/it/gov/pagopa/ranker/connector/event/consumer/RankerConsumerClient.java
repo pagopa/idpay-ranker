@@ -1,16 +1,20 @@
 package it.gov.pagopa.ranker.connector.event.consumer;
 
-import com.azure.messaging.servicebus.ServiceBusClientBuilder;
-import com.azure.messaging.servicebus.ServiceBusProcessorClient;
-import com.azure.messaging.servicebus.ServiceBusReceivedMessageContext;
+import com.azure.messaging.servicebus.*;
+import com.azure.messaging.servicebus.models.DeferOptions;
+import com.azure.messaging.servicebus.models.ServiceBusReceiveMode;
 import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
+import it.gov.pagopa.ranker.exception.UnableToAddSeqException;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
 import it.gov.pagopa.ranker.service.ranker.RankerService;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -22,6 +26,7 @@ public class RankerConsumerClient {
     private final String queueName;
 
     private ServiceBusProcessorClient processorClient;
+
 
     public RankerConsumerClient(RankerService rankerService,
                           InitiativeCountersService initiativeCountersService,
@@ -40,6 +45,7 @@ public class RankerConsumerClient {
                 .processor()
                 .queueName(queueName)
                 .processMessage(this::handleMessage)
+                .disableAutoComplete()
                 .processError(context -> log.error("[RANKER_CONTEXT] Error in processor: {}", context.getException().getMessage()))
                 .buildProcessorClient();
 
@@ -49,11 +55,23 @@ public class RankerConsumerClient {
     private void handleMessage(ServiceBusReceivedMessageContext context) {
         try {
             rankerService.execute(context.getMessage());
+            context.complete();
         } catch (BudgetExhaustedException e) {
             log.error("[BUDGET_CONTEXT] Budget exhausted.");
-            stopConsumer();
+            try {
+                context.defer();
+                rankerService.addSequenceIdToInitiative(context.getMessage());
+            } catch (UnableToAddSeqException addSeqException) {
+                log.error("[RANKER_CONTEXT] Unable to add deferred message with sequence {}",
+                        context.getMessage().getSequenceNumber());
+            } catch (Exception deferError) {
+                log.error("[RANKER_CONTEXT] Unable to defer");
+            } finally {
+                stopConsumer();
+            }
         } catch (Exception e) {
             log.error("[RANKER_CONTEXT] Error processing message", e);
+            context.abandon();
         }
     }
 
@@ -77,11 +95,36 @@ public class RankerConsumerClient {
         log.info("[BUDGET_CONTEXT_START] Starting initiative budget check...");
         boolean hasAvailableBudget = initiativeCountersService.hasAvailableBudget();
         if (hasAvailableBudget && !processorClient.isRunning()){
+
+            Set<Pair<String,Long>> sequenceIdToProcess = initiativeCountersService.getMessageToProcess();
+
+
             startConsumer();
             log.info("[BUDGET_CONTEXT_START] Consumer started");
         } else {
             log.info("[BUDGET_CONTEXT_START] Consumer running {}, initiative has budget {}", processorClient.isRunning(), hasAvailableBudget);
         }
     }
+
+
+    public void processDeferredMessage(Set<Pair<String,Long>> sequenceIdToProcess) {
+        try (ServiceBusReceiverClient deferReceiverClient = new ServiceBusClientBuilder()
+                .connectionString(connectionString)
+                .receiver()
+                .queueName(queueName)
+                .disableAutoComplete()
+                .buildClient()) {
+            log.info("[BUDGET_CONTEXT_START] Received started to process deferred messages");
+            for (Pair<String,Long> sequenceToProcess : sequenceIdToProcess) {
+                ServiceBusReceivedMessage message =
+                        deferReceiverClient.receiveDeferredMessage(sequenceToProcess.getRight());
+                rankerService.execute(message);
+                initiativeCountersService.removeMessageToProcessOnInitative(
+                        sequenceToProcess.getLeft(),sequenceToProcess.getRight());
+            }
+        }
+        log.info("[BUDGET_CONTEXT_START] Defer receiver stopped due to completion");
+    }
+
 
 }

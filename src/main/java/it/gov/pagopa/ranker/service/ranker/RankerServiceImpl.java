@@ -64,6 +64,16 @@ public class RankerServiceImpl implements RankerService {
 
     }
 
+    @Override
+    public void addSequenceIdToInitiative(ServiceBusReceivedMessage message) {
+        try {
+            OnboardingDTO onboarding = extractMessageHeader(message);
+            this.initiativeCountersService.addMessageProcessOnInitiative(message.getSequenceNumber(), onboarding.getInitiativeId());
+        } catch (Exception e) {
+            throw new UnableToRemoveSequenceIdFromInitiativeException();
+        }
+    }
+
     private OnboardingDTO extractMessageHeader(ServiceBusReceivedMessage message){
         OnboardingDTO onboardingDTO = deserialize(message.getBody().toString());
 

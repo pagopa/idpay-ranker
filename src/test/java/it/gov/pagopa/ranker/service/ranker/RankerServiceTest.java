@@ -3,6 +3,7 @@ package it.gov.pagopa.ranker.service.ranker;
 import com.azure.messaging.servicebus.ServiceBusMessage;
 import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import it.gov.pagopa.ranker.connector.event.producer.CommandsProducer;
 import it.gov.pagopa.ranker.connector.event.producer.RankerProducer;
 import it.gov.pagopa.ranker.domain.dto.OnboardingDTO;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
@@ -32,6 +33,9 @@ class RankerServiceTest {
     @Mock
     private InitiativeCountersService initiativeCountersService;
 
+    @Mock
+    private CommandsProducer commandsProducer;
+
 
     private ObjectMapper objectMapper;
 
@@ -45,7 +49,8 @@ class RankerServiceTest {
                 rankerProducer,
                 initiativeCountersService,
                 objectMapper,
-                initiatives
+                initiatives,
+                commandsProducer
         );
     }
 

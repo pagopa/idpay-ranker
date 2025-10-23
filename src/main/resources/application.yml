@@ -49,13 +49,13 @@ spring:
          binder: kafka-errors
        commandsQueue-out-0:
          binder: kafka-commands-outcome
-         destination: ${KAFKA_COMMANDS_OUTCOME_TOPIC:idpay-commands}
+         destination: ${KAFKA_COMMANDS_TOPIC:idpay-commands}
          content-type: ${KAFKA_CONTENT_TYPE:application/json}
        consumerCommands-in-0:
          binder: kafka-commands
          content-type: ${KAFKA_CONTENT_TYPE:application/json}
          destination: ${KAFKA_COMMANDS_TOPIC:idpay-commands}
-         group: ${KAFKA_COMMANDS_GROUP_ID:idpay-commands-ranker-consumer-group}
+         group: ${KAFKA_COMMANDS_GROUP_ID:idpay_commands_ranker_consumer_group}
      kafka:
        binder:
          auto-create-topics: false
@@ -139,6 +139,7 @@ spring:
          type: kafka
          environment:
            spring.cloud.stream.kafka.binder:
+             brokers: ${KAFKA_COMMANDS_BROKER:${KAFKA_BROKER:}}
              configuration:
                sasl.jaas.config: ${KAFKA_COMMANDS_SASL_JAAS_CONFIG:}
        kafka-commands:

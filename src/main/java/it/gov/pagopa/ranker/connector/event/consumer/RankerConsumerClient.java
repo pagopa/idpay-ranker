@@ -3,6 +3,8 @@ package it.gov.pagopa.ranker.connector.event.consumer;
 import com.azure.messaging.servicebus.*;
 import com.azure.messaging.servicebus.models.DeferOptions;
 import com.azure.messaging.servicebus.models.ServiceBusReceiveMode;
+import it.gov.pagopa.ranker.connector.event.producer.CommandsProducer;
+import it.gov.pagopa.ranker.domain.dto.QueueCommandOperationDTO;
 import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
 import it.gov.pagopa.ranker.exception.UnableToAddSeqException;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
@@ -14,13 +16,19 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Set;
+
+import static it.gov.pagopa.ranker.constants.CommonConstants.DELETE_SEQUENCE_NUMBER;
+import static it.gov.pagopa.ranker.constants.CommonConstants.SEQUENCE_NUMBER_PROPERTY;
 
 @Slf4j
 @Service
 public class RankerConsumerClient {
     private final RankerService rankerService;
     private final InitiativeCountersService initiativeCountersService;
+    private final CommandsProducer commandsProducer;
 
     private final String connectionString;
     private final String queueName;
@@ -29,11 +37,12 @@ public class RankerConsumerClient {
 
 
     public RankerConsumerClient(RankerService rankerService,
-                          InitiativeCountersService initiativeCountersService,
-                          @Value("${azure.servicebus.onboarding-request.connection-string}") String connectionString,
-                          @Value("${azure.servicebus.onboarding-request.queue-name}") String queueName) {
+                                InitiativeCountersService initiativeCountersService, CommandsProducer commandsProducer,
+                                @Value("${azure.servicebus.onboarding-request.connection-string}") String connectionString,
+                                @Value("${azure.servicebus.onboarding-request.queue-name}") String queueName) {
         this.rankerService = rankerService;
         this.initiativeCountersService = initiativeCountersService;
+        this.commandsProducer = commandsProducer;
         this.connectionString = connectionString;
         this.queueName = queueName;
     }
@@ -89,16 +98,20 @@ public class RankerConsumerClient {
         }
     }
 
-
     @Scheduled(cron = "${app.initiative.schedule-check-budget}")
     public void checkResidualBudgetAndStartConsumer() {
         log.info("[BUDGET_CONTEXT_START] Starting initiative budget check...");
         boolean hasAvailableBudget = initiativeCountersService.hasAvailableBudget();
         if (hasAvailableBudget && !processorClient.isRunning()){
-
             Set<Pair<String,Long>> sequenceIdToProcess = initiativeCountersService.getMessageToProcess();
-
-
+            if (!sequenceIdToProcess.isEmpty()) {
+                try {
+                    processDeferredMessage(sequenceIdToProcess);
+                } catch (Exception e) {
+                    log.error("[BUDGET_CONTEXT_START] Unable to process sequences numbers, stopping", e);
+                    return;
+                }
+            }
             startConsumer();
             log.info("[BUDGET_CONTEXT_START] Consumer started");
         } else {
@@ -119,8 +132,22 @@ public class RankerConsumerClient {
                 ServiceBusReceivedMessage message =
                         deferReceiverClient.receiveDeferredMessage(sequenceToProcess.getRight());
                 rankerService.execute(message);
-                initiativeCountersService.removeMessageToProcessOnInitative(
-                        sequenceToProcess.getLeft(),sequenceToProcess.getRight());
+                try {
+                    initiativeCountersService.removeMessageToProcessOnInitative(
+                            sequenceToProcess.getLeft(), sequenceToProcess.getRight());
+                } catch (Exception e) {
+                    log.error("[BUDGET_CONTEXT_START] Error encountered during sequence number removal", e);
+                    QueueCommandOperationDTO deleteSeqNumberCommand = QueueCommandOperationDTO.builder()
+                            .entityId(sequenceToProcess.getLeft())
+                            .operationType(DELETE_SEQUENCE_NUMBER)
+                            .operationTime(LocalDateTime.now())
+                            .properties(Map.of(SEQUENCE_NUMBER_PROPERTY, String.valueOf(sequenceToProcess.getRight())))
+                            .build();
+                    if(!commandsProducer.sendCommand(deleteSeqNumberCommand)){
+                        log.error("[BUDGET_CONTEXT_START] - Initiative: {}. Something went wrong while " +
+                                "sending the message on Commands Queue", sequenceToProcess.getLeft());
+                    }
+                }
             }
         }
         log.info("[BUDGET_CONTEXT_START] Defer receiver stopped due to completion");

@@ -6,4 +6,8 @@ public interface RankerService {
     void execute(ServiceBusReceivedMessage message);
 
     void addSequenceIdToInitiative(ServiceBusReceivedMessage message);
+
+    void addSequenceIdToInitiative(String initiativeId, Long sequenceNumber);
+
+
 }

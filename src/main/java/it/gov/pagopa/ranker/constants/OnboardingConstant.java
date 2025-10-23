@@ -7,4 +7,5 @@ public final class OnboardingConstant {
     }
 
     public static final String REJECTION_REASON_INITIATIVE_ENDED = "INITIATIVE_ENDED";
+
 }

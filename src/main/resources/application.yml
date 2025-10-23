@@ -26,7 +26,7 @@ spring:
       on-profile: default
   cloud:
    function:
-     definition: rankerProducer;trxProcessor;errors
+     definition: rankerProducer;trxProcessor;errors;processCommand;sendCommand
    stream:
      bindings:
 #       rankerProcessor-in-0:
@@ -47,6 +47,15 @@ spring:
          destination: ${KAFKA_ERROR_TOPIC:idpay-errors}
          content-type: ${KAFKA_CONTENT_TYPE:application/json}
          binder: kafka-errors
+       commandsQueue-out-0:
+         binder: kafka-commands-outcome
+         destination: ${KAFKA_COMMANDS_OUTCOME_TOPIC:idpay-commands}
+         content-type: ${KAFKA_CONTENT_TYPE:application/json}
+       consumerCommands-in-0:
+         binder: kafka-commands
+         content-type: ${KAFKA_CONTENT_TYPE:application/json}
+         destination: ${KAFKA_COMMANDS_TOPIC:idpay-commands}
+         group: ${KAFKA_COMMANDS_GROUP_ID:idpay-commands-ranker-consumer-group}
      kafka:
        binder:
          auto-create-topics: false
@@ -84,6 +93,27 @@ spring:
                 retry.backoff.ms: ${KAFKA_ERRORS_KAFKA_RETRY_MS:${KAFKA_RETRY_MS:10000}}
                 linger.ms: ${KAFKA_ERRORS_LINGER_MS:${KAFKA_LINGER_MS:2}}
                 batch.size: ${KAFKA_ERRORS_BATCH_SIZE:${KAFKA_BATCH_SIZE:16384}}
+         consumerCommands-in-0:
+           consumer:
+             autoCommitOffset: ${KAFKA_COMMANDS_AUTO_COMMIT:${KAFKA_CONSUMER_CONFIG_AUTO_COMMIT:true}}
+             configuration:
+               connections.max.idle.ms: ${KAFKA_COMMANDS_REQUEST_CONNECTIONS_MAX_IDLE_MS:${KAFKA_CONSUMER_CONFIG_CONNECTIONS_MAX_IDLE_MS:180000}}
+               max.poll:
+                 interval.ms: ${KAFKA_COMMANDS_INTERVAL_TIMEOUT_MS:${KAFKA_CONFIG_MAX_POLL_INTERVAL_TIMEOUT_MS:300000}}
+                 records: ${KAFKA_COMMANDS_MAX_POLL_SIZE:${KAFKA_CONSUMER_CONFIG_MAX_POLL_SIZE:500}}
+               socket.connection.setup.timeout:
+                 max.ms: ${KAFKA_COMMANDS_REQUEST_CONNECTION_TIMEOUT_MAX_MS:${KAFKA_CONSUMER_CONFIG_CONNECTION_TIMEOUT_MAX_MS:200000}}
+                 ms: ${KAFKA_COMMANDS_REQUEST_CONNECTION_TIMEOUT_MS:${KAFKA_CONSUMER_CONFIG_CONNECTION_TIMEOUT_MS:100000}}
+             standardHeaders: ${KAFKA_COMMANDS_STANDARD_HEADERS:${KAFKA_CONSUMER_CONFIG_STANDARD_HEADERS:both}}
+             startOffset: ${KAFKA_COMMANDS_REQUEST_START_OFFSET:${KAFKA_CONSUMER_CONFIG_START_OFFSET:earliest}}
+         commandsQueue-out-0:
+           producer:
+             configuration:
+               client.id: commandsQueue-producer
+               retry.backoff.ms: ${KAFKA_COMMANDS_PRODUCER_CONFIG_RETRY_BO_MS:${KAFKA_RETRY_MS:10000}}
+               linger.ms: ${KAFKA_COMMANDS_PRODUCER_CONFIG_LINGER_MS:${KAFKA_LINGER_MS:2}}
+               batch.size: ${KAFKA_COMMANDS_PRODUCER_CONFIG_BATCH_SIZE:${KAFKA_BATCH_SIZE:16384}}
+               metadata.max.idle.ms: ${KAFKA_COMMANDS_PRODUCER_DEFAULT_METADATA_MAX_IDLE_MS:180000}
      servicebus:
        bindings:
          rankerProducer-out-0:
@@ -105,6 +135,19 @@ spring:
              configuration:
                sasl.jaas.config: ${KAFKA_ERRORS_SASL_JAAS_CONFIG:}
                key.serializer: org.apache.kafka.common.serialization.StringSerializer
+       kafka-commands-outcome:
+         type: kafka
+         environment:
+           spring.cloud.stream.kafka.binder:
+             configuration:
+               sasl.jaas.config: ${KAFKA_COMMANDS_SASL_JAAS_CONFIG:}
+       kafka-commands:
+         type: kafka
+         environment:
+           spring.cloud.stream.kafka.binder:
+             brokers: ${KAFKA_COMMANDS_BROKER:${KAFKA_BROKER:}}
+             configuration:
+               sasl.jaas.config: ${KAFKA_COMMANDS_SASL_JAAS_CONFIG:}
        onboarding:
          type: servicebus
          default-candidate: true

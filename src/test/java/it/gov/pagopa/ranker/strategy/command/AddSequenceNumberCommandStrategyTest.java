@@ -64,6 +64,17 @@ public class AddSequenceNumberCommandStrategyTest {
     }
 
     @Test
+    public void shouldNotAddSequenceOnWrongProperty() {
+        addSequenceNumberCommandStrategy.processCommand(QueueCommandOperationDTO.builder()
+                .entityId("ENTITY_ID")
+                .operationTime(LocalDateTime.now())
+                .properties(Map.of(SEQUENCE_NUMBER_PROPERTY,"1AAA"))
+                .build()
+        );
+        verifyNoInteractions(rankerService);
+    }
+
+    @Test
     public void shouldReturnCommandType() {
         Assertions.assertEquals(
                 "ADD_SEQUENCE_NUMBER",addSequenceNumberCommandStrategy.getCommandType());

@@ -14,7 +14,11 @@ import static it.gov.pagopa.ranker.constants.CommonConstants.SEQUENCE_NUMBER_PRO
 @Slf4j
 public class AddSequenceNumberCommandStrategy implements CommandProcessorStrategy {
 
-    private RankerService rankerService;
+    private final RankerService rankerService;
+
+    public AddSequenceNumberCommandStrategy(RankerService rankerService) {
+        this.rankerService = rankerService;
+    }
 
     @Override
     public String getCommandType() {

@@ -13,7 +13,11 @@ import static it.gov.pagopa.ranker.constants.CommonConstants.SEQUENCE_NUMBER_PRO
 @Slf4j
 public class DeleteSequenceNumberCommandStrategy implements CommandProcessorStrategy {
 
-    private InitiativeCountersService initiativeCountersService;
+    private final InitiativeCountersService initiativeCountersService;
+
+    public DeleteSequenceNumberCommandStrategy(InitiativeCountersService initiativeCountersService) {
+        this.initiativeCountersService = initiativeCountersService;
+    }
 
     @Override
     public String getCommandType() {

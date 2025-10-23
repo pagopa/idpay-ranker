@@ -1,5 +1,6 @@
 package it.gov.pagopa.ranker.service.initative;
 
+import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
 import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
 import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
@@ -41,6 +42,7 @@ class InitiativeCountersServiceImplTest {
         LocalDateTime time = LocalDateTime.now();
 
         // When
+        when(initiativeCountersRepositoryMock.incrementOnboardedAndBudget(any(),eq(20000L))).thenReturn(new InitiativeCounters());
         initiativeCountersService.addPreallocatedUser(INITIATIVE_ID.getFirst(), userId, verifyIsee, sequenceNumber, time);
 
         // Then
@@ -56,7 +58,7 @@ class InitiativeCountersServiceImplTest {
         long sequenceNumber = 10L;
         LocalDateTime time = LocalDateTime.now();
 
-        doThrow(new DuplicateKeyException("Duplicate key"))
+        doReturn(null)
                 .when(initiativeCountersRepositoryMock)
                 .incrementOnboardedAndBudget(anyString(), anyLong());
 

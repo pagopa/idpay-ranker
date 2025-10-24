@@ -29,7 +29,8 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
     private final InitiativeCountersRepository initiativeCountersRepository;
 
     public InitiativeCountersServiceImpl(InitiativeCountersRepository initiativeCounterRepository,
-                                         @Value("${app.initiative.identified}") List<String> initiativeId, InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository) {
+                                         @Value("${app.initiative.identified}") List<String> initiativeId,
+                                         InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository) {
         this.initiativeCountersRepository = initiativeCounterRepository;
         this.initiativeId = initiativeId;
         this.initiativeCountersPreallocationsRepository = initiativeCountersPreallocationsRepository;
@@ -70,7 +71,8 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
     }
 
     @Transactional
-    public void addPreallocatedUser(String initiativeId, String userId, boolean verifyIsee, Long sequenceNumber, LocalDateTime enqueuedTime) {
+    public void addPreallocatedUser(String initiativeId, String userId,
+                                    boolean verifyIsee, Long sequenceNumber, LocalDateTime enqueuedTime) {
         long reservationCents = calculateReservationCents(verifyIsee);
 
         try {

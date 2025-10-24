@@ -34,6 +34,7 @@ public class RankerConsumerClient {
     private final String queueName;
 
     private ServiceBusProcessorClient processorClient;
+    private ServiceBusClientBuilder.ServiceBusReceiverClientBuilder receiverBuilder;
 
 
     public RankerConsumerClient(RankerService rankerService,
@@ -45,6 +46,11 @@ public class RankerConsumerClient {
         this.commandsProducer = commandsProducer;
         this.connectionString = connectionString;
         this.queueName = queueName;
+        this.receiverBuilder = new ServiceBusClientBuilder()
+                .connectionString(connectionString)
+                .receiver()
+                .queueName(queueName)
+                .disableAutoComplete();
     }
 
     @PostConstruct
@@ -121,36 +127,53 @@ public class RankerConsumerClient {
 
 
     public void processDeferredMessage(Set<Pair<String,Long>> sequenceIdToProcess) {
-        try (ServiceBusReceiverClient deferReceiverClient = new ServiceBusClientBuilder()
-                .connectionString(connectionString)
-                .receiver()
-                .queueName(queueName)
-                .disableAutoComplete()
-                .buildClient()) {
+        try (ServiceBusReceiverClient deferReceiverClient = receiverBuilder.buildClient()) {
             log.info("[BUDGET_CONTEXT_START] Received started to process deferred messages");
             for (Pair<String,Long> sequenceToProcess : sequenceIdToProcess) {
-                ServiceBusReceivedMessage message =
-                        deferReceiverClient.receiveDeferredMessage(sequenceToProcess.getRight());
-                rankerService.execute(message);
                 try {
-                    initiativeCountersService.removeMessageToProcessOnInitative(
-                            sequenceToProcess.getLeft(), sequenceToProcess.getRight());
-                } catch (Exception e) {
-                    log.error("[BUDGET_CONTEXT_START] Error encountered during sequence number removal", e);
-                    QueueCommandOperationDTO deleteSeqNumberCommand = QueueCommandOperationDTO.builder()
-                            .entityId(sequenceToProcess.getLeft())
-                            .operationType(DELETE_SEQUENCE_NUMBER)
-                            .operationTime(LocalDateTime.now())
-                            .properties(Map.of(SEQUENCE_NUMBER_PROPERTY, String.valueOf(sequenceToProcess.getRight())))
-                            .build();
-                    if(!commandsProducer.sendCommand(deleteSeqNumberCommand)){
-                        log.error("[BUDGET_CONTEXT_START] - Initiative: {}. Something went wrong while " +
-                                "sending the message on Commands Queue", sequenceToProcess.getLeft());
+                    ServiceBusReceivedMessage message =
+                            deferReceiverClient.receiveDeferredMessage(sequenceToProcess.getRight());
+                    try {
+                        rankerService.execute(message);
+                        removeSeqNumberFromInitiative(sequenceToProcess);
+                        deferReceiverClient.complete(message);
+                    } catch (Exception e) {
+                        deferReceiverClient.abandon(message);
+                    }
+                } catch (IllegalStateException e) {
+                    log.error("[BUDGET_CONTEXT_START] sequence number {} already expired, removing", sequenceToProcess.getRight());
+                    removeSeqNumberFromInitiative(sequenceToProcess);
+                } catch (ServiceBusException e) {
+                    if (ServiceBusFailureReason.MESSAGE_NOT_FOUND.equals(e.getReason())) {
+                        log.error("[BUDGET_CONTEXT_START] sequence number {} not found, removing", sequenceToProcess.getRight());
+                        removeSeqNumberFromInitiative(sequenceToProcess);
+                    } else {
+                        log.error("[BUDGET_CONTEXT_START] Error attempting to recover message with sequence number {}"
+                                , sequenceToProcess.getRight(), e);
                     }
                 }
             }
+            log.info("[BUDGET_CONTEXT_START] Defer receiver stopped execution");
         }
-        log.info("[BUDGET_CONTEXT_START] Defer receiver stopped due to completion");
+    }
+
+    private void removeSeqNumberFromInitiative(Pair<String, Long> sequenceToProcess) {
+        try {
+            initiativeCountersService.removeMessageToProcessOnInitative(
+                    sequenceToProcess.getLeft(), sequenceToProcess.getRight());
+        } catch (Exception e) {
+            log.error("[BUDGET_CONTEXT_START] Error encountered during sequence number removal", e);
+            QueueCommandOperationDTO deleteSeqNumberCommand = QueueCommandOperationDTO.builder()
+                    .entityId(sequenceToProcess.getLeft())
+                    .operationType(DELETE_SEQUENCE_NUMBER)
+                    .operationTime(LocalDateTime.now())
+                    .properties(Map.of(SEQUENCE_NUMBER_PROPERTY, String.valueOf(sequenceToProcess.getRight())))
+                    .build();
+            if (!commandsProducer.sendCommand(deleteSeqNumberCommand)) {
+                log.error("[BUDGET_CONTEXT_START] - Initiative: {}. Something went wrong while " +
+                        "sending the message on Commands Queue", sequenceToProcess.getLeft());
+            }
+        }
     }
 
 

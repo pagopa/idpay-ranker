@@ -1,11 +1,15 @@
 package it.gov.pagopa.ranker.connector.event.consumer;
 
-import com.azure.messaging.servicebus.ServiceBusProcessorClient;
-import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
-import com.azure.messaging.servicebus.ServiceBusReceivedMessageContext;
+import com.azure.core.util.BinaryData;
+import com.azure.messaging.servicebus.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import it.gov.pagopa.ranker.connector.event.producer.CommandsProducer;
+import it.gov.pagopa.ranker.domain.dto.OnboardingDTO;
 import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
 import it.gov.pagopa.ranker.service.ranker.RankerService;
+import org.apache.commons.lang3.tuple.Pair;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -13,6 +17,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Method;
+import java.util.Collections;
+import java.util.HashSet;
 
 import static org.mockito.Mockito.*;
 
@@ -26,12 +32,26 @@ class RankerConsumerClientTest {
     @Mock
     private ServiceBusProcessorClient processorClient;
     @Mock
+    private ServiceBusClientBuilder.ServiceBusReceiverClientBuilder receiverClientBuilder;
+    @Mock
+    private ServiceBusReceiverClient serviceBusReceiverClient;
+    @Mock
     private ServiceBusReceivedMessageContext messageContext;
     @Mock
     private ServiceBusReceivedMessage message;
+    @Mock
+    private CommandsProducer commandsProducer;
 
-    @InjectMocks
     private RankerConsumerClient rankerConsumerClient;
+
+    @BeforeEach
+    public void init() {
+        rankerConsumerClient = new RankerConsumerClient(
+                rankerService,initiativeCountersService, commandsProducer,
+                "Endpoint=sb://fake-servicebus.servicebus.windows.net/;SharedAccessKeyName=FakeKeyName;SharedAccessKey=FakeKey123FakeKey123FakeKey123FakeKey123=;EntityPath=fake-queue",
+                "fake-queue"
+        );
+    }
 
     @Test
     void testInit() throws Exception {
@@ -49,6 +69,38 @@ class RankerConsumerClientTest {
                 .getDeclaredField("processorClient");
         processorClientField.setAccessible(true);
         processorClientField.set(rankerConsumerClient, processorClient);
+
+        rankerConsumerClient.init();
+
+        verify(processorClient, atMost(1)).start();
+    }
+
+    @Test
+    void testInit_WithDeferredMessage() throws Exception {
+        java.lang.reflect.Field connectionStringField = RankerConsumerClient.class
+                .getDeclaredField("connectionString");
+        connectionStringField.setAccessible(true);
+        connectionStringField.set(rankerConsumerClient, "Endpoint=sb://fake-servicebus.servicebus.windows.net/;SharedAccessKeyName=FakeKeyName;SharedAccessKey=FakeKey123FakeKey123FakeKey123FakeKey123=;EntityPath=fake-queue");
+
+        java.lang.reflect.Field queueNameField = RankerConsumerClient.class
+                .getDeclaredField("queueName");
+        queueNameField.setAccessible(true);
+        queueNameField.set(rankerConsumerClient, "fake-queue");
+
+        java.lang.reflect.Field processorClientField = RankerConsumerClient.class
+                .getDeclaredField("processorClient");
+        processorClientField.setAccessible(true);
+        processorClientField.set(rankerConsumerClient, processorClient);
+        java.lang.reflect.Field receiverBuilderField = RankerConsumerClient.class
+                .getDeclaredField("receiverBuilder");
+        receiverBuilderField.setAccessible(true);
+        receiverBuilderField.set(rankerConsumerClient, receiverClientBuilder);
+
+        when(receiverClientBuilder.buildClient()).thenReturn(serviceBusReceiverClient);
+        lenient().when(processorClient.isRunning()).thenReturn(false);
+        when(initiativeCountersService.hasAvailableBudget()).thenReturn(true);
+        lenient().when(initiativeCountersService.getMessageToProcess())
+                .thenReturn(Collections.singleton(Pair.of("TEST",1L)));
 
         rankerConsumerClient.init();
 
@@ -98,6 +150,7 @@ class RankerConsumerClientTest {
 
         verify(rankerService, times(1)).execute(message);
         verify(processorClient, times(1)).close();
+
     }
 
     @Test
@@ -175,4 +228,6 @@ class RankerConsumerClientTest {
 
         verify(processorClient, never()).start();
     }
+
+
 }

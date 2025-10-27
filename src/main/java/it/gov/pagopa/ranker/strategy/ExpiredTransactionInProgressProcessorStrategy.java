@@ -32,7 +32,6 @@ public class ExpiredTransactionInProgressProcessorStrategy implements Transactio
     }
 
     @Override
-    @Transactional
     public void processTransaction(TransactionInProgressDTO transactionInProgress) {
 
         String transactionInProgressId = transactionInProgress.getId();
@@ -45,6 +44,25 @@ public class ExpiredTransactionInProgressProcessorStrategy implements Transactio
             return;
         }
 
+        updateInitiativeCounters(transactionInProgress, preallocationId, transactionInProgressId);
+
+        try {
+            transactionInProgressRepository.deleteById(transactionInProgressId);
+        } catch (Exception e) {
+            log.error("[ExpiredTransactionInProgressProcessor] Error attempting to " +
+                      "remove processed expired transactions given id {} initiativeId {} and userId {}",
+                    transactionInProgressId,
+                    transactionInProgress.getInitiativeId(),
+                    transactionInProgress.getUserId(),
+                    e
+            );
+            throw e;
+        }
+
+    }
+
+    @Transactional
+    public void updateInitiativeCounters(TransactionInProgressDTO transactionInProgress, String preallocationId, String transactionInProgressId) {
         if (!initiativeCountersPreallocationsRepository.existsById(preallocationId)) {
             log.warn("[ExpiredTransactionInProgressProcessor] received event for a transaction having initiative {}" +
                     " and user {} that does not exist in the initiative preallocation, will not update counter",
@@ -66,20 +84,6 @@ public class ExpiredTransactionInProgressProcessorStrategy implements Transactio
                 throw e;
             }
         }
-
-        try {
-            transactionInProgressRepository.deleteById(transactionInProgressId);
-        } catch (Exception e) {
-            log.error("[ExpiredTransactionInProgressProcessor] Error attempting to " +
-                      "remove processed expired transactions given id {} initiativeId {} and userId {}",
-                    transactionInProgressId,
-                    transactionInProgress.getInitiativeId(),
-                    transactionInProgress.getUserId(),
-                    e
-            );
-            throw e;
-        }
-
     }
 
 

@@ -7,6 +7,7 @@ import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
 import it.gov.pagopa.ranker.repository.TransactionInProgressRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import static it.gov.pagopa.utils.InitiativeCountersUtils.computePreallocationId;
@@ -61,7 +62,7 @@ public class ExpiredTransactionInProgressProcessorStrategy implements Transactio
 
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void updateInitiativeCounters(TransactionInProgressDTO transactionInProgress, String preallocationId, String transactionInProgressId) {
         if (!initiativeCountersPreallocationsRepository.existsById(preallocationId)) {
             log.warn("[ExpiredTransactionInProgressProcessor] received event for a transaction having initiative {}" +

@@ -1,5 +1,6 @@
 package it.gov.pagopa.ranker.service.initative;
 
+import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
 import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
 import it.gov.pagopa.ranker.domain.model.InitiativeCountersPreallocations;
 import it.gov.pagopa.ranker.enums.PreallocationStatus;
@@ -10,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -74,5 +76,31 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
 
     public long calculateReservationCents(boolean verifyIsee) {
         return verifyIsee ? 20000L : 10000L;
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void updateInitiativeCounters(TransactionInProgressDTO transactionInProgress, String preallocationId, String transactionInProgressId) {
+        if (!initiativeCountersPreallocationsRepository.existsById(preallocationId)) {
+            log.warn("[ExpiredTransactionInProgressProcessor] received event for a transaction having initiative {}" +
+                            " and user {} that does not exist in the initiative preallocation, will not update counter",
+                    transactionInProgress.getInitiativeId(), transactionInProgress.getUserId());
+        } else {
+            try {
+                initiativeCountersPreallocationsRepository.deleteById(preallocationId);
+                initiativeCountersRepository.decrementOnboardedAndBudget(
+                        transactionInProgress.getInitiativeId(),
+                        transactionInProgress.getVoucherAmountCents());
+            } catch (Exception e) {
+                log.error("[ExpiredTransactionInProgressProcessor] Error attempting to " +
+                                "decrement initiativeCounters given id {} initiativeId {} and userId {}",
+                        transactionInProgressId,
+                        transactionInProgress.getInitiativeId(),
+                        transactionInProgress.getUserId(),
+                        e
+                );
+                throw e;
+            }
+        }
     }
 }

@@ -3,10 +3,8 @@ package it.gov.pagopa.ranker.strategy;
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
 import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
 import it.gov.pagopa.ranker.enums.SyncTrxStatus;
-import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
-import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
 import it.gov.pagopa.ranker.repository.TransactionInProgressRepository;
-import it.gov.pagopa.ranker.service.initative.InitiativeCountersServiceImpl;
+import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
 import it.gov.pagopa.utils.InitiativeCountersUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,22 +21,17 @@ import static org.mockito.Mockito.*;
 public class ExpiredTransactionInProgressProcessorStrategyTest {
 
     @Mock
-    private InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository;
-
-    @Mock
     private TransactionInProgressRepository transactionInProgressRepositoryMock;
 
     @Mock
-    private InitiativeCountersRepository initiativeCountersRepositoryMock;
+    private InitiativeCountersService initiativeCountersServiceMock;
 
     private ExpiredTransactionInProgressProcessorStrategy expiredTransactionInProgressProcessorStrategy;
 
     @BeforeEach
     public void init() {
-        Mockito.reset(initiativeCountersRepositoryMock, initiativeCountersRepositoryMock);
         expiredTransactionInProgressProcessorStrategy = new ExpiredTransactionInProgressProcessorStrategy(
-                initiativeCountersPreallocationsRepository, initiativeCountersRepositoryMock,
-                transactionInProgressRepositoryMock);
+                transactionInProgressRepositoryMock, initiativeCountersServiceMock);
     }
 
     @Test
@@ -57,16 +50,12 @@ public class ExpiredTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setVoucherAmountCents(1000L);
         transactionInProgressDTO.setUserId("USER_1");
         String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
-        when(initiativeCountersPreallocationsRepository.existsById(eq(preallocationId)))
-                .thenReturn(true);
-        when(initiativeCountersRepositoryMock.decrementOnboardedAndBudget(eq("INIT_1"),eq(1000L)))
-                .thenReturn(new InitiativeCounters());
+        doNothing().when(initiativeCountersServiceMock).updateInitiativeCounters(transactionInProgressDTO, preallocationId, transactionInProgressDTO.getId());
         when(transactionInProgressRepositoryMock.existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED)))
                 .thenReturn(true);
         Assertions.assertDoesNotThrow(() -> expiredTransactionInProgressProcessorStrategy
                 .processTransaction(transactionInProgressDTO));
-        verify(initiativeCountersPreallocationsRepository).existsById(eq(preallocationId));
-        verify(initiativeCountersRepositoryMock).decrementOnboardedAndBudget(eq("INIT_1"),eq(1000L));
+        verify(initiativeCountersServiceMock).updateInitiativeCounters(any(),any(),any());
         verify(transactionInProgressRepositoryMock).deleteById(eq(transactionInProgressDTO.getId()));
 
     }
@@ -83,8 +72,7 @@ public class ExpiredTransactionInProgressProcessorStrategyTest {
         Assertions.assertDoesNotThrow(() -> expiredTransactionInProgressProcessorStrategy
                 .processTransaction(transactionInProgressDTO));
         verify(transactionInProgressRepositoryMock).existsByIdAndStatus(any(),any());
-        verifyNoInteractions(initiativeCountersRepositoryMock);
-        verifyNoInteractions(initiativeCountersPreallocationsRepository);
+        verifyNoInteractions(initiativeCountersServiceMock);
     }
 
     @Test
@@ -97,13 +85,12 @@ public class ExpiredTransactionInProgressProcessorStrategyTest {
         String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
         when(transactionInProgressRepositoryMock.existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED)))
                 .thenReturn(true);
-        when(initiativeCountersPreallocationsRepository.existsById(eq(preallocationId)))
-                .thenReturn(false);
+        doNothing().when(initiativeCountersServiceMock).updateInitiativeCounters(transactionInProgressDTO, preallocationId, transactionInProgressDTO.getId());
+
         Assertions.assertDoesNotThrow(() -> expiredTransactionInProgressProcessorStrategy
                 .processTransaction(transactionInProgressDTO));
         verify(transactionInProgressRepositoryMock).existsByIdAndStatus(any(),any());
-        verify(initiativeCountersPreallocationsRepository).existsById(eq(preallocationId));
-        verifyNoInteractions(initiativeCountersRepositoryMock);
+        verify(initiativeCountersServiceMock).updateInitiativeCounters(any(),any(),any());
     }
 
     @Test
@@ -116,15 +103,13 @@ public class ExpiredTransactionInProgressProcessorStrategyTest {
         String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
         when(transactionInProgressRepositoryMock.existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED)))
                 .thenReturn(true);
-        when(initiativeCountersPreallocationsRepository.existsById(eq(preallocationId)))
-                .thenReturn(true);
-        when(initiativeCountersRepositoryMock.decrementOnboardedAndBudget(eq("INIT_1"),eq(1000L)))
-                .thenThrow(new RuntimeException("error"));
+        doThrow(new RuntimeException("error")).when(initiativeCountersServiceMock)
+                .updateInitiativeCounters(transactionInProgressDTO, preallocationId, transactionInProgressDTO.getId());
+
         Assertions.assertThrows(RuntimeException.class,
                 () -> expiredTransactionInProgressProcessorStrategy.processTransaction(transactionInProgressDTO));
         verify(transactionInProgressRepositoryMock).existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED));
-        verify(initiativeCountersPreallocationsRepository).existsById(eq(preallocationId));
-        verify(initiativeCountersRepositoryMock).decrementOnboardedAndBudget(eq("INIT_1"),eq(1000L));
+        verify(initiativeCountersServiceMock).updateInitiativeCounters(any(),any(),any());
         verifyNoMoreInteractions(transactionInProgressRepositoryMock);
     }
 
@@ -138,16 +123,13 @@ public class ExpiredTransactionInProgressProcessorStrategyTest {
         String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
         when(transactionInProgressRepositoryMock.existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED)))
                 .thenReturn(true);
-        when(initiativeCountersPreallocationsRepository.existsById(eq(preallocationId)))
-                .thenReturn(true);
-        when(initiativeCountersRepositoryMock.decrementOnboardedAndBudget(eq("INIT_1"),eq(1000L)))
-                .thenReturn(new InitiativeCounters());
+        doNothing().when(initiativeCountersServiceMock).updateInitiativeCounters(transactionInProgressDTO, preallocationId, transactionInProgressDTO.getId());
+
         doThrow(new RuntimeException("error")).doNothing().when(transactionInProgressRepositoryMock)
                 .deleteById(eq("ID_1"));
         Assertions.assertThrows(Exception.class, () ->
                 expiredTransactionInProgressProcessorStrategy.processTransaction(transactionInProgressDTO));
-        verify(initiativeCountersPreallocationsRepository).existsById(eq(preallocationId));
-        verify(initiativeCountersRepositoryMock).decrementOnboardedAndBudget(eq("INIT_1"),eq(1000L));
+        verify(initiativeCountersServiceMock).updateInitiativeCounters(any(),any(),any());
         verify(transactionInProgressRepositoryMock).deleteById(eq(transactionInProgressDTO.getId()));
     }
 

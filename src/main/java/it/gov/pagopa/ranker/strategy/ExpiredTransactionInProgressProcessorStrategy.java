@@ -5,6 +5,7 @@ import it.gov.pagopa.ranker.enums.SyncTrxStatus;
 import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
 import it.gov.pagopa.ranker.repository.TransactionInProgressRepository;
+import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -16,15 +17,14 @@ import static it.gov.pagopa.utils.InitiativeCountersUtils.computePreallocationId
 @Service
 public class ExpiredTransactionInProgressProcessorStrategy implements TransactionInProgressProcessorStrategy {
 
-    private final InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository;
-    private final InitiativeCountersRepository initiativeCountersRepository;
+
     private final TransactionInProgressRepository transactionInProgressRepository;
+    private final InitiativeCountersService initiativeCountersService;
 
     public ExpiredTransactionInProgressProcessorStrategy(
-            InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository, InitiativeCountersRepository initiativeCountersRepository, TransactionInProgressRepository transactionInProgressRepository) {
-        this.initiativeCountersPreallocationsRepository = initiativeCountersPreallocationsRepository;
-        this.initiativeCountersRepository = initiativeCountersRepository;
+            TransactionInProgressRepository transactionInProgressRepository, InitiativeCountersService initiativeCountersService) {
         this.transactionInProgressRepository = transactionInProgressRepository;
+        this.initiativeCountersService = initiativeCountersService;
     }
 
     @Override
@@ -45,7 +45,7 @@ public class ExpiredTransactionInProgressProcessorStrategy implements Transactio
             return;
         }
 
-        updateInitiativeCounters(transactionInProgress, preallocationId, transactionInProgressId);
+        initiativeCountersService.updateInitiativeCounters(transactionInProgress, preallocationId, transactionInProgressId);
 
         try {
             transactionInProgressRepository.deleteById(transactionInProgressId);
@@ -61,31 +61,4 @@ public class ExpiredTransactionInProgressProcessorStrategy implements Transactio
         }
 
     }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void updateInitiativeCounters(TransactionInProgressDTO transactionInProgress, String preallocationId, String transactionInProgressId) {
-        if (!initiativeCountersPreallocationsRepository.existsById(preallocationId)) {
-            log.warn("[ExpiredTransactionInProgressProcessor] received event for a transaction having initiative {}" +
-                    " and user {} that does not exist in the initiative preallocation, will not update counter",
-                    transactionInProgress.getInitiativeId(), transactionInProgress.getUserId());
-        } else {
-            try {
-                initiativeCountersPreallocationsRepository.deleteById(preallocationId);
-                initiativeCountersRepository.decrementOnboardedAndBudget(
-                        transactionInProgress.getInitiativeId(),
-                        transactionInProgress.getVoucherAmountCents());
-            } catch (Exception e) {
-                log.error("[ExpiredTransactionInProgressProcessor] Error attempting to " +
-                          "decrement initiativeCounters given id {} initiativeId {} and userId {}",
-                        transactionInProgressId,
-                        transactionInProgress.getInitiativeId(),
-                        transactionInProgress.getUserId(),
-                        e
-                );
-                throw e;
-            }
-        }
-    }
-
-
 }

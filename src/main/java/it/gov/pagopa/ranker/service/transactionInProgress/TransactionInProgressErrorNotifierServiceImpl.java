@@ -40,4 +40,10 @@ public class TransactionInProgressErrorNotifierServiceImpl implements Transactio
                 .build();
     }
 
+    @Override
+    public Message<String> buildMessage(Message<String> trx, String key) {
+        trx.getHeaders().put(KafkaHeaders.KEY, key);
+        return trx;
+    }
+
 }

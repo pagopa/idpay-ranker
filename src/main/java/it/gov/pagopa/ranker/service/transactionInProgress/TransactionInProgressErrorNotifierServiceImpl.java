@@ -9,8 +9,6 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-
 @Service
 @Slf4j
 public class TransactionInProgressErrorNotifierServiceImpl implements TransactionInProgressErrorNotifierService {

@@ -37,7 +37,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class TransactionInProgressServiceImplTest {
+class TransactionInProgressServiceImplTest {
 
     @Mock
     private TransactionInProgressProcessorStrategyFactory transactionInProgressProcessorStrategyFactory;
@@ -64,7 +64,7 @@ public class TransactionInProgressServiceImplTest {
     }
 
     @Test
-    public void shouldProcessValidExpiredTrx() throws JsonProcessingException {
+    void shouldProcessValidExpiredTrx() throws JsonProcessingException {
 
         TransactionInProgressDTO transactionInProgressDTO =
                 TransactionInProgressDTO.builder()
@@ -85,7 +85,7 @@ public class TransactionInProgressServiceImplTest {
     }
 
     @Test
-    public void shouldNotProcessInvalidTrx_MissingId() throws JsonProcessingException {
+    void shouldNotProcessInvalidTrx_MissingId() throws JsonProcessingException {
         TransactionInProgressDTO transactionInProgressDTO =
                 TransactionInProgressDTO.builder()
                         .trxDate(OffsetDateTime.now())
@@ -101,7 +101,7 @@ public class TransactionInProgressServiceImplTest {
     }
 
     @Test
-    public void shouldNotProcessInvalidTrx_MissingStatus() throws JsonProcessingException {
+    void shouldNotProcessInvalidTrx_MissingStatus() throws JsonProcessingException {
 
         TransactionInProgressDTO transactionInProgressDTO =
                 TransactionInProgressDTO.builder()
@@ -118,7 +118,7 @@ public class TransactionInProgressServiceImplTest {
     }
 
     @Test
-    public void shouldSendErrorOnProcessingKO() throws JsonProcessingException {
+    void shouldSendErrorOnProcessingKO() throws JsonProcessingException {
         TransactionInProgressDTO transactionInProgressDTO =
                 TransactionInProgressDTO.builder()
                         .id("ID_1")

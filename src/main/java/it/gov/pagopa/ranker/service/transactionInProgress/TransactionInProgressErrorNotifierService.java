@@ -10,6 +10,5 @@ public interface TransactionInProgressErrorNotifierService {
     boolean notify(KafkaConfiguration.BaseKafkaInfoDTO kafkaInfoDTO, Message<?> message, String description, boolean retryable, boolean resendApplication, Throwable exception);
 
     Message<TransactionInProgressDTO> buildMessage(TransactionInProgressDTO trx, String key);
-    Message<String> buildMessage(Message<String> trx, String key);
 
 }

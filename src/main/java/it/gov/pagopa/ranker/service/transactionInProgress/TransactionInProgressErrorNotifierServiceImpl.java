@@ -9,6 +9,8 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+
 @Service
 @Slf4j
 public class TransactionInProgressErrorNotifierServiceImpl implements TransactionInProgressErrorNotifierService {
@@ -38,12 +40,6 @@ public class TransactionInProgressErrorNotifierServiceImpl implements Transactio
         return MessageBuilder.withPayload(trx)
                 .setHeader(KafkaHeaders.KEY, key)
                 .build();
-    }
-
-    @Override
-    public Message<String> buildMessage(Message<String> trx, String key) {
-        trx.getHeaders().put(KafkaHeaders.KEY, key);
-        return trx;
     }
 
 }

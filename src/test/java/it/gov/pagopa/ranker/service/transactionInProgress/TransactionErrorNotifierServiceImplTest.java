@@ -10,7 +10,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 
@@ -89,20 +88,6 @@ class TransactionErrorNotifierServiceImplTest {
                 eq(baseKafkaInfoDTO), eq(dummyMessage), eq(DUMMY_MESSAGE),
                 eq(retryable), eq(resendApplication), any()))
                 .thenReturn(true);
-    }
-
-    @Test
-    void testBuildMessage_messageInput() {
-        TransactionInProgressDTO transactionInProgressDTO = TransactionInProgressDTO.builder()
-                .id("TEST").status(SyncTrxStatus.EXPIRED).build();
-        Message<String> message = MessageBuilder.withPayload(transactionInProgressDTO.toString()).build();
-
-        Message<String> transactionInProgressDTOMessage =
-                transactionErrorNotifierService.buildMessage(message, transactionInProgressDTO.getId());
-
-
-        String headerKey = (String) transactionInProgressDTOMessage.getHeaders().get(KafkaHeaders.KEY);
-        assertEquals(transactionInProgressDTO.getId(), headerKey);
     }
 
 }

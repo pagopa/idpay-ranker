@@ -59,7 +59,7 @@ public class TransactionInProgressServiceImpl implements TransactionInProgressSe
             assert transactionInProgressDTO != null;
             log.error("[PROCESS_TRX_EH] Encountered violations for received transaction with id " +
                     transactionInProgressDTO.getId());
-            notifyError(message, transactionInProgressDTO.getId(), false, constraintViolationException);
+            notifyError(message, false, constraintViolationException);
             return;
         }
 
@@ -69,16 +69,15 @@ public class TransactionInProgressServiceImpl implements TransactionInProgressSe
         } catch (UnmanagedStrategyException unmanagedStrategyException) {
             log.debug("[PROCESS_TRX_EH] Unmanaged status {}", transactionInProgressDTO.getStatus());
         } catch (Exception e) {
-            notifyError(message, transactionInProgressDTO.getId(),true, e);
+            notifyError(message,true, e);
         }
 
     }
 
-    private void notifyError(Message<String> transactionInProgressDTO, String transactionId, Boolean retry, Exception e) {
+    private void notifyError(Message<String> transactionInProgressDTO, Boolean retry, Exception e) {
         try {
             transactionInProgressErrorNotifierService.notifyExpiredTransaction(
-                    transactionInProgressErrorNotifierService.buildMessage(
-                            transactionInProgressDTO, transactionId),
+                    transactionInProgressDTO,
                     e.getMessage(), retry, e
             );
             log.info("Failed Transaction Event Processing: {}", e.getMessage(), e);

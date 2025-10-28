@@ -8,6 +8,8 @@ import it.gov.pagopa.ranker.repository.TransactionInProgressRepository;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import static it.gov.pagopa.utils.InitiativeCountersUtils.computePreallocationId;
 
@@ -30,12 +32,14 @@ public class RefundedTransactionInProgressProcessorStrategy implements Transacti
     }
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void processTransaction(TransactionInProgressDTO transactionInProgress) {
         log.info("[RefundedTransactionInProgressProcessor] Starting refund handling process for transaction {}", transactionInProgress.getId());
         String transactionInProgressId = transactionInProgress.getId();
+        String preallocationId = computePreallocationId(transactionInProgress);
 
         if (!initiativeCountersPreallocationsRepository.existsById(
-                computePreallocationId(transactionInProgress))) {
+                preallocationId)) {
             log.warn("[RefundedTransactionInProgressProcessor] received event for a transaction having initiative {}" +
                     " and user {} that does not exist in the initiative preallocation, will not update counter",
                     transactionInProgress.getInitiativeId(), transactionInProgress.getUserId());
@@ -44,6 +48,7 @@ public class RefundedTransactionInProgressProcessorStrategy implements Transacti
                 initiativeCountersRepository.updateCounterForRefunded(
                         transactionInProgress.getInitiativeId(),
                         transactionInProgress.getEffectiveAmountCents());
+                initiativeCountersPreallocationsRepository.deleteById(preallocationId);
             } catch (Exception e) {
                 log.error("[RefundedTransactionInProgressProcessor] Error attempting to " +
                           "alter initiativeCounters given id {} initiativeId {} and userId {}",

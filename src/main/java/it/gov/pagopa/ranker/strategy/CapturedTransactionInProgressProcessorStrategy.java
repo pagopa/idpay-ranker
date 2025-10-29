@@ -5,8 +5,6 @@ import it.gov.pagopa.ranker.enums.SyncTrxStatus;
 import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
 import it.gov.pagopa.ranker.repository.TransactionInProgressRepository;
-import it.gov.pagopa.ranker.service.initative.InitiativeCountersServiceImpl;
-import it.gov.pagopa.utils.InitiativeCountersUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -54,7 +52,7 @@ public class CapturedTransactionInProgressProcessorStrategy implements Transacti
             try {
                 initiativeCountersRepository.updateCounterForCaptured(
                         transactionInProgress.getInitiativeId(),
-                        transactionInProgress.getEffectiveAmountCents(),
+                        transactionInProgress.getRewardCents(),
                         transactionInProgress.getVoucherAmountCents());
             } catch (Exception e) {
                 log.error("[CapturedTransactionInProgressProcessor] Error attempting to " +

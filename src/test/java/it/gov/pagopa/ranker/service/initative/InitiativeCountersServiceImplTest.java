@@ -76,7 +76,7 @@ class InitiativeCountersServiceImplTest {
     @Test
     void testHasAvailableBudget_true() {
         // Given
-        when(initiativeCountersRepositoryMock.existsByIdInAndResidualInitiativeBudgetCentsGreaterThanEqual(INITIATIVE_ID, 10000)).thenReturn(true);
+        when(initiativeCountersRepositoryMock.existsByIdInAndResidualInitiativeBudgetCentsGreaterThanEqual(INITIATIVE_ID, 20000)).thenReturn(true);
 
         // When
         boolean result = initiativeCountersService.hasAvailableBudget();
@@ -88,7 +88,7 @@ class InitiativeCountersServiceImplTest {
     @Test
     void testHasAvailableBudget_falseWhenNull() {
         // Given
-        when(initiativeCountersRepositoryMock.existsByIdInAndResidualInitiativeBudgetCentsGreaterThanEqual(INITIATIVE_ID, 10000)).thenReturn(false);
+        when(initiativeCountersRepositoryMock.existsByIdInAndResidualInitiativeBudgetCentsGreaterThanEqual(INITIATIVE_ID, 20000)).thenReturn(false);
 
         // When
         boolean result = initiativeCountersService.hasAvailableBudget();

@@ -71,7 +71,7 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
     @Override
     public boolean hasAvailableBudget() {
         return initiativeCountersRepository.existsByIdInAndResidualInitiativeBudgetCentsGreaterThanEqual(
-                initiativeId, 10000);
+                initiativeId, 20000);
     }
 
     public long calculateReservationCents(boolean verifyIsee) {

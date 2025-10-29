@@ -52,16 +52,17 @@ class RefundedTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setInitiativeId("INIT_1");
         transactionInProgressDTO.setEffectiveAmountCents(1000L);
         transactionInProgressDTO.setVoucherAmountCents(1000L);
+        transactionInProgressDTO.setRewardCents(500L);
         transactionInProgressDTO.setUserId("USER_1");
         String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
         when(initiativeCountersPreallocationsRepository.existsById(eq(preallocationId)))
                 .thenReturn(true);
-        when(initiativeCountersRepositoryMock.updateCounterForRefunded(eq("INIT_1"),eq(1000L)))
+        when(initiativeCountersRepositoryMock.updateCounterForRefunded("INIT_1",500L))
                 .thenReturn(new InitiativeCounters());
         Assertions.assertDoesNotThrow(() -> refundedTransactionInProgressProcessorStrategy
                 .processTransaction(transactionInProgressDTO));
         verify(initiativeCountersPreallocationsRepository).existsById(eq(preallocationId));
-        verify(initiativeCountersRepositoryMock).updateCounterForRefunded(eq("INIT_1"),eq(1000L));
+        verify(initiativeCountersRepositoryMock).updateCounterForRefunded("INIT_1",500L);
 
     }
 
@@ -89,15 +90,16 @@ class RefundedTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setInitiativeId("INIT_1");
         transactionInProgressDTO.setEffectiveAmountCents(1000L);
         transactionInProgressDTO.setVoucherAmountCents(1000L);
+        transactionInProgressDTO.setRewardCents(500L);
         transactionInProgressDTO.setUserId("USER_1");
         String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
         when(initiativeCountersPreallocationsRepository.existsById(eq(preallocationId)))
                 .thenReturn(true);
-        when(initiativeCountersRepositoryMock.updateCounterForRefunded(eq("INIT_1"),eq(1000L)))
+        when(initiativeCountersRepositoryMock.updateCounterForRefunded("INIT_1",500L))
                 .thenThrow(new RuntimeException("test"));
         Assertions.assertThrows(Exception.class, () ->
                 refundedTransactionInProgressProcessorStrategy.processTransaction(transactionInProgressDTO));
-        verify(initiativeCountersRepositoryMock).updateCounterForRefunded(eq("INIT_1"),eq(1000L));
+        verify(initiativeCountersRepositoryMock).updateCounterForRefunded("INIT_1",500L);
     }
 
 }

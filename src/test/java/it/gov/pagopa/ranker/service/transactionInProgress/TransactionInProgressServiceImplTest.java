@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -25,6 +26,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
 
 import java.time.OffsetDateTime;
 import java.util.TimeZone;
@@ -34,7 +37,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class TransactionInProgressServiceImplTest {
+class TransactionInProgressServiceImplTest {
 
     @Mock
     private TransactionInProgressProcessorStrategyFactory transactionInProgressProcessorStrategyFactory;
@@ -61,7 +64,7 @@ public class TransactionInProgressServiceImplTest {
     }
 
     @Test
-    public void shouldProcessValidExpiredTrx() {
+    void shouldProcessValidExpiredTrx() throws JsonProcessingException {
 
         TransactionInProgressDTO transactionInProgressDTO =
                 TransactionInProgressDTO.builder()
@@ -70,34 +73,35 @@ public class TransactionInProgressServiceImplTest {
                         .status(SyncTrxStatus.EXPIRED)
                         .extendedAuthorization(true)
                         .build();
+
+        Message<String> message = MessageBuilder.withPayload(objectMapper.writeValueAsString(transactionInProgressDTO)).build();
         when(transactionInProgressProcessorStrategyFactory.getStrategy(eq(SyncTrxStatus.EXPIRED)))
                 .thenReturn(transactionInProgressProcessorStrategy);
         Assertions.assertDoesNotThrow(() ->
-                transactionInProgressService.processTransactionInProgressEH(
-                        objectMapper.writeValueAsString(transactionInProgressDTO)));
+                transactionInProgressService.processTransactionInProgressEH(message));
         verify(transactionInProgressProcessorStrategyFactory).getStrategy(eq(SyncTrxStatus.EXPIRED));
         verify(transactionInProgressProcessorStrategy).processTransaction(any());
         verifyNoInteractions(transactionInProgressErrorNotifierService);
     }
 
     @Test
-    public void shouldNotProcessInvalidTrx_MissingId() {
+    void shouldNotProcessInvalidTrx_MissingId() throws JsonProcessingException {
         TransactionInProgressDTO transactionInProgressDTO =
                 TransactionInProgressDTO.builder()
                         .trxDate(OffsetDateTime.now())
                         .status(SyncTrxStatus.EXPIRED)
                         .extendedAuthorization(true)
                         .build();
+        Message<String> message = MessageBuilder.withPayload(objectMapper.writeValueAsString(transactionInProgressDTO)).build();
         Assertions.assertDoesNotThrow(() ->
-                transactionInProgressService.processTransactionInProgressEH(
-                        objectMapper.writeValueAsString(transactionInProgressDTO)));
+                transactionInProgressService.processTransactionInProgressEH(message));
         verifyNoInteractions(transactionInProgressProcessorStrategyFactory);
         verifyNoInteractions(transactionInProgressProcessorStrategy);
         verify(transactionInProgressErrorNotifierService).notifyExpiredTransaction(any(),any(),eq(false),any());
     }
 
     @Test
-    public void shouldNotProcessInvalidTrx_MissingStatus() {
+    void shouldNotProcessInvalidTrx_MissingStatus() throws JsonProcessingException {
 
         TransactionInProgressDTO transactionInProgressDTO =
                 TransactionInProgressDTO.builder()
@@ -105,16 +109,16 @@ public class TransactionInProgressServiceImplTest {
                         .trxDate(OffsetDateTime.now())
                         .extendedAuthorization(true)
                         .build();
+        Message<String> message = MessageBuilder.withPayload(objectMapper.writeValueAsString(transactionInProgressDTO)).build();
         Assertions.assertDoesNotThrow(() ->
-                transactionInProgressService.processTransactionInProgressEH(
-                        objectMapper.writeValueAsString(transactionInProgressDTO)));
+                transactionInProgressService.processTransactionInProgressEH(message));
         verifyNoInteractions(transactionInProgressProcessorStrategyFactory);
         verifyNoInteractions(transactionInProgressProcessorStrategy);
         verify(transactionInProgressErrorNotifierService).notifyExpiredTransaction(any(),any(),eq(false),any());
     }
 
     @Test
-    public void shouldSendErrorOnProcessingKO() {
+    void shouldSendErrorOnProcessingKO() throws JsonProcessingException {
         TransactionInProgressDTO transactionInProgressDTO =
                 TransactionInProgressDTO.builder()
                         .id("ID_1")
@@ -122,13 +126,13 @@ public class TransactionInProgressServiceImplTest {
                         .status(SyncTrxStatus.EXPIRED)
                         .extendedAuthorization(true)
                         .build();
+        Message<String> message = MessageBuilder.withPayload(objectMapper.writeValueAsString(transactionInProgressDTO)).build();
         when(transactionInProgressProcessorStrategyFactory.getStrategy(eq(SyncTrxStatus.EXPIRED)))
                 .thenReturn(transactionInProgressProcessorStrategy);
         doThrow(new RuntimeException("error")).doNothing().when(transactionInProgressProcessorStrategy)
                 .processTransaction(any());
         Assertions.assertDoesNotThrow(() ->
-                transactionInProgressService.processTransactionInProgressEH(
-                        objectMapper.writeValueAsString(transactionInProgressDTO)));
+                transactionInProgressService.processTransactionInProgressEH(message));
         verify(transactionInProgressProcessorStrategyFactory).getStrategy(eq(SyncTrxStatus.EXPIRED));
         verify(transactionInProgressProcessorStrategy).processTransaction(any());
         verify(transactionInProgressErrorNotifierService).notifyExpiredTransaction(any(),any(),eq(true),any());

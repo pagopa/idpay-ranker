@@ -17,14 +17,11 @@ public class RefundedTransactionInProgressProcessorStrategy implements Transacti
 
     private final InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository;
     private final InitiativeCountersRepository initiativeCountersRepository;
-    private final TransactionInProgressRepository transactionInProgressRepository;
 
     public RefundedTransactionInProgressProcessorStrategy(
-            InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository, InitiativeCountersRepository initiativeCountersRepository,
-            TransactionInProgressRepository transactionInProgressRepository) {
+            InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository, InitiativeCountersRepository initiativeCountersRepository) {
         this.initiativeCountersPreallocationsRepository = initiativeCountersPreallocationsRepository;
         this.initiativeCountersRepository = initiativeCountersRepository;
-        this.transactionInProgressRepository = transactionInProgressRepository;
     }
 
     @Override
@@ -34,15 +31,8 @@ public class RefundedTransactionInProgressProcessorStrategy implements Transacti
 
     @Override
     public void processTransaction(TransactionInProgressDTO transactionInProgress) {
-
+        log.info("[RefundedTransactionInProgressProcessor] Starting refund handling process for transaction {}", transactionInProgress.getId());
         String transactionInProgressId = transactionInProgress.getId();
-        if (!transactionInProgressRepository.existsByIdAndStatus(
-                transactionInProgressId, SyncTrxStatus.REFUNDED)) {
-            log.warn("[RefundedTransactionInProgressProcessor] Provided transaction with id {} with status EXPIRED" +
-                            " not found, no counter will be updated",
-                    transactionInProgressId);
-            return;
-        }
 
         if (!initiativeCountersPreallocationsRepository.existsById(
                 computePreallocationId(transactionInProgress))) {

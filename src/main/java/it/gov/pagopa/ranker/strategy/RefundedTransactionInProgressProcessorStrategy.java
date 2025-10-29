@@ -4,8 +4,6 @@ import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
 import it.gov.pagopa.ranker.enums.SyncTrxStatus;
 import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
-import it.gov.pagopa.ranker.repository.TransactionInProgressRepository;
-import it.gov.pagopa.ranker.service.initative.InitiativeCountersServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -43,7 +41,7 @@ public class RefundedTransactionInProgressProcessorStrategy implements Transacti
             try {
                 initiativeCountersRepository.updateCounterForRefunded(
                         transactionInProgress.getInitiativeId(),
-                        transactionInProgress.getEffectiveAmountCents());
+                        transactionInProgress.getRewardCents());
             } catch (Exception e) {
                 log.error("[RefundedTransactionInProgressProcessor] Error attempting to " +
                           "alter initiativeCounters given id {} initiativeId {} and userId {}",

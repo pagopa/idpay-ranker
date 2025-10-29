@@ -58,18 +58,21 @@ public class CapturedTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setInitiativeId("INIT_1");
         transactionInProgressDTO.setEffectiveAmountCents(1000L);
         transactionInProgressDTO.setVoucherAmountCents(1000L);
+        transactionInProgressDTO.setRewardCents(500L);
         transactionInProgressDTO.setUserId("USER_1");
         String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
         when(initiativeCountersPreallocationsRepository.existsById(eq(preallocationId)))
                 .thenReturn(true);
-        when(initiativeCountersRepositoryMock.updateCounterForCaptured(eq("INIT_1"),eq(1000L),eq(1000L)))
+        when(initiativeCountersRepositoryMock.updateCounterForCaptured(eq("INIT_1"),eq(500L),eq(1000L)))
                 .thenReturn(new InitiativeCounters());
         when(transactionInProgressRepositoryMock.existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.CAPTURED)))
                 .thenReturn(true);
+
         Assertions.assertDoesNotThrow(() -> capturedTransactionInProgressProcessorStrategy
                 .processTransaction(transactionInProgressDTO));
+
         verify(initiativeCountersPreallocationsRepository).existsById(eq(preallocationId));
-        verify(initiativeCountersRepositoryMock).updateCounterForCaptured(eq("INIT_1"),eq(1000L),eq(1000L));
+        verify(initiativeCountersRepositoryMock).updateCounterForCaptured(eq("INIT_1"),eq(500L),eq(1000L));
 
     }
 
@@ -115,6 +118,7 @@ public class CapturedTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setInitiativeId("INIT_1");
         transactionInProgressDTO.setEffectiveAmountCents(1000L);
         transactionInProgressDTO.setVoucherAmountCents(1000L);
+        transactionInProgressDTO.setRewardCents(500L);
         transactionInProgressDTO.setUserId("USER_1");
         String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
         when(initiativeCountersPreallocationsRepository.existsById(eq(preallocationId)))
@@ -122,11 +126,11 @@ public class CapturedTransactionInProgressProcessorStrategyTest {
         when(transactionInProgressRepositoryMock.existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.CAPTURED)))
                 .thenReturn(true);
         when(initiativeCountersRepositoryMock
-                        .updateCounterForCaptured(eq("INIT_1"),eq(1000L),eq(1000L)))
+                        .updateCounterForCaptured(eq("INIT_1"),eq(500L),eq(1000L)))
                 .thenThrow(new RuntimeException("test"));
         Assertions.assertThrows(Exception.class, () ->
                 capturedTransactionInProgressProcessorStrategy.processTransaction(transactionInProgressDTO));
-        verify(initiativeCountersRepositoryMock).updateCounterForCaptured(eq("INIT_1"),eq(1000L),eq(1000L));
+        verify(initiativeCountersRepositoryMock).updateCounterForCaptured(eq("INIT_1"),eq(500L),eq(1000L));
     }
 
 

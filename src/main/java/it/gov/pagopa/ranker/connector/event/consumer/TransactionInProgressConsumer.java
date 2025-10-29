@@ -13,6 +13,6 @@ import java.util.function.Consumer;
 public class TransactionInProgressConsumer {
   @Bean
   public Consumer<Message<String>> trxProcessor(TransactionInProgressService transactionInProgressService){
-    return transactionInProgressService::processTransactionInProgressEH;
+    return transactionInProgressService::execute;
   }
 }

@@ -8,10 +8,6 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
-
-import static it.gov.pagopa.ranker.enums.PreallocationStatus.PREALLOCATED;
-
 @Repository
 public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCountersAtomicRepository {
 
@@ -68,16 +64,15 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
     }
 
     @Override
-    public InitiativeCounters updateCounterForCaptured(
-            String initiativeId, Long effectiveAmountCents, Long voucherAmountCents) {
+    public InitiativeCounters updateCounterForCaptured(String initiativeId, Long spentVoucherAmountCents, Long voucherAmountCents) {
         Query query = Query.query(Criteria
                 .where(FIELD_ID).is(initiativeId)
         );
 
         Update update = new Update()
-                .inc(FIELD_SPENT_BUDGET_CENTS, effectiveAmountCents)
+                .inc(FIELD_SPENT_BUDGET_CENTS, spentVoucherAmountCents)
                 .inc(FIELD_RESERVED_BUDGET_CENTS, -voucherAmountCents)
-                .inc(FIELD_RESIDUAL_BUDGET_CENTS, voucherAmountCents - effectiveAmountCents);
+                .inc(FIELD_RESIDUAL_BUDGET_CENTS, voucherAmountCents - spentVoucherAmountCents);
 
         return mongoTemplate.findAndModify(
                 query,
@@ -88,14 +83,14 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
     }
 
     @Override
-    public InitiativeCounters updateCounterForRefunded(String initiativeId, Long effectiveAmountCents) {
+    public InitiativeCounters updateCounterForRefunded(String initiativeId, Long spentVoucherAmountCents) {
         Query query = Query.query(Criteria
                 .where(FIELD_ID).is(initiativeId)
         );
 
         Update update = new Update()
-                .inc(FIELD_SPENT_BUDGET_CENTS, -effectiveAmountCents)
-                .inc(FIELD_RESIDUAL_BUDGET_CENTS, effectiveAmountCents);
+                .inc(FIELD_SPENT_BUDGET_CENTS, -spentVoucherAmountCents)
+                .inc(FIELD_RESIDUAL_BUDGET_CENTS, spentVoucherAmountCents);
 
         return mongoTemplate.findAndModify(
                 query,

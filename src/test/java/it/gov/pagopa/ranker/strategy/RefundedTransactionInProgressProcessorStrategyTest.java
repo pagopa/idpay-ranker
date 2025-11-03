@@ -63,6 +63,7 @@ class RefundedTransactionInProgressProcessorStrategyTest {
                 .processTransaction(transactionInProgressDTO));
         verify(initiativeCountersPreallocationsRepository).existsById(eq(preallocationId));
         verify(initiativeCountersRepositoryMock).updateCounterForRefunded("INIT_1",500L);
+        verify(initiativeCountersPreallocationsRepository).deleteById(eq(preallocationId));
 
     }
 
@@ -80,6 +81,7 @@ class RefundedTransactionInProgressProcessorStrategyTest {
                 .processTransaction(transactionInProgressDTO));
         verify(initiativeCountersPreallocationsRepository).existsById(eq(preallocationId));
         verifyNoInteractions(initiativeCountersRepositoryMock);
+        verifyNoMoreInteractions(initiativeCountersPreallocationsRepository);
     }
 
 
@@ -100,6 +102,7 @@ class RefundedTransactionInProgressProcessorStrategyTest {
         Assertions.assertThrows(Exception.class, () ->
                 refundedTransactionInProgressProcessorStrategy.processTransaction(transactionInProgressDTO));
         verify(initiativeCountersRepositoryMock).updateCounterForRefunded("INIT_1",500L);
+        verifyNoMoreInteractions(initiativeCountersPreallocationsRepository);
     }
 
 }

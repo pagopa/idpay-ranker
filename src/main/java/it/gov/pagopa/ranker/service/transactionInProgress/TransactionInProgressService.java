@@ -4,6 +4,6 @@ import org.springframework.messaging.Message;
 
 public interface TransactionInProgressService {
 
-    void processTransactionInProgressEH(Message<String> s);
+    void execute(Message<String> transactionMessage);
 
 }

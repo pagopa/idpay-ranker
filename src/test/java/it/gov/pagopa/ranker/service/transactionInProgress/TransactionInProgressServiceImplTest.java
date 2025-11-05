@@ -80,11 +80,11 @@ class TransactionInProgressServiceImplTest {
                         .build();
 
         Message<String> message = MessageBuilder.withPayload(objectMapper.writeValueAsString(transactionInProgressDTO)).build();
-        when(transactionInProgressProcessorStrategyFactory.getStrategy(eq(SyncTrxStatus.EXPIRED)))
+        when(transactionInProgressProcessorStrategyFactory.getStrategy(SyncTrxStatus.EXPIRED))
                 .thenReturn(transactionInProgressProcessorStrategy);
         Assertions.assertDoesNotThrow(() ->
                 transactionInProgressService.process(message));
-        verify(transactionInProgressProcessorStrategyFactory).getStrategy(eq(SyncTrxStatus.EXPIRED));
+        verify(transactionInProgressProcessorStrategyFactory).getStrategy(SyncTrxStatus.EXPIRED);
         verify(transactionInProgressProcessorStrategy).processTransaction(any());
         verifyNoInteractions(transactionInProgressErrorNotifierService);
     }
@@ -132,13 +132,13 @@ class TransactionInProgressServiceImplTest {
                         .extendedAuthorization(true)
                         .build();
         Message<String> message = MessageBuilder.withPayload(objectMapper.writeValueAsString(transactionInProgressDTO)).build();
-        when(transactionInProgressProcessorStrategyFactory.getStrategy(eq(SyncTrxStatus.EXPIRED)))
+        when(transactionInProgressProcessorStrategyFactory.getStrategy(SyncTrxStatus.EXPIRED))
                 .thenReturn(transactionInProgressProcessorStrategy);
         doThrow(new RuntimeException("error")).doNothing().when(transactionInProgressProcessorStrategy)
                 .processTransaction(any());
         Assertions.assertDoesNotThrow(() ->
                 transactionInProgressService.process(message));
-        verify(transactionInProgressProcessorStrategyFactory).getStrategy(eq(SyncTrxStatus.EXPIRED));
+        verify(transactionInProgressProcessorStrategyFactory).getStrategy(SyncTrxStatus.EXPIRED);
         verify(transactionInProgressProcessorStrategy).processTransaction(any());
         verify(transactionInProgressErrorNotifierService).notifyExpiredTransaction(any(),any(),eq(true),any());
     }
@@ -163,11 +163,11 @@ class TransactionInProgressServiceImplTest {
                         .extendedAuthorization(true)
                         .build();
         Message<String> message = MessageBuilder.withPayload(objectMapper.writeValueAsString(transactionInProgressDTO)).build();
-        when(transactionInProgressProcessorStrategyFactory.getStrategy(eq(SyncTrxStatus.EXPIRED)))
+        when(transactionInProgressProcessorStrategyFactory.getStrategy(SyncTrxStatus.EXPIRED))
                 .thenThrow(new UnmanagedStrategyException("DUMMY_EXCEPTION"));
         Assertions.assertDoesNotThrow(() ->
                 transactionInProgressService.process(message));
-        verify(transactionInProgressProcessorStrategyFactory).getStrategy(eq(SyncTrxStatus.EXPIRED));
+        verify(transactionInProgressProcessorStrategyFactory).getStrategy(SyncTrxStatus.EXPIRED);
         verify(transactionInProgressProcessorStrategy, never()).processTransaction(any());
         verify(transactionInProgressErrorNotifierService, never()).notifyExpiredTransaction(any(),any(),eq(true),any());
     }
@@ -182,14 +182,14 @@ class TransactionInProgressServiceImplTest {
                         .extendedAuthorization(true)
                         .build();
         Message<String> message = MessageBuilder.withPayload(objectMapper.writeValueAsString(transactionInProgressDTO)).build();
-        when(transactionInProgressProcessorStrategyFactory.getStrategy(eq(SyncTrxStatus.EXPIRED)))
+        when(transactionInProgressProcessorStrategyFactory.getStrategy(SyncTrxStatus.EXPIRED))
                 .thenReturn(transactionInProgressProcessorStrategy);
         doThrow(new RuntimeException("error")).doNothing().when(transactionInProgressProcessorStrategy)
                 .processTransaction(any());
         doThrow(new RuntimeException("DUMY_EXCEPTION")).when(transactionInProgressErrorNotifierService).notifyExpiredTransaction(eq(message),eq("error"), eq(true), any());
         Assertions.assertDoesNotThrow(() ->
                 transactionInProgressService.process(message));
-        verify(transactionInProgressProcessorStrategyFactory).getStrategy(eq(SyncTrxStatus.EXPIRED));
+        verify(transactionInProgressProcessorStrategyFactory).getStrategy(SyncTrxStatus.EXPIRED);
         verify(transactionInProgressProcessorStrategy).processTransaction(any());
         verify(transactionInProgressErrorNotifierService).notifyExpiredTransaction(any(),any(),eq(true),any());
     }

@@ -4,6 +4,7 @@ import it.gov.pagopa.ranker.service.transactionInProgress.TransactionInProgressS
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.Message;
 
 import java.util.function.Consumer;
 
@@ -11,7 +12,7 @@ import java.util.function.Consumer;
 @Slf4j
 public class TransactionInProgressConsumer {
   @Bean
-  public Consumer<String> trxProcessor(TransactionInProgressService transactionInProgressService){
-    return transactionInProgressService::processTransactionInProgressEH;
+  public Consumer<Message<String>> trxProcessor(TransactionInProgressService transactionInProgressService){
+    return transactionInProgressService::execute;
   }
 }

@@ -1,8 +1,10 @@
 package it.gov.pagopa.ranker.service.initative;
 
+import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
 import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
 import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
+import it.gov.pagopa.utils.InitiativeCountersUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -74,7 +76,7 @@ class InitiativeCountersServiceImplTest {
     @Test
     void testHasAvailableBudget_true() {
         // Given
-        when(initiativeCountersRepositoryMock.existsByIdInAndResidualInitiativeBudgetCentsGreaterThanEqual(INITIATIVE_ID, 10000)).thenReturn(true);
+        when(initiativeCountersRepositoryMock.existsByIdInAndResidualInitiativeBudgetCentsGreaterThanEqual(INITIATIVE_ID, 20000)).thenReturn(true);
 
         // When
         boolean result = initiativeCountersService.hasAvailableBudget();
@@ -86,13 +88,68 @@ class InitiativeCountersServiceImplTest {
     @Test
     void testHasAvailableBudget_falseWhenNull() {
         // Given
-        when(initiativeCountersRepositoryMock.existsByIdInAndResidualInitiativeBudgetCentsGreaterThanEqual(INITIATIVE_ID, 10000)).thenReturn(false);
+        when(initiativeCountersRepositoryMock.existsByIdInAndResidualInitiativeBudgetCentsGreaterThanEqual(INITIATIVE_ID, 20000)).thenReturn(false);
 
         // When
         boolean result = initiativeCountersService.hasAvailableBudget();
 
         // Then
         assertFalse(result);
+    }
+
+    @Test
+    void testUpdateInitiativeCounters_preallocatedIdNotExist(){
+        TransactionInProgressDTO transactionInProgressDTO = new TransactionInProgressDTO();
+        transactionInProgressDTO.setId("ID_1");
+        transactionInProgressDTO.setInitiativeId("INIT_1");
+        transactionInProgressDTO.setVoucherAmountCents(1000L);
+        transactionInProgressDTO.setUserId("USER_1");
+        String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
+
+        when(initiativeCountersPreallocationsRepository.existsById(preallocationId)).thenReturn(false);
+
+        initiativeCountersService.updateInitiativeCounters(transactionInProgressDTO, preallocationId, transactionInProgressDTO.getId());
+        verify(initiativeCountersPreallocationsRepository, never()).deleteById(any());
+        verifyNoInteractions(initiativeCountersRepositoryMock);
+    }
+
+    @Test
+    void testUpdateInitiativeCounters_deletePreallocationError() {
+        TransactionInProgressDTO transactionInProgressDTO = new TransactionInProgressDTO();
+        transactionInProgressDTO.setId("ID_1");
+        transactionInProgressDTO.setInitiativeId("INIT_1");
+        transactionInProgressDTO.setVoucherAmountCents(1000L);
+        transactionInProgressDTO.setUserId("USER_1");
+        String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
+
+        when(initiativeCountersPreallocationsRepository.existsById(preallocationId)).thenReturn(true);
+        doThrow(new RuntimeException("error")).when(initiativeCountersPreallocationsRepository).deleteById(preallocationId);
+
+        assertThrows(Exception.class, () -> initiativeCountersService.updateInitiativeCounters(transactionInProgressDTO, preallocationId, transactionInProgressDTO.getId()));
+
+        verify(initiativeCountersPreallocationsRepository).deleteById(any());
+        verifyNoInteractions(initiativeCountersRepositoryMock);
+
+    }
+
+    @Test
+    void testUpdateInitiativeCounters_decrementedOnboardedAndBudgetError() {
+        TransactionInProgressDTO transactionInProgressDTO = new TransactionInProgressDTO();
+        transactionInProgressDTO.setId("ID_1");
+        transactionInProgressDTO.setInitiativeId("INIT_1");
+        transactionInProgressDTO.setVoucherAmountCents(1000L);
+        transactionInProgressDTO.setUserId("USER_1");
+        String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
+
+        when(initiativeCountersPreallocationsRepository.existsById(preallocationId)).thenReturn(true);
+        doNothing().when(initiativeCountersPreallocationsRepository).deleteById(preallocationId);
+
+        doThrow(new RuntimeException("error")).when(initiativeCountersRepositoryMock).decrementOnboardedAndBudget(transactionInProgressDTO.getInitiativeId(), transactionInProgressDTO.getVoucherAmountCents());
+
+        assertThrows(Exception.class, () -> initiativeCountersService.updateInitiativeCounters(transactionInProgressDTO, preallocationId, transactionInProgressDTO.getId()));
+
+        verify(initiativeCountersPreallocationsRepository).deleteById(any());
+        verify(initiativeCountersRepositoryMock).decrementOnboardedAndBudget(any(), anyLong());
     }
 
 }

@@ -57,7 +57,7 @@ public class MongoConfig {
                 TransactionOptions.builder()
                         .readConcern(ReadConcern.SNAPSHOT)
                         .writeConcern(WriteConcern.MAJORITY)
-                        .readPreference(ReadPreference.nearest())
+                        .readPreference(ReadPreference.primary())
                         .build()
         );
     }

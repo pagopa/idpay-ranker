@@ -20,17 +20,20 @@ public class RankerConsumerClient {
 
     private final String connectionString;
     private final String queueName;
+    private final boolean forceStopped;
 
     private ServiceBusProcessorClient processorClient;
 
     public RankerConsumerClient(RankerService rankerService,
                           InitiativeCountersService initiativeCountersService,
                           @Value("${azure.servicebus.onboarding-request.connection-string}") String connectionString,
-                          @Value("${azure.servicebus.onboarding-request.queue-name}") String queueName) {
+                          @Value("${azure.servicebus.onboarding-request.queue-name}") String queueName,
+                          @Value("${app.ranker.forceStopped:false}") boolean forceStopped) {
         this.rankerService = rankerService;
         this.initiativeCountersService = initiativeCountersService;
         this.connectionString = connectionString;
         this.queueName = queueName;
+        this.forceStopped = forceStopped;
     }
 
     @PostConstruct
@@ -42,8 +45,8 @@ public class RankerConsumerClient {
                 .processMessage(this::handleMessage)
                 .processError(context -> log.error("[RANKER_CONTEXT] Error in processor: {}", context.getException().getMessage()))
                 .buildProcessorClient();
-
-        checkResidualBudgetAndStartConsumer();
+        log.info("[FORCE_STOPPED] Initiative processing is force stopped: {}", forceStopped);
+        if(!forceStopped) checkResidualBudgetAndStartConsumer();
     }
 
     private void handleMessage(ServiceBusReceivedMessageContext context) {
@@ -76,10 +79,12 @@ public class RankerConsumerClient {
     public void checkResidualBudgetAndStartConsumer() {
         log.info("[BUDGET_CONTEXT_START] Starting initiative budget check...");
         boolean hasAvailableBudget = initiativeCountersService.hasAvailableBudget();
-        if (hasAvailableBudget && !processorClient.isRunning()){
+
+        if (hasAvailableBudget && !processorClient.isRunning() && !forceStopped) {
             startConsumer();
             log.info("[BUDGET_CONTEXT_START] Consumer started");
         } else {
+            log.info("[FORCE_STOPPED] Initiative processing is force stopped: {}", forceStopped);
             log.info("[BUDGET_CONTEXT_START] Consumer running {}, initiative has budget {}", processorClient.isRunning(), hasAvailableBudget);
         }
     }

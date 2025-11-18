@@ -172,6 +172,8 @@ logging:
     org.springframework.boot.autoconfigure: WARN
 
 app:
+  ranker:
+    forceStopped: ${FORCE_STOPPED:false}
   threads:
     # the size of the thread pool to handle @Scheduled tasks
     schedule-max-number: ${THREADS_SCHEDULE_MAX_NUMBER:1}

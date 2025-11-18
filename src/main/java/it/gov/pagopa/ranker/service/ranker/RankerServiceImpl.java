@@ -34,14 +34,15 @@ public class RankerServiceImpl implements RankerService {
         this.initiativesId = initiativesId;
     }
 
-    private void preallocate(OnboardingDTO dto) {
+    @Override
+    public void preallocate(OnboardingDTO dto) {
         if (this.initiativeCountersService.existsByInitiativeIdAndUserId(dto.getInitiativeId(), dto.getUserId())) {
-            log.info("User {} already preallocated for initiative {}", dto.getUserId(), dto.getInitiativeId());
+            log.info("User {} already preallocated for initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
             return;
         }
 
         if(!this.initiativesId.contains(dto.getInitiativeId())){
-            log.error("[RANKER_SERVICE] Skipped processing for initiativeId={} because it is not configured among handled initiatives", dto.getInitiativeId());
+            log.error("[RANKER_SERVICE] Skipped processing for initiativeId={} because it is not configured among handled initiatives", sanitizeString(dto.getInitiativeId()));
             return;
         }
 
@@ -53,7 +54,7 @@ public class RankerServiceImpl implements RankerService {
                 dto.getEnqueuedTime()
         );
 
-        log.info("Preallocation added for user {} in initiative {}", dto.getUserId(), dto.getInitiativeId());
+        log.info("Preallocation added for user {} in initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
         this.rankerProducer.sendSaveConsent(dto);
     }
 
@@ -82,5 +83,9 @@ public class RankerServiceImpl implements RankerService {
             log.error("[RANKER_PROCESSOR] Failed to deserialize message");
             throw new IllegalStateException("Failed to deserialize message", e);
         }
+    }
+
+    public static String sanitizeString(String str){
+        return str == null? null: str.replaceAll("[\\r\\n]", "").replaceAll("[^\\w\\s-]", "");
     }
 }

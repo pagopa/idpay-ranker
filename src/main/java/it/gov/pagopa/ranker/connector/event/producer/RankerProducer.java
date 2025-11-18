@@ -23,7 +23,15 @@ public class RankerProducer {
 
   public void sendSaveConsent(OnboardingDTO onboardingDTO) {
     streamBridge.send("rankerProducer-out-0", onboardingDTO);
-    log.info("Sending message: " + onboardingDTO);
+    log.info("Sending message: {}", sanitizeLog(onboardingDTO));
   }
 
+
+  private String sanitizeLog(Object obj) {
+      if (obj == null) return "null";
+      return obj
+              .toString()
+              .replaceAll("[\\n\\r\\t]", "_")     // evita log spoofing su più righe
+              .replaceAll("[|;]", "_");           // optional per separatori o injection
+  }
 }

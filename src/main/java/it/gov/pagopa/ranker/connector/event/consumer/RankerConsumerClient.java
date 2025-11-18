@@ -20,17 +20,20 @@ public class RankerConsumerClient {
 
     private final String connectionString;
     private final String queueName;
+    private final boolean forceStopped;
 
     private ServiceBusProcessorClient processorClient;
 
     public RankerConsumerClient(RankerService rankerService,
                           InitiativeCountersService initiativeCountersService,
                           @Value("${azure.servicebus.onboarding-request.connection-string}") String connectionString,
-                          @Value("${azure.servicebus.onboarding-request.queue-name}") String queueName) {
+                          @Value("${azure.servicebus.onboarding-request.queue-name}") String queueName,
+                          @Value("${app.wallet.forceStopped:false}") boolean forceStopped) {
         this.rankerService = rankerService;
         this.initiativeCountersService = initiativeCountersService;
         this.connectionString = connectionString;
         this.queueName = queueName;
+        this.forceStopped = forceStopped;
     }
 
     @PostConstruct
@@ -76,7 +79,7 @@ public class RankerConsumerClient {
     public void checkResidualBudgetAndStartConsumer() {
         log.info("[BUDGET_CONTEXT_START] Starting initiative budget check...");
         boolean hasAvailableBudget = initiativeCountersService.hasAvailableBudget();
-        if (hasAvailableBudget && !processorClient.isRunning()){
+        if (hasAvailableBudget && !processorClient.isRunning() && !forceStopped){
             startConsumer();
             log.info("[BUDGET_CONTEXT_START] Consumer started");
         } else {

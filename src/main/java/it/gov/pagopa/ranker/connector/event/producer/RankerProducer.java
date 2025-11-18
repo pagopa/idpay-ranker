@@ -38,18 +38,18 @@ public class RankerProducer {
                 sanitizeField(dto.getInitiativeId()),
                 sanitizeField(dto.getName()),
                 sanitizeField(dto.getSurname()),
-                String.valueOf(dto.getTc()),
-                String.valueOf(dto.getVerifyIsee()),
+                dto.getTc(),
+                dto.getVerifyIsee(),
                 sanitizeField(dto.getStatus()),
-                String.valueOf(dto.getPdndAccept()),
+                dto.getPdndAccept(),
                 sanitizeField(dto.getUserMail()),
                 sanitizeField(dto.getChannel()),
-                String.valueOf(dto.getTcAcceptTimestamp()),
-                String.valueOf(dto.getCriteriaConsensusTimestamp()),
+                dto.getTcAcceptTimestamp(),
+                dto.getCriteriaConsensusTimestamp(),
                 sanitizeField(dto.getServiceId()),
                 sanitizeField(dto.getRejectionReason()),
-                String.valueOf(dto.getSequenceNumber()),
-                String.valueOf(dto.getEnqueuedTime())
+                dto.getSequenceNumber(),
+                dto.getEnqueuedTime()
         );
     }
 

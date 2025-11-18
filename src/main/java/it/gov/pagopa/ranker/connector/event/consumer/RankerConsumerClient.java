@@ -79,6 +79,7 @@ public class RankerConsumerClient {
     public void checkResidualBudgetAndStartConsumer() {
         log.info("[BUDGET_CONTEXT_START] Starting initiative budget check...");
         boolean hasAvailableBudget = initiativeCountersService.hasAvailableBudget();
+        log.info("[FORCE_STOPPED] Initiative processing is force stopped: {}", forceStopped);
         if (hasAvailableBudget && !processorClient.isRunning() && !forceStopped){
             startConsumer();
             log.info("[BUDGET_CONTEXT_START] Consumer started");

@@ -45,8 +45,8 @@ public class RankerConsumerClient {
                 .processMessage(this::handleMessage)
                 .processError(context -> log.error("[RANKER_CONTEXT] Error in processor: {}", context.getException().getMessage()))
                 .buildProcessorClient();
-
-        checkResidualBudgetAndStartConsumer();
+        log.info("[FORCE_STOPPED] Initiative processing is force stopped: {}", forceStopped);
+        if(!forceStopped) checkResidualBudgetAndStartConsumer();
     }
 
     private void handleMessage(ServiceBusReceivedMessageContext context) {
@@ -79,11 +79,12 @@ public class RankerConsumerClient {
     public void checkResidualBudgetAndStartConsumer() {
         log.info("[BUDGET_CONTEXT_START] Starting initiative budget check...");
         boolean hasAvailableBudget = initiativeCountersService.hasAvailableBudget();
-        log.info("[FORCE_STOPPED] Initiative processing is force stopped: {}", forceStopped);
-        if (hasAvailableBudget && !processorClient.isRunning() && !forceStopped){
+
+        if (hasAvailableBudget && !processorClient.isRunning() && !forceStopped) {
             startConsumer();
             log.info("[BUDGET_CONTEXT_START] Consumer started");
         } else {
+            log.info("[FORCE_STOPPED] Initiative processing is force stopped: {}", forceStopped);
             log.info("[BUDGET_CONTEXT_START] Consumer running {}, initiative has budget {}", processorClient.isRunning(), hasAvailableBudget);
         }
     }

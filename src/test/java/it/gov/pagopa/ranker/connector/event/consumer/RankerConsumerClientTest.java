@@ -6,12 +6,13 @@ import com.azure.messaging.servicebus.ServiceBusReceivedMessageContext;
 import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
 import it.gov.pagopa.ranker.service.ranker.RankerService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 import static org.mockito.Mockito.*;
@@ -30,25 +31,33 @@ class RankerConsumerClientTest {
     @Mock
     private ServiceBusReceivedMessage message;
 
-    @InjectMocks
     private RankerConsumerClient rankerConsumerClient;
 
+    @BeforeEach
+    void setup() throws Exception {
+        rankerConsumerClient = new RankerConsumerClient(
+                rankerService,
+                initiativeCountersService,
+                "Endpoint=sb://fake-servicebus.servicebus.windows.net/;SharedAccessKeyName=FakeKeyName;SharedAccessKey=FakeKey123FakeKey123FakeKey123FakeKey123=;EntityPath=fake-queue",
+                "fake-queue",
+                false
+        );
+
+        setPrivateField(rankerConsumerClient, "connectionString", "Endpoint=sb://fake-servicebus.servicebus.windows.net/;SharedAccessKeyName=FakeKeyName;SharedAccessKey=FakeKey123FakeKey123FakeKey123FakeKey123=;EntityPath=fake-queue");
+        setPrivateField(rankerConsumerClient, "queueName", "fake-queue");
+        setPrivateField(rankerConsumerClient, "processorClient", processorClient);
+        setPrivateField(rankerConsumerClient, "forceStopped", false);
+    }
+
+    private void setPrivateField(Object target, String fieldName, Object value) throws Exception {
+        Field field = RankerConsumerClient.class.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        field.set(target, value);
+    }
+
     @Test
-    void testInit() throws Exception {
-        java.lang.reflect.Field connectionStringField = RankerConsumerClient.class
-                .getDeclaredField("connectionString");
-        connectionStringField.setAccessible(true);
-        connectionStringField.set(rankerConsumerClient, "Endpoint=sb://fake-servicebus.servicebus.windows.net/;SharedAccessKeyName=FakeKeyName;SharedAccessKey=FakeKey123FakeKey123FakeKey123FakeKey123=;EntityPath=fake-queue");
-
-        java.lang.reflect.Field queueNameField = RankerConsumerClient.class
-                .getDeclaredField("queueName");
-        queueNameField.setAccessible(true);
-        queueNameField.set(rankerConsumerClient, "fake-queue");
-
-        java.lang.reflect.Field processorClientField = RankerConsumerClient.class
-                .getDeclaredField("processorClient");
-        processorClientField.setAccessible(true);
-        processorClientField.set(rankerConsumerClient, processorClient);
+    void testInit() {
+        when(initiativeCountersService.hasAvailableBudget()).thenReturn(true);
 
         rankerConsumerClient.init();
 
@@ -87,12 +96,10 @@ class RankerConsumerClientTest {
         when(messageContext.getMessage()).thenReturn(message);
         doThrow(new BudgetExhaustedException("test error")).when(rankerService).execute(message);
 
-
         Method handleMessage = RankerConsumerClient.class
                 .getDeclaredMethod("handleMessage", ServiceBusReceivedMessageContext.class);
         handleMessage.setAccessible(true);
 
-        setClientStateModificable();
         when(processorClient.isRunning()).thenReturn(true);
         handleMessage.invoke(rankerConsumerClient, messageContext);
 
@@ -101,9 +108,7 @@ class RankerConsumerClientTest {
     }
 
     @Test
-    void testStopConsumer_whenRunning() throws NoSuchFieldException, IllegalAccessException {
-        setClientStateModificable();
-
+    void testStopConsumer_whenRunning() {
         when(processorClient.isRunning()).thenReturn(true);
 
         rankerConsumerClient.stopConsumer();
@@ -111,28 +116,17 @@ class RankerConsumerClientTest {
         verify(processorClient).close();
     }
 
-    private void setClientStateModificable() throws NoSuchFieldException, IllegalAccessException {
-        java.lang.reflect.Field processorClientField = RankerConsumerClient.class
-                .getDeclaredField("processorClient");
-        processorClientField.setAccessible(true);
-        processorClientField.set(rankerConsumerClient, processorClient);
-    }
-
     @Test
-    void testStopConsumer_whenNotRunning() throws NoSuchFieldException, IllegalAccessException {
-        setClientStateModificable();
-
+    void testStopConsumer_whenNotRunning() {
         when(processorClient.isRunning()).thenReturn(false);
 
-        rankerConsumerClient.startConsumer();
+        rankerConsumerClient.stopConsumer();
 
-        verify(processorClient, never()).start();
+        verify(processorClient, never()).close();
     }
 
     @Test
-    void testStartConsumer_whenHasBudgetAndNotRunning() throws NoSuchFieldException, IllegalAccessException {
-        setClientStateModificable();
-
+    void testStartConsumer_whenHasBudgetAndNotRunning() {
         when(processorClient.isRunning()).thenReturn(false);
         when(initiativeCountersService.hasAvailableBudget()).thenReturn(true);
 
@@ -142,9 +136,7 @@ class RankerConsumerClientTest {
     }
 
     @Test
-    void testStartConsumer_whenAlreadyRunning() throws NoSuchFieldException, IllegalAccessException {
-        setClientStateModificable();
-
+    void testStartConsumer_whenAlreadyRunning() {
         when(processorClient.isRunning()).thenReturn(true);
 
         rankerConsumerClient.startConsumer();
@@ -153,9 +145,7 @@ class RankerConsumerClientTest {
     }
 
     @Test
-    void testCheckResidualBudgetAndStartConsumer_whenHasBudgetAndNotRunning() throws NoSuchFieldException, IllegalAccessException {
-        setClientStateModificable();
-
+    void testCheckResidualBudgetAndStartConsumer_whenHasBudgetAndNotRunning() {
         when(processorClient.isRunning()).thenReturn(false);
         when(initiativeCountersService.hasAvailableBudget()).thenReturn(true);
 
@@ -165,13 +155,101 @@ class RankerConsumerClientTest {
     }
 
     @Test
-    void testCheckResidualBudgetAndStartConsumer_whenNoBudget() throws IllegalAccessException, NoSuchFieldException {
-        setClientStateModificable();
-
+    void testCheckResidualBudgetAndStartConsumer_whenNoBudget() {
         when(processorClient.isRunning()).thenReturn(false);
         when(initiativeCountersService.hasAvailableBudget()).thenReturn(false);
 
         rankerConsumerClient.checkResidualBudgetAndStartConsumer();
+
+        verify(processorClient, never()).start();
+    }
+
+    @Test
+    void testStartConsumer_whenProcessorClientIsNull() throws Exception {
+        RankerConsumerClient client = new RankerConsumerClient(
+                rankerService,
+                initiativeCountersService,
+                "fake-connection",
+                "fake-queue",
+                false
+        );
+
+        java.lang.reflect.Field processorClientField = RankerConsumerClient.class
+                .getDeclaredField("processorClient");
+        processorClientField.setAccessible(true);
+        processorClientField.set(client, null);
+
+        client.startConsumer();
+
+        verify(processorClient, never()).start();
+    }
+
+
+    @Test
+    void testCheckResidualBudgetAndStartConsumer_whenForceStopped() throws Exception {
+        RankerConsumerClient clientWithForceStopped = new RankerConsumerClient(
+                rankerService,
+                initiativeCountersService,
+                "fake-connection",
+                "fake-queue",
+                true
+        );
+
+        java.lang.reflect.Field processorClientField = RankerConsumerClient.class
+                .getDeclaredField("processorClient");
+        processorClientField.setAccessible(true);
+        processorClientField.set(clientWithForceStopped, processorClient);
+
+        when(processorClient.isRunning()).thenReturn(false);
+        when(initiativeCountersService.hasAvailableBudget()).thenReturn(true);
+
+        clientWithForceStopped.checkResidualBudgetAndStartConsumer();
+
+        verify(processorClient, never()).start();
+    }
+
+    @Test
+    void testCheckResidualBudgetAndStartConsumer_whenProcessorRunning() {
+        when(processorClient.isRunning()).thenReturn(true);
+        when(initiativeCountersService.hasAvailableBudget()).thenReturn(true);
+
+        rankerConsumerClient.checkResidualBudgetAndStartConsumer();
+
+        verify(processorClient, never()).start();
+    }
+
+    @Test
+    void testStopConsumer_processorClientExistsButNotRunning() throws Exception {
+        RankerConsumerClient client = new RankerConsumerClient(
+                rankerService,
+                initiativeCountersService,
+                "fake-connection",
+                "fake-queue",
+                false
+        );
+
+        Field processorField = RankerConsumerClient.class.getDeclaredField("processorClient");
+        processorField.setAccessible(true);
+        processorField.set(client, processorClient);
+
+        when(processorClient.isRunning()).thenReturn(false);
+
+        client.stopConsumer();
+
+        verify(processorClient, never()).close();
+    }
+
+    @Test
+    void testStartConsumer_processorClientNull_noStart() {
+        RankerConsumerClient client = new RankerConsumerClient(
+                rankerService,
+                initiativeCountersService,
+                "fake-connection",
+                "fake-queue",
+                false
+        );
+
+        client.startConsumer();
 
         verify(processorClient, never()).start();
     }

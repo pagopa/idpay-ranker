@@ -1,7 +1,6 @@
 package it.gov.pagopa.ranker.service.initative;
 
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
-import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
 import it.gov.pagopa.ranker.domain.model.InitiativeCountersPreallocations;
 import it.gov.pagopa.ranker.enums.PreallocationStatus;
 import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
@@ -63,7 +62,7 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
 
         } catch (DuplicateKeyException e){
             //CosmosDB throw DuplicateKey even if the residualInitiativeBudgetCents is less than the minimum required and is not really a duplicated id
-            log.error("[RANKER] Budget exhausted for the initiative {}", initiativeId);
+            log.error("[RANKER] Budget exhausted for the initiative {}", sanitizeString(initiativeId));
             throw new BudgetExhaustedException("[RANKER] Budget exhausted for the initiative: " + initiativeId, e);
         }
     }
@@ -102,5 +101,9 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
                 throw e;
             }
         }
+    }
+
+    public static String sanitizeString(String str){
+        return str == null? null: str.replaceAll("[\\r\\n]", "").replaceAll("[^\\w\\s-]", "");
     }
 }

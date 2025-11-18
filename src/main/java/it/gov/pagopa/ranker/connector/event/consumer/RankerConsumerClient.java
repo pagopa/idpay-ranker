@@ -28,7 +28,7 @@ public class RankerConsumerClient {
                           InitiativeCountersService initiativeCountersService,
                           @Value("${azure.servicebus.onboarding-request.connection-string}") String connectionString,
                           @Value("${azure.servicebus.onboarding-request.queue-name}") String queueName,
-                          @Value("${app.wallet.forceStopped:false}") boolean forceStopped) {
+                          @Value("${app.ranker.forceStopped:false}") boolean forceStopped) {
         this.rankerService = rankerService;
         this.initiativeCountersService = initiativeCountersService;
         this.connectionString = connectionString;

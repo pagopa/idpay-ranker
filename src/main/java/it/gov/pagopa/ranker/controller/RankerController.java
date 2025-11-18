@@ -4,6 +4,7 @@ import it.gov.pagopa.ranker.domain.dto.OnboardingDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+@RestController
 @RequestMapping("idpay-itn/ranker")
 public interface RankerController {
 

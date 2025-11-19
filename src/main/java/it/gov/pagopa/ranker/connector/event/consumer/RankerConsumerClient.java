@@ -52,6 +52,7 @@ public class RankerConsumerClient {
     }
 
     private void handleMessage(ServiceBusReceivedMessageContext context) {
+
         try {
             rankerService.execute(context.getMessage());
         } catch (BudgetExhaustedException e) {

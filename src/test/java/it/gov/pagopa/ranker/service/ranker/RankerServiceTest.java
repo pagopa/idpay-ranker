@@ -5,7 +5,9 @@ import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import it.gov.pagopa.ranker.connector.event.producer.RankerProducer;
 import it.gov.pagopa.ranker.domain.dto.OnboardingDTO;
+import it.gov.pagopa.ranker.domain.mapper.ConsentMapper;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
+import it.gov.pagopa.ranker.repository.OnboardingRepository;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,6 +34,12 @@ class RankerServiceTest {
     @Mock
     private InitiativeCountersService initiativeCountersService;
 
+    @Mock
+    private OnboardingRepository onboardingRepository;
+
+    @Mock
+    private ConsentMapper consentMapper;
+
 
     private ObjectMapper objectMapper;
 
@@ -44,6 +52,8 @@ class RankerServiceTest {
         rankerService = new RankerServiceImpl(
                 rankerProducer,
                 initiativeCountersService,
+                onboardingRepository,
+                consentMapper,
                 objectMapper,
                 initiatives
         );

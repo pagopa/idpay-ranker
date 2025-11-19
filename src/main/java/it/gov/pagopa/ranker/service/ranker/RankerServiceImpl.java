@@ -4,7 +4,12 @@ import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import it.gov.pagopa.ranker.connector.event.producer.RankerProducer;
+import it.gov.pagopa.ranker.constants.OnboardingConstant;
 import it.gov.pagopa.ranker.domain.dto.OnboardingDTO;
+import it.gov.pagopa.ranker.domain.mapper.ConsentMapper;
+import it.gov.pagopa.ranker.domain.model.InitiativeCountersPreallocations;
+import it.gov.pagopa.ranker.domain.model.Onboarding;
+import it.gov.pagopa.ranker.repository.OnboardingRepository;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static it.gov.pagopa.utils.CommonConstants.ZONEID;
 
@@ -21,15 +27,21 @@ public class RankerServiceImpl implements RankerService {
 
     private final RankerProducer rankerProducer;
     private final InitiativeCountersService initiativeCountersService;
+    private final OnboardingRepository onboardingRepository;
+    private final ConsentMapper consentMapper;
     private final ObjectReader objectReader;
     private final List<String> initiativesId;
 
     public RankerServiceImpl(RankerProducer rankerProducer,
                              InitiativeCountersService initiativeCountersService,
+                             OnboardingRepository onboardingRepository,
+                             ConsentMapper consentMapper,
                              ObjectMapper objectMapper,
                              @Value("${app.initiative.identified}") List<String> initiativesId) {
         this.rankerProducer = rankerProducer;
         this.initiativeCountersService = initiativeCountersService;
+        this.onboardingRepository = onboardingRepository;
+        this.consentMapper = consentMapper;
         this.objectReader = objectMapper.readerFor(OnboardingDTO.class);
         this.initiativesId = initiativesId;
     }
@@ -56,6 +68,33 @@ public class RankerServiceImpl implements RankerService {
 
         log.info("Preallocation added for user {} in initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
         this.rankerProducer.sendSaveConsent(dto);
+    }
+
+    @Override
+    public void recovery(OnboardingDTO inputDto) {
+        Optional<InitiativeCountersPreallocations> initiativeCountersPreallocations = this.initiativeCountersService.findById(inputDto.getInitiativeId(), inputDto.getUserId());
+        Optional<Onboarding> onboarding = this.onboardingRepository.findById(Onboarding.buildId(inputDto.getInitiativeId(), inputDto.getUserId()));
+        if (initiativeCountersPreallocations.isPresent() && onboarding.isPresent()
+            && OnboardingConstant.ON_EVALUATION.equals(onboarding.get().getStatus())) {
+
+            OnboardingDTO sendDto = consentMapper.map(onboarding.get());
+            sendDto.setServiceId(inputDto.getServiceId());
+            sendDto.setVerifyIsee(initiativeCountersPreallocations.get().getPreallocatedAmountCents() > 10000);
+
+            log.info("[RANKER_SERVICE] Preallocation exists for userId={} and initiativeId={}. Resending save consent.",
+                    sanitizeString(inputDto.getUserId()),
+                    sanitizeString(inputDto.getInitiativeId())
+            );
+            this.rankerProducer.sendSaveConsent(sendDto);
+        } else {
+            log.error("[RANKER_SERVICE] Data inconsistency detected for userId={} and initiativeId={}: preallocation exists: {}, onboarding exists: {}, status check: {}",
+                    sanitizeString(inputDto.getUserId()),
+                    sanitizeString(inputDto.getInitiativeId()),
+                    initiativeCountersPreallocations.isPresent(),
+                    onboarding.isPresent(),
+                    onboarding.isPresent() ? onboarding.get().getStatus() : "N/A"
+            );
+        }
     }
 
     @Override

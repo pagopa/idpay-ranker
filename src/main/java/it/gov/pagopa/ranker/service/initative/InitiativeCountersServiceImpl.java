@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -35,6 +36,10 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
 
     public boolean existsByInitiativeIdAndUserId(String initiativeId, String userId){
         return initiativeCountersPreallocationsRepository.existsById(userId+ID_SEPARATOR+initiativeId);
+    }
+
+    public Optional<InitiativeCountersPreallocations> findById(String initiativeId, String userId){
+        return initiativeCountersPreallocationsRepository.findById(userId+ID_SEPARATOR+initiativeId);
     }
 
     @Transactional

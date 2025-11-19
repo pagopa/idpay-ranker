@@ -11,4 +11,8 @@ public interface RankerController {
     @PostMapping("/preallocate")
     @ResponseStatus(code = HttpStatus.OK)
     public void preallocate(@RequestBody OnboardingDTO onboardingDTO);
+
+    @PostMapping("/recovery")
+    @ResponseStatus(code = HttpStatus.OK)
+    public void recovery(@RequestBody OnboardingDTO onboardingDTO);
 }

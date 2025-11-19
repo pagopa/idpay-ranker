@@ -17,4 +17,9 @@ public class RankerControllerImpl implements RankerController {
     public void preallocate(OnboardingDTO onboardingDTO) {
         rankerService.preallocate(onboardingDTO);
     }
+
+    @Override
+    public void recovery(OnboardingDTO onboardingDTO) {
+        rankerService.recovery(onboardingDTO);
+    }
 }

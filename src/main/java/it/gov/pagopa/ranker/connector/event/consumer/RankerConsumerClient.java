@@ -45,7 +45,9 @@ public class RankerConsumerClient {
                 .processMessage(this::handleMessage)
                 .processError(context -> log.error("[RANKER_CONTEXT] Error in processor: {}", context.getException().getMessage()))
                 .buildProcessorClient();
+
         log.info("[FORCE_STOPPED] Initiative processing is force stopped: {}", forceStopped);
+
         if(!forceStopped) checkResidualBudgetAndStartConsumer();
     }
 

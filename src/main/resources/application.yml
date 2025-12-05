@@ -68,6 +68,7 @@ spring:
               ackMode: MANUAL_IMMEDIATE
               ackTime: ${KAFKA_TRANSACTION_ACK_MILLIS:500}
               standardHeaders: ${KAFKA_TRANSACTION_STANDARD_HEADERS:${KAFKA_CONSUMER_CONFIG_STANDARD_HEADERS:both}}
+              concurrency: ${KAFKA_TRANSACTION_CONCURRENCY:3}
               configuration:
                 max.poll:
                   records: ${KAFKA_TRANSACTION_MAX_POLL_SIZE:${KAFKA_CONSUMER_CONFIG_MAX_POLL_SIZE:500}}

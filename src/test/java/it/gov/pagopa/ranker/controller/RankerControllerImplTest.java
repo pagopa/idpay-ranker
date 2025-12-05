@@ -27,7 +27,19 @@ class RankerControllerImplTest {
 
         controller.preallocate(dto);
 
-        verify(rankerService, times(1)).preallocate(dto);
+        verify(rankerService).preallocate(dto);
+        verifyNoMoreInteractions(rankerService);
+    }
+
+    @Test
+    void recovery_ok() {
+        OnboardingDTO dto = new OnboardingDTO();
+        dto.setInitiativeId("INIT123");
+        dto.setUserId("USER_ABC");
+
+        controller.recovery(dto);
+
+        verify(rankerService).recovery(dto);
         verifyNoMoreInteractions(rankerService);
     }
 }

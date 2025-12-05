@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import it.gov.pagopa.ranker.connector.event.producer.RankerProducer;
 import it.gov.pagopa.ranker.domain.dto.OnboardingDTO;
 import it.gov.pagopa.ranker.domain.mapper.ConsentMapper;
+import it.gov.pagopa.ranker.domain.model.InitiativeCountersPreallocations;
+import it.gov.pagopa.ranker.domain.model.Onboarding;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
 import it.gov.pagopa.ranker.repository.OnboardingRepository;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
@@ -18,7 +20,9 @@ import org.springframework.dao.DuplicateKeyException;
 
 import java.time.*;
 import java.util.List;
+import java.util.Optional;
 
+import static it.gov.pagopa.ranker.constants.OnboardingConstant.ON_EVALUATION;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -184,5 +188,132 @@ class RankerServiceTest {
 
         // Then
         verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), anyBoolean(), any(), any());
+    }
+
+    @Test
+    void testRecovery_whenDataValid_shouldResendConsent() {
+        // Given
+        OnboardingDTO input = new OnboardingDTO();
+        input.setInitiativeId("INITIATIVE_ID");
+        input.setUserId("USER123");
+        input.setServiceId("SRV001");
+
+        InitiativeCountersPreallocations pre = new InitiativeCountersPreallocations();
+        pre.setPreallocatedAmountCents(15000L);
+
+        Onboarding onboarding = new Onboarding("INITIATIVE_ID", "USER123");
+        onboarding.setStatus(ON_EVALUATION);
+
+        when(initiativeCountersService.findById("INITIATIVE_ID","USER123"))
+                .thenReturn(Optional.of(pre));
+        when(onboardingRepository.findById("USER123_INITIATIVE_ID"))
+                .thenReturn(Optional.of(onboarding));
+
+        OnboardingDTO mapped = new OnboardingDTO();
+        when(consentMapper.map(onboarding)).thenReturn(mapped);
+
+        // When
+        rankerService.recovery(input);
+
+        // Then
+        assertTrue(mapped.getVerifyIsee());
+        assertEquals("SRV001", mapped.getServiceId());
+
+        verify(rankerProducer).sendSaveConsent(mapped);
+    }
+
+    @Test
+    void testRecovery_whenInvalidData_shouldLogError() {
+        OnboardingDTO input = new OnboardingDTO();
+        input.setInitiativeId("INITIATIVE_ID");
+        input.setUserId("USR999");
+
+        when(initiativeCountersService.findById("INITIATIVE_ID","USR999"))
+                .thenReturn(Optional.empty());
+        when(onboardingRepository.findById(any())).thenReturn(Optional.empty());
+
+        rankerService.recovery(input);
+
+        verify(rankerProducer, never()).sendSaveConsent(any());
+    }
+
+    @Test
+    void testRecovery_whenStatusNotOnEvaluation_shouldGoToErrorBranch() {
+        // Given
+        OnboardingDTO input = new OnboardingDTO();
+        input.setInitiativeId("INITIATIVE_ID");
+        input.setUserId("USER123");
+
+        InitiativeCountersPreallocations pre = new InitiativeCountersPreallocations();
+        pre.setPreallocatedAmountCents(5000L);
+
+        Onboarding onboarding = new Onboarding("INITIATIVE_ID", "USER123");
+        onboarding.setStatus("OTHER_STATUS");
+
+        when(initiativeCountersService.findById("INITIATIVE_ID", "USER123"))
+                .thenReturn(Optional.of(pre));
+        when(onboardingRepository.findById("USER123_INITIATIVE_ID"))
+                .thenReturn(Optional.of(onboarding));
+
+        // When
+        rankerService.recovery(input);
+
+        // Then
+        verify(rankerProducer, never()).sendSaveConsent(any());
+    }
+
+    @Test
+    void testRecovery_verifyIseeFalse_whenAmountLow() {
+        // Given
+        OnboardingDTO input = new OnboardingDTO();
+        input.setInitiativeId("INITIATIVE_ID");
+        input.setUserId("USER123");
+
+        InitiativeCountersPreallocations pre = new InitiativeCountersPreallocations();
+        pre.setPreallocatedAmountCents(8000L);
+
+        Onboarding onboarding = new Onboarding("INITIATIVE_ID", "USER123");
+        onboarding.setStatus(ON_EVALUATION);
+
+        when(initiativeCountersService.findById("INITIATIVE_ID","USER123"))
+                .thenReturn(Optional.of(pre));
+        when(onboardingRepository.findById("USER123_INITIATIVE_ID"))
+                .thenReturn(Optional.of(onboarding));
+
+        OnboardingDTO mapped = new OnboardingDTO();
+        when(consentMapper.map(onboarding)).thenReturn(mapped);
+
+        // When
+        rankerService.recovery(input);
+
+        // Then
+        assertFalse(mapped.getVerifyIsee());
+        verify(rankerProducer).sendSaveConsent(mapped);
+    }
+
+    @Test
+    void testRecovery_whenOnboardingMissing_shouldUseNAStatusInError() {
+        OnboardingDTO input = new OnboardingDTO();
+        input.setInitiativeId("INITIATIVE_ID");
+        input.setUserId("USR999");
+
+        InitiativeCountersPreallocations pre = new InitiativeCountersPreallocations();
+        pre.setPreallocatedAmountCents(5000L);
+
+        when(initiativeCountersService.findById("INITIATIVE_ID","USR999"))
+                .thenReturn(Optional.of(pre));
+        when(onboardingRepository.findById(any()))
+                .thenReturn(Optional.empty());
+
+        rankerService.recovery(input);
+
+        verify(rankerProducer, never()).sendSaveConsent(any());
+    }
+
+    @Test
+    void testSanitizeString() {
+        assertNull(RankerServiceImpl.sanitizeString(null));
+        assertEquals("abc", RankerServiceImpl.sanitizeString("a\nb\rc"));
+        assertEquals("helloWorld", RankerServiceImpl.sanitizeString("hello@World!!!"));
     }
 }

@@ -75,7 +75,9 @@ public class RankerServiceImpl implements RankerService {
         Optional<InitiativeCountersPreallocations> initiativeCountersPreallocations = this.initiativeCountersService.findById(inputDto.getInitiativeId(), inputDto.getUserId());
         Optional<Onboarding> onboarding = this.onboardingRepository.findById(Onboarding.buildId(inputDto.getInitiativeId(), inputDto.getUserId()));
         if (initiativeCountersPreallocations.isPresent() && onboarding.isPresent()
-            && OnboardingConstant.ON_EVALUATION.equals(onboarding.get().getStatus())) {
+            && (OnboardingConstant.ON_EVALUATION.equals(onboarding.get().getStatus())
+                    || OnboardingConstant.UNSUBSCRIBED.equals(onboarding.get().getStatus()))
+        ) {
 
             OnboardingDTO sendDto = consentMapper.map(onboarding.get());
             sendDto.setServiceId(inputDto.getServiceId());

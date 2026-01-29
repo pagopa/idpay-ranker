@@ -45,9 +45,10 @@ public class ExpiredTransactionInProgressProcessorStrategy implements Transactio
             return;
         }
 
-        initiativeCountersService.updateInitiativeCounters(transactionInProgress, preallocationId, transactionInProgressId);
 
         try {
+            initiativeCountersService.updateInitiativeCounters(transactionInProgress, preallocationId, transactionInProgressId);
+
             transactionInProgressRepository.deleteById(transactionInProgressId);
         } catch (Exception e) {
             log.error("[ExpiredTransactionInProgressProcessor] Error attempting to " +

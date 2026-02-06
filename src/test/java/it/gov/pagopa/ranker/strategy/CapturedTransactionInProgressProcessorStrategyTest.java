@@ -2,6 +2,7 @@ package it.gov.pagopa.ranker.strategy;
 
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
 import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
+import it.gov.pagopa.ranker.enums.PreallocationStatus;
 import it.gov.pagopa.ranker.enums.SyncTrxStatus;
 import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
@@ -15,7 +16,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static it.gov.pagopa.ranker.strategy.CapturedTransactionInProgressProcessorStrategy.PREALLOCATED;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,7 +61,7 @@ class CapturedTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setRewardCents(500L);
         transactionInProgressDTO.setUserId("USER_1");
         String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
-        when(initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatusToCaptured(preallocationId,PREALLOCATED))
+        when(initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatusToCaptured(preallocationId, PreallocationStatus.PREALLOCATED))
                 .thenReturn(true);
         when(initiativeCountersRepositoryMock.updateCounterForCaptured("INIT_1",500L,1000L))
                 .thenReturn(new InitiativeCounters());
@@ -71,7 +71,7 @@ class CapturedTransactionInProgressProcessorStrategyTest {
         Assertions.assertDoesNotThrow(() -> capturedTransactionInProgressProcessorStrategy
                 .processTransaction(transactionInProgressDTO));
 
-        verify(initiativeCountersPreallocationsRepository).findByIdAndStatusThenUpdateStatusToCaptured(preallocationId,PREALLOCATED);
+        verify(initiativeCountersPreallocationsRepository).findByIdAndStatusThenUpdateStatusToCaptured(preallocationId,PreallocationStatus.PREALLOCATED);
         verify(initiativeCountersRepositoryMock).updateCounterForCaptured("INIT_1",500L,1000L);
 
     }
@@ -102,12 +102,12 @@ class CapturedTransactionInProgressProcessorStrategyTest {
         String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
         when(transactionInProgressRepositoryMock.existsByIdAndStatus("ID_1",SyncTrxStatus.CAPTURED))
                 .thenReturn(true);
-        when(initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatusToCaptured(preallocationId,PREALLOCATED))
+        when(initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatusToCaptured(preallocationId,PreallocationStatus.PREALLOCATED))
                 .thenReturn(false);
         Assertions.assertDoesNotThrow(() -> capturedTransactionInProgressProcessorStrategy
                 .processTransaction(transactionInProgressDTO));
         verify(transactionInProgressRepositoryMock).existsByIdAndStatus(any(),any());
-        verify(initiativeCountersPreallocationsRepository).findByIdAndStatusThenUpdateStatusToCaptured(preallocationId,PREALLOCATED);
+        verify(initiativeCountersPreallocationsRepository).findByIdAndStatusThenUpdateStatusToCaptured(preallocationId,PreallocationStatus.PREALLOCATED);
         verifyNoInteractions(initiativeCountersRepositoryMock);
     }
 
@@ -121,7 +121,7 @@ class CapturedTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setRewardCents(500L);
         transactionInProgressDTO.setUserId("USER_1");
         String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
-        when(initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatusToCaptured(preallocationId,PREALLOCATED))
+        when(initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatusToCaptured(preallocationId,PreallocationStatus.PREALLOCATED))
                 .thenReturn(true);
         when(transactionInProgressRepositoryMock.existsByIdAndStatus("ID_1",SyncTrxStatus.CAPTURED))
                 .thenReturn(true);

@@ -1,6 +1,7 @@
 package it.gov.pagopa.ranker.strategy;
 
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
+import it.gov.pagopa.ranker.enums.PreallocationStatus;
 import it.gov.pagopa.ranker.enums.SyncTrxStatus;
 import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
@@ -13,8 +14,6 @@ import static it.gov.pagopa.utils.InitiativeCountersUtils.computePreallocationId
 @Slf4j
 @Service
 public class CapturedTransactionInProgressProcessorStrategy implements TransactionInProgressProcessorStrategy {
-
-    public static final String PREALLOCATED = "PREALLOCATED";
     private final InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository;
     private final InitiativeCountersRepository initiativeCountersRepository;
     private final TransactionInProgressRepository transactionInProgressRepository;
@@ -45,7 +44,7 @@ public class CapturedTransactionInProgressProcessorStrategy implements Transacti
         }
 
         if (!initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatusToCaptured(
-                computePreallocationId(transactionInProgress), PREALLOCATED)) {
+                computePreallocationId(transactionInProgress), PreallocationStatus.PREALLOCATED)) {
             log.warn("[CapturedTransactionInProgressProcessor] received event for a transaction having initiative {}" +
                     " and user {} that does not exist in the initiative preallocation or already processed, will not update counter",
                     transactionInProgress.getInitiativeId(), transactionInProgress.getUserId());

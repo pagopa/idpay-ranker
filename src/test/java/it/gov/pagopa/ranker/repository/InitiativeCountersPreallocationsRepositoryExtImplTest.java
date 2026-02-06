@@ -1,6 +1,7 @@
 package it.gov.pagopa.ranker.repository;
 
 import it.gov.pagopa.ranker.domain.model.InitiativeCountersPreallocations;
+import it.gov.pagopa.ranker.enums.PreallocationStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,7 +45,7 @@ class InitiativeCountersPreallocationsRepositoryExtImplTest  {
 
         boolean result = repository.findByIdAndStatusThenUpdateStatusToCaptured(
                 "initiative1",
-                "PREALLOCATED"
+                PreallocationStatus.PREALLOCATED
         );
 
         assertTrue(result);

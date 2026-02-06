@@ -24,7 +24,7 @@ public class InitiativeCountersPreallocationsRepositoryExtImpl implements Initia
                         Criteria.where(InitiativeCountersPreallocations.Fields.id).is(id)
                                 .and(InitiativeCountersPreallocations.Fields.status).is(status)),
                 new Update()
-                        .set(status, CAPTURED),
+                        .set(InitiativeCountersPreallocations.Fields.status, CAPTURED),
                 FindAndModifyOptions.options().returnNew(true),
                 InitiativeCountersPreallocations.class);
         return initiativeCountersPreallocations != null;

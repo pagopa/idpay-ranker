@@ -90,21 +90,10 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
                             " and user {} that does not exist in the initiative preallocation, will not update counter",
                     transactionInProgress.getInitiativeId(), transactionInProgress.getUserId());
         } else {
-            try {
                 initiativeCountersPreallocationsRepository.deleteById(preallocationId);
                 initiativeCountersRepository.decrementOnboardedAndBudget(
                         transactionInProgress.getInitiativeId(),
                         transactionInProgress.getVoucherAmountCents());
-            } catch (Exception e) {
-                log.error("[ExpiredTransactionInProgressProcessor] Error attempting to " +
-                                "decrement initiativeCounters given id {} initiativeId {} and userId {}",
-                        transactionInProgressId,
-                        transactionInProgress.getInitiativeId(),
-                        transactionInProgress.getUserId(),
-                        e
-                );
-                throw e;
-            }
         }
     }
 

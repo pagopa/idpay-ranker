@@ -10,7 +10,7 @@ import lombok.Value;
 import org.bson.BsonString;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.mongo.MongoProperties;
+import org.springframework.boot.mongodb.autoconfigure.MongoProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -43,14 +43,64 @@ public class MongoTestUtilitiesService {
     }
 
     //region retrieve mongo operations
-    @Value
-    @EqualsAndHashCode(of = "command", callSuper = false)
     public static class MongoCommand {
-        String type;
-        String collection;
-        LocalTime firstOccurrence;
-        String command;
-        String sample;
+        private final String type;
+        private final String collection;
+        private final LocalTime firstOccurrence;
+        private final String command;
+        private final String sample;
+
+        public MongoCommand(String type, String collection, LocalTime firstOccurrence, String command, String sample) {
+            this.type = type;
+            this.collection = collection;
+            this.firstOccurrence = firstOccurrence;
+            this.command = command;
+            this.sample = sample;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public String getCollection() {
+            return collection;
+        }
+
+        public LocalTime getFirstOccurrence() {
+            return firstOccurrence;
+        }
+
+        public String getCommand() {
+            return command;
+        }
+
+        public String getSample() {
+            return sample;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            MongoCommand that = (MongoCommand) o;
+            return command != null ? command.equals(that.command) : that.command == null;
+        }
+
+        @Override
+        public int hashCode() {
+            return command != null ? command.hashCode() : 0;
+        }
+
+        @Override
+        public String toString() {
+            return "MongoCommand{" +
+                    "type='" + type + '\'' +
+                    ", collection='" + collection + '\'' +
+                    ", firstOccurrence=" + firstOccurrence +
+                    ", command='" + command + '\'' +
+                    ", sample='" + sample + '\'' +
+                    '}';
+        }
     }
 
     protected static Queue<MongoCommand> mongoCommands;

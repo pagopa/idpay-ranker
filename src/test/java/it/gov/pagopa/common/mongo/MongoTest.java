@@ -6,7 +6,7 @@ import it.gov.pagopa.common.mongo.config.MongoConfig;
 import it.gov.pagopa.common.mongo.singleinstance.AutoConfigureSingleInstanceMongodb;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.mongo.MongoClientSettingsBuilderCustomizer;
+import org.springframework.boot.mongodb.autoconfigure.MongoClientSettingsBuilderCustomizer;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;

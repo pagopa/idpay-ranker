@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.boot.actuate.health.Health;
+import org.springframework.boot.health.contributor.Health;
 import org.springframework.data.mongodb.core.MongoTemplate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,11 +40,8 @@ class CustomMongoHealthIndicatorTest {
         mockResult.put("maxWireVersion", 10);
         when(mongoTemplate.executeCommand("{ isMaster: 1 }")).thenReturn(mockResult);
 
-        Health.Builder builder = new Health.Builder();
-
         // Act
-        healthIndicator.doHealthCheck(builder);
-        Health health = builder.build();
+        Health health = healthIndicator.health();
 
         // Assert
         assertEquals("UP", health.getStatus().getCode());
@@ -57,12 +54,14 @@ class CustomMongoHealthIndicatorTest {
         RuntimeException exception = new RuntimeException("Mongo error");
         when(mongoTemplate.executeCommand("{ isMaster: 1 }")).thenThrow(exception);
 
-        Health.Builder builder = new Health.Builder();
+        // Act
+        Health health = healthIndicator.health();
 
-        // Act & Assert
-        RuntimeException thrown = assertThrows(RuntimeException.class,
-                () -> healthIndicator.doHealthCheck(builder));
-        assertEquals("Mongo error", thrown.getMessage());
+        // Assert: indicator reports DOWN and includes error message
+        assertEquals("DOWN", health.getStatus().getCode());
+        Object errorDetail = health.getDetails().get("error");
+        String errorString = java.util.Objects.toString(errorDetail, "");
+        org.junit.jupiter.api.Assertions.assertTrue(errorString.contains("Mongo error"));
     }
 
 }

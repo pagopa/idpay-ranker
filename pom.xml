@@ -61,11 +61,6 @@
             <artifactId>spring-boot-jackson2</artifactId>
         </dependency>
 
-        <!-- Classic starter: temporary compatibility layer to ease migration to Spring Boot 4 -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-classic</artifactId>
-        </dependency>
         <!-- Binders -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>

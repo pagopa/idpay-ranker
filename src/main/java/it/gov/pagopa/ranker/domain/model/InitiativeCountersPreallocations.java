@@ -30,5 +30,6 @@ public class InitiativeCountersPreallocations {
     private Long sequenceNumber;
     private LocalDateTime enqueuedTime;
     private Long preallocatedAmountCents;
+    private LocalDateTime updateDate;
 
 }

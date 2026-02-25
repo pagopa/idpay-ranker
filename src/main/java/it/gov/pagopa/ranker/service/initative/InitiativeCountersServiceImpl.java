@@ -60,6 +60,7 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
                             .sequenceNumber(sequenceNumber)
                             .enqueuedTime(enqueuedTime)
                             .createdAt(LocalDateTime.now())
+                            .updateDate(LocalDateTime.now())
                             .status(PreallocationStatus.PREALLOCATED)
                             .preallocatedAmountCents(reservationCents)
                             .build()

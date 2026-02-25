@@ -56,12 +56,19 @@ class RankerConsumerClientTest {
     }
 
     @Test
-    void testInit() {
-        when(initiativeCountersService.hasAvailableBudget()).thenReturn(true);
+    void testInit_doesNotStartConsumer() {
+      rankerConsumerClient.init();
+      verify(processorClient, never()).start();
+    }
 
-        rankerConsumerClient.init();
+    @Test
+    void testStartConsumer_whenNoBudget_doesNotStart() {
+      when(processorClient.isRunning()).thenReturn(false);
+      when(initiativeCountersService.hasAvailableBudget()).thenReturn(false);
 
-        verify(processorClient, atMost(1)).start();
+      rankerConsumerClient.startConsumer();
+
+      verify(processorClient, never()).start();
     }
 
     @Test

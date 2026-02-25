@@ -47,8 +47,6 @@ public class RankerConsumerClient {
                 .buildProcessorClient();
 
         log.info("[FORCE_STOPPED] Initiative processing is force stopped: {}", forceStopped);
-
-        if(!forceStopped) checkResidualBudgetAndStartConsumer();
     }
 
     private void handleMessage(ServiceBusReceivedMessageContext context) {
@@ -80,6 +78,11 @@ public class RankerConsumerClient {
 
     @Scheduled(cron = "${app.initiative.schedule-check-budget}")
     public void checkResidualBudgetAndStartConsumer() {
+        if (processorClient == null) {
+          log.info("[BUDGET_CONTEXT_START] processorClient not initialized yet");
+          return;
+        }
+
         log.info("[BUDGET_CONTEXT_START] Starting initiative budget check...");
         boolean hasAvailableBudget = initiativeCountersService.hasAvailableBudget();
 

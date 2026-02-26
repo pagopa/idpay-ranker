@@ -5,13 +5,14 @@ import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.SmartLifecycle;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
-public class RankerConsumerController {
+public class RankerConsumerController implements SmartLifecycle {
 
   private final InitiativeCountersService initiativeCountersService;
   private final ServiceBusProcessorClientFactory factory;
@@ -38,7 +39,8 @@ public class RankerConsumerController {
     log.info("[FORCE_STOPPED] Initiative processing is force stopped: {}", forceStopped);
   }
 
-  public boolean isConsumerRunning() {
+  @Override
+  public boolean isRunning() {
     return processorClient != null && processorClient.isRunning();
   }
 
@@ -63,26 +65,36 @@ public class RankerConsumerController {
     }
   }
 
-  /** Stop “operativo” (budget exhausted). */
-  public void stopForBudgetExhausted() {
-    stopInternal("budget exhausted", false);
-  }
-
   /** Stop su shutdown applicazione. */
-  public void stopOnShutdown() {
-    stopInternal("shutdown", true);
+  public void close() {
+    if (processorClient != null && processorClient.isRunning()) {
+        processorClient.close();
+        log.info("[RANKER_CONTEXT] Consumer closed shutdown");
+      }
   }
 
-  private void stopInternal(String reason, boolean close) {
+  @Override
+  public void start() {
+    checkResidualBudgetAndStartConsumer();
+  }
+
+  /** Stop “operativo” (budget exhausted). */
+  @Override
+  public void stop() {
     if (processorClient != null && processorClient.isRunning()) {
-      if (close) {
-        processorClient.close();
-        log.info("[RANKER_CONTEXT] Consumer closed ({})", reason);
-      } else {
-        processorClient.stop();
-        log.info("[RANKER_CONTEXT] Consumer stopped ({})", reason);
-      }
+      processorClient.stop();
+      log.info("[RANKER_CONTEXT] Consumer stopped budget exhausted");
     }
+  }
+
+  @Override
+  public int getPhase() {
+    return Integer.MAX_VALUE;
+  }
+
+  @Override
+  public boolean isAutoStartup() {
+    return true;
   }
 
   @Scheduled(cron = "${app.initiative.schedule-check-budget}")
@@ -93,6 +105,6 @@ public class RankerConsumerController {
   @SuppressWarnings("unused") // invoked by Spring via @EventListener
   @EventListener(BudgetExhaustedEvent.class)
   public void onBudgetExhausted() {
-    stopForBudgetExhausted();
+    stop();
   }
 }

@@ -79,7 +79,7 @@ public class RankerConsumerController implements SmartLifecycle {
   @Override
   public void stop() {
     shuttingDown.set(true);
-    if (processorClient != null && processorClient.isRunning()) {
+    if (processorClient != null) {
       processorClient.close();
       log.info("[RANKER_CONTEXT] Consumer closed shutdown");
     }

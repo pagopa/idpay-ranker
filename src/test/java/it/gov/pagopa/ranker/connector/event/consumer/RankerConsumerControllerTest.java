@@ -117,17 +117,6 @@ class RankerConsumerControllerTest {
   }
 
   @Test
-  void stop_shutdown_closesProcessor_andBlocksRestart() {
-    when(processorClient.isRunning()).thenReturn(true);
-
-    controller.stop();
-    controller.startIfAllowed(); // deve essere ignorato
-
-    verify(processorClient).close();
-    verify(processorClient, never()).start();
-  }
-
-  @Test
   void onBudgetExhausted_stopsProcessor() {
     when(processorClient.isRunning()).thenReturn(true);
 

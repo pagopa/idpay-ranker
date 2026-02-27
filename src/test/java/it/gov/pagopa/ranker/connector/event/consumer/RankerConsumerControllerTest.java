@@ -37,14 +37,14 @@ class RankerConsumerControllerTest {
   }
 
   @Test
-  @SuppressWarnings("java:S2095") // false positive: ServiceBusProcessorClient is a Mockito mock
+  @SuppressWarnings("java:S2095")
   void init_createsProcessorClient() {
-    verify(factory, times(1)).create(handler);
+    verify(factory).create(handler);
   }
 
   @Test
   void isRunning_false_whenProcessorNull() throws Exception {
-    setProcessorClient(controller, null);
+    setProcessorClient(controller);
     assertFalse(controller.isRunning());
   }
 
@@ -56,11 +56,10 @@ class RankerConsumerControllerTest {
 
   @Test
   void startIfAllowed_skipped_whenProcessorNull() throws Exception {
-    setProcessorClient(controller, null);
+    setProcessorClient(controller);
 
     controller.startIfAllowed();
 
-    // processorClient è null nel controller: non deve chiamare start sul mock
     verify(processorClient, never()).start();
   }
 
@@ -76,7 +75,6 @@ class RankerConsumerControllerTest {
 
     verify(processorClient, never()).start();
     verify(initiativeCountersService, never()).hasAvailableBudget();
-    verify(processorClient, never()).isRunning();
   }
 
   @Test
@@ -86,8 +84,6 @@ class RankerConsumerControllerTest {
     controller.startIfAllowed();
 
     verify(processorClient, never()).start();
-    // budget=false -> ritorna prima di controllare isRunning()
-    verify(processorClient, never()).isRunning();
   }
 
   @Test
@@ -97,7 +93,7 @@ class RankerConsumerControllerTest {
 
     controller.startIfAllowed();
 
-    verify(processorClient, times(1)).start();
+    verify(processorClient).start();
   }
 
   @Test
@@ -111,58 +107,40 @@ class RankerConsumerControllerTest {
   }
 
   @Test
-  void start_lifecycle_triggersBudgetCheck() {
+  void lifecycle_start_triggersStartIfAllowed() {
     when(initiativeCountersService.hasAvailableBudget()).thenReturn(true);
     when(processorClient.isRunning()).thenReturn(false);
 
     controller.start();
 
-    verify(processorClient, times(1)).start();
+    verify(processorClient).start();
   }
 
   @Test
-  void stop_budgetExhausted_callsProcessorStop_whenRunning() {
+  void stop_shutdown_closesProcessor_andBlocksRestart() {
     when(processorClient.isRunning()).thenReturn(true);
 
     controller.stop();
+    controller.startIfAllowed(); // deve essere ignorato
 
-    verify(processorClient, times(1)).stop();
-    verify(processorClient, never()).close();
+    verify(processorClient).close();
+    verify(processorClient, never()).start();
   }
 
   @Test
-  void close_shutdown_callsProcessorClose_whenRunning() {
-    when(processorClient.isRunning()).thenReturn(true);
-
-    controller.close();
-
-    verify(processorClient, times(1)).close();
-    verify(processorClient, never()).stop();
-  }
-
-  @Test
-  void onBudgetExhausted_delegatesToStop() {
+  void onBudgetExhausted_stopsProcessor() {
     when(processorClient.isRunning()).thenReturn(true);
 
     controller.onBudgetExhausted();
 
-    verify(processorClient, times(1)).stop();
+    verify(processorClient).stop();
     verify(processorClient, never()).close();
   }
 
-  @Test
-  void checkResidualBudgetAndStartConsumer_delegatesToStartIfAllowed() {
-    when(initiativeCountersService.hasAvailableBudget()).thenReturn(true);
-    when(processorClient.isRunning()).thenReturn(false);
-
-    controller.checkResidualBudgetAndStartConsumer();
-
-    verify(processorClient, times(1)).start();
-  }
-
-  private static void setProcessorClient(RankerConsumerController target, ServiceBusProcessorClient value) throws Exception {
+  private static void setProcessorClient(RankerConsumerController target)
+      throws Exception {
     Field field = RankerConsumerController.class.getDeclaredField("processorClient");
     field.setAccessible(true);
-    field.set(target, value);
+    field.set(target, null);
   }
 }

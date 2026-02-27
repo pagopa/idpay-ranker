@@ -3,6 +3,7 @@ package it.gov.pagopa.ranker.connector.event.consumer;
 import com.azure.messaging.servicebus.ServiceBusProcessorClient;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
 import jakarta.annotation.PostConstruct;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.SmartLifecycle;
@@ -18,6 +19,7 @@ public class RankerConsumerController implements SmartLifecycle {
   private final ServiceBusProcessorClientFactory factory;
   private final RankerMessageHandler handler;
   private final boolean forceStopped;
+  private final AtomicBoolean shuttingDown = new AtomicBoolean(false);
 
   private ServiceBusProcessorClient processorClient;
 
@@ -45,7 +47,11 @@ public class RankerConsumerController implements SmartLifecycle {
   }
 
   /** Start “operativo”: parte solo se forceStopped=false e budget=true */
+  @Scheduled(cron = "${app.initiative.schedule-check-budget}")
   public void startIfAllowed() {
+    if (shuttingDown.get()) {
+      return;
+    }
     if (processorClient == null) {
       log.info("[RANKER_CONTEXT] startIfAllowed skipped (processorClient null)");
       return;
@@ -54,8 +60,7 @@ public class RankerConsumerController implements SmartLifecycle {
       log.info("[FORCE_STOPPED] Consumer start skipped (forceStopped=true)");
       return;
     }
-    boolean hasBudget = initiativeCountersService.hasAvailableBudget();
-    if (!hasBudget) {
+    if (!initiativeCountersService.hasAvailableBudget()) {
       log.info("[BUDGET_CONTEXT_START] Consumer start skipped (budget=false)");
       return;
     }
@@ -65,25 +70,18 @@ public class RankerConsumerController implements SmartLifecycle {
     }
   }
 
-  /** Stop su shutdown applicazione. */
-  public void close() {
-    if (processorClient != null && processorClient.isRunning()) {
-        processorClient.close();
-        log.info("[RANKER_CONTEXT] Consumer closed shutdown");
-      }
-  }
-
   @Override
   public void start() {
-    checkResidualBudgetAndStartConsumer();
+    startIfAllowed();
   }
 
-  /** Stop “operativo” (budget exhausted). */
+  /** Stop su shutdown applicazione. */
   @Override
   public void stop() {
+    shuttingDown.set(true);
     if (processorClient != null && processorClient.isRunning()) {
-      processorClient.stop();
-      log.info("[RANKER_CONTEXT] Consumer stopped budget exhausted");
+      processorClient.close();
+      log.info("[RANKER_CONTEXT] Consumer closed shutdown");
     }
   }
 
@@ -97,14 +95,13 @@ public class RankerConsumerController implements SmartLifecycle {
     return true;
   }
 
-  @Scheduled(cron = "${app.initiative.schedule-check-budget}")
-  public void checkResidualBudgetAndStartConsumer() {
-    startIfAllowed();
-  }
-
+  /** Stop “operativo” (budget exhausted). */
   @SuppressWarnings("unused") // invoked by Spring via @EventListener
   @EventListener(BudgetExhaustedEvent.class)
   public void onBudgetExhausted() {
-    stop();
+    if (processorClient != null && processorClient.isRunning()) {
+      processorClient.stop();
+      log.info("[RANKER_CONTEXT] Consumer stopped budget exhausted");
+    }
   }
 }

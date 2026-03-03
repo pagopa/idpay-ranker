@@ -8,6 +8,8 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
+import java.time.LocalDateTime;
+
 
 public class InitiativeCountersPreallocationsRepositoryExtImpl implements InitiativeCountersPreallocationsRepositoryExt {
 
@@ -24,7 +26,8 @@ public class InitiativeCountersPreallocationsRepositoryExtImpl implements Initia
                         Criteria.where(InitiativeCountersPreallocations.Fields.id).is(id)
                                 .and(InitiativeCountersPreallocations.Fields.status).is(status)),
                 new Update()
-                        .set(InitiativeCountersPreallocations.Fields.status, PreallocationStatus.CAPTURED),
+                        .set(InitiativeCountersPreallocations.Fields.status, PreallocationStatus.CAPTURED)
+                        .set(InitiativeCountersPreallocations.Fields.updateDate, LocalDateTime.now()),
                 FindAndModifyOptions.options().returnNew(true),
                 InitiativeCountersPreallocations.class);
         return initiativeCountersPreallocations != null;

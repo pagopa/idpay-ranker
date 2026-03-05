@@ -8,6 +8,8 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+
 @Repository
 public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCountersAtomicRepository {
 
@@ -16,6 +18,7 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
     private static final String FIELD_SPENT_BUDGET_CENTS = InitiativeCounters.Fields.spentInitiativeBudgetCents;
     private static final String FIELD_RESERVED_BUDGET_CENTS = InitiativeCounters.Fields.reservedInitiativeBudgetCents;
     private static final String FIELD_RESIDUAL_BUDGET_CENTS = InitiativeCounters.Fields.residualInitiativeBudgetCents;
+    private static final String FIELD_UPDATE_DATE = InitiativeCounters.Fields.updateDate;
 
     private final MongoTemplate mongoTemplate;
 
@@ -34,7 +37,8 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
         Update update = new Update()
                 .inc(FIELD_ONBOARDED, 1L)
                 .inc(FIELD_RESERVED_BUDGET_CENTS, reservationCents)
-                .inc(FIELD_RESIDUAL_BUDGET_CENTS, -reservationCents);
+                .inc(FIELD_RESIDUAL_BUDGET_CENTS, -reservationCents)
+                .set(FIELD_UPDATE_DATE, LocalDateTime.now());
 
         return mongoTemplate.findAndModify(
                 query,
@@ -53,7 +57,8 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
         Update update = new Update()
                 .inc(FIELD_ONBOARDED, -1L)
                 .inc(FIELD_RESERVED_BUDGET_CENTS, -reservationCents)
-                .inc(FIELD_RESIDUAL_BUDGET_CENTS, +reservationCents);
+                .inc(FIELD_RESIDUAL_BUDGET_CENTS, +reservationCents)
+                .set(FIELD_UPDATE_DATE, LocalDateTime.now());
 
         return mongoTemplate.findAndModify(
                 query,
@@ -72,7 +77,8 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
         Update update = new Update()
                 .inc(FIELD_SPENT_BUDGET_CENTS, spentVoucherAmountCents)
                 .inc(FIELD_RESERVED_BUDGET_CENTS, -voucherAmountCents)
-                .inc(FIELD_RESIDUAL_BUDGET_CENTS, voucherAmountCents - spentVoucherAmountCents);
+                .inc(FIELD_RESIDUAL_BUDGET_CENTS, voucherAmountCents - spentVoucherAmountCents)
+                .set(FIELD_UPDATE_DATE, LocalDateTime.now());
 
         return mongoTemplate.findAndModify(
                 query,
@@ -90,7 +96,8 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
 
         Update update = new Update()
                 .inc(FIELD_SPENT_BUDGET_CENTS, -spentVoucherAmountCents)
-                .inc(FIELD_RESIDUAL_BUDGET_CENTS, spentVoucherAmountCents);
+                .inc(FIELD_RESIDUAL_BUDGET_CENTS, spentVoucherAmountCents)
+                .set(FIELD_UPDATE_DATE, LocalDateTime.now());
 
         return mongoTemplate.findAndModify(
                 query,

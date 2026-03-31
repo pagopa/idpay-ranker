@@ -3,7 +3,6 @@ package it.gov.pagopa.ranker.service.transactionInProgress;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
 import it.gov.pagopa.ranker.enums.SyncTrxStatus;
 import it.gov.pagopa.ranker.exception.UnmanagedStrategyException;
@@ -65,7 +64,7 @@ class TransactionInProgressServiceImplTest {
     }
 
     @Test
-    void shouldProcessValidExpiredTrx() throws JsonProcessingException {
+    void shouldProcessValidExpiredTrx() {
 
         TransactionInProgressDTO transactionInProgressDTO =
                 TransactionInProgressDTO.builder()
@@ -86,7 +85,7 @@ class TransactionInProgressServiceImplTest {
     }
 
     @Test
-    void shouldNotProcessInvalidTrx_MissingId() throws JsonProcessingException {
+    void shouldNotProcessInvalidTrx_MissingId() {
         TransactionInProgressDTO transactionInProgressDTO =
                 TransactionInProgressDTO.builder()
                         .trxDate(OffsetDateTime.now())
@@ -102,7 +101,7 @@ class TransactionInProgressServiceImplTest {
     }
 
     @Test
-    void shouldNotProcessInvalidTrx_MissingStatus() throws JsonProcessingException {
+    void shouldNotProcessInvalidTrx_MissingStatus()  {
 
         TransactionInProgressDTO transactionInProgressDTO =
                 TransactionInProgressDTO.builder()
@@ -119,7 +118,7 @@ class TransactionInProgressServiceImplTest {
     }
 
     @Test
-    void shouldSendErrorOnProcessingKO() throws JsonProcessingException {
+    void shouldSendErrorOnProcessingKO() {
         TransactionInProgressDTO transactionInProgressDTO =
                 TransactionInProgressDTO.builder()
                         .id("ID_1")
@@ -150,7 +149,7 @@ class TransactionInProgressServiceImplTest {
     }
 
     @Test
-    void proccesTransaction_UnmanagedStrategyException() throws JsonProcessingException {
+    void proccesTransaction_UnmanagedStrategyException() {
         TransactionInProgressDTO transactionInProgressDTO =
                 TransactionInProgressDTO.builder()
                         .id("ID_1")
@@ -169,7 +168,7 @@ class TransactionInProgressServiceImplTest {
     }
 
     @Test
-    void notifyErrorException_cryptException() throws JsonProcessingException {
+    void notifyErrorException_cryptException() {
         TransactionInProgressDTO transactionInProgressDTO =
                 TransactionInProgressDTO.builder()
                         .id("ID_1")

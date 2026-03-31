@@ -53,7 +53,7 @@ public class TransactionInProgressServiceImpl extends BaseKafkaConsumer implemen
                 throw new ConstraintViolationException(constraintValidators);
             }
 
-        } catch (JacksonException e) {
+        } catch (JacksonException _) {
             log.error("[PROCESS_TRX_EH] Unable to map message to TransactionInProgress");
             return;
         } catch (ConstraintViolationException constraintViolationException) {
@@ -67,7 +67,7 @@ public class TransactionInProgressServiceImpl extends BaseKafkaConsumer implemen
         try {
             transactionInProgressProcessorStrategyFactory.getStrategy(transactionInProgressDTO.getStatus())
                     .processTransaction(transactionInProgressDTO);
-        } catch (UnmanagedStrategyException unmanagedStrategyException) {
+        } catch (UnmanagedStrategyException _) {
             log.debug("[PROCESS_TRX_EH] Unmanaged status {}", transactionInProgressDTO.getStatus());
         } catch (Exception e) {
             notifyError(message, true, e);

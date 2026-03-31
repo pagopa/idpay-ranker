@@ -1,7 +1,7 @@
 package it.gov.pagopa.common.mongo.singleinstance;
 
 import de.flapdoodle.embed.mongo.spring.autoconfigure.EmbeddedMongoAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.data.mongo.AutoConfigureDataMongo;
+import org.springframework.context.annotation.Import;
 
 import java.lang.annotation.*;
 
@@ -9,6 +9,6 @@ import java.lang.annotation.*;
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@AutoConfigureDataMongo
+@Import(EmbeddedMongoAutoConfiguration.class)
 public @interface AutoConfigureSingleInstanceMongodb {
 }

@@ -13,8 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.test.context.ContextConfiguration;
@@ -40,14 +40,15 @@ import org.springframework.web.bind.annotation.RestController;
                 "spring.data.mongodb.config.connectionPool.maxConnecting: 2",
         })
 @ContextConfiguration(classes = {
-        MongoRequestRateTooLargeAutomaticRetryAspect.class,
-        MongoExceptionHandler.class,
-        MongoConfig.class,
+    MongoRequestRateTooLargeAutomaticRetryAspect.class,
+    MongoExceptionHandler.class,
+    MongoConfig.class,
 
-        MongoRequestRateTooLargeRetryIntegrationTest.TestController.class,
-        MongoRequestRateTooLargeRetryIntegrationTest.TestRepository.class,
+    MongoRequestRateTooLargeRetryIntegrationTest.TestController.class,
+    MongoRequestRateTooLargeRetryIntegrationTest.TestRepository.class,
 })
-@WebMvcTest(excludeAutoConfiguration = SecurityAutoConfiguration.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
+@AutoConfigureMockMvc
 @AutoConfigureSingleInstanceMongodb
 class MongoRequestRateTooLargeRetryIntegrationTest {
 

@@ -4,7 +4,7 @@ import it.gov.pagopa.common.config.CustomMongoHealthIndicator;
 import org.bson.Document;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.actuate.health.Health;
+import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -35,16 +35,10 @@ class MongoHealthConfigTest {
         Document doc = new Document("maxWireVersion", 10);
         when(mongoTemplate.executeCommand("{ isMaster: 1 }")).thenReturn(doc);
 
-        Health.Builder builder = new Health.Builder();
+        // When
+        Health health = customMongoHealthIndicator.health();
 
-        Method method = CustomMongoHealthIndicator.class.getDeclaredMethod("doHealthCheck", Health.Builder.class);
-        method.setAccessible(true); // Rende il metodo invocabile
-
-        //When
-        method.invoke(customMongoHealthIndicator, builder);
-
-        //Then
-        Health health = builder.build();
+        // Then
         assertEquals("UP", health.getStatus().getCode());
         assertEquals(10, health.getDetails().get("maxWireVersion"));
 

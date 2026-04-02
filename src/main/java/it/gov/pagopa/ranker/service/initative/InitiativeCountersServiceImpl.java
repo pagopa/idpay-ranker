@@ -1,6 +1,7 @@
 package it.gov.pagopa.ranker.service.initative;
 
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
+import it.gov.pagopa.ranker.domain.dto.VerifyDTO;
 import it.gov.pagopa.ranker.domain.model.InitiativeCountersPreallocations;
 import it.gov.pagopa.ranker.enums.PreallocationStatus;
 import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
@@ -43,9 +44,8 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
     }
 
     @Transactional
-    public void addPreallocatedUser(String initiativeId, String userId, boolean verifyIsee, Long sequenceNumber, LocalDateTime enqueuedTime) {
-        long reservationCents = calculateReservationCents(verifyIsee);
-
+    public void addPreallocatedUser(String initiativeId, String userId, List<VerifyDTO> verifies, Long sequenceNumber, LocalDateTime enqueuedTime, Long beneficiaryBudgetFixedCents) {
+        long reservationCents = calculateReservationCents(verifies, beneficiaryBudgetFixedCents);
         try {
             initiativeCountersRepository.incrementOnboardedAndBudget(
                     initiativeId,
@@ -79,8 +79,13 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
                 initiativeId, 20000);
     }
 
-    public long calculateReservationCents(boolean verifyIsee) {
-        return verifyIsee ? 20000L : 10000L;
+    public long calculateReservationCents(List<VerifyDTO> verifies, Long beneficiaryBudgetFixedCents) {
+        for(VerifyDTO verify : verifies){
+            if(verify.getBeneficiaryBudgetCentsMax() != null){
+                return verify.getBeneficiaryBudgetCentsMax();
+            }
+        }
+        return beneficiaryBudgetFixedCents;
     }
 
     @Override

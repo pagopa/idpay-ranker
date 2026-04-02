@@ -61,9 +61,11 @@ public class RankerServiceImpl implements RankerService {
         this.initiativeCountersService.addPreallocatedUser(
                 dto.getInitiativeId(),
                 dto.getUserId(),
-                Boolean.TRUE.equals(dto.getVerifyIsee()),
+                dto.getVerifies(),
                 dto.getSequenceNumber(),
-                dto.getEnqueuedTime()
+                dto.getEnqueuedTime(),
+                dto.getBeneficiaryBudgetFixedCents()
+
         );
 
         log.info("Preallocation added for user {} in initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
@@ -81,6 +83,7 @@ public class RankerServiceImpl implements RankerService {
 
             OnboardingDTO sendDto = consentMapper.map(onboarding.get());
             sendDto.setServiceId(inputDto.getServiceId());
+
             sendDto.setVerifyIsee(initiativeCountersPreallocations.get().getPreallocatedAmountCents() > 10000);
 
             log.info("[RANKER_SERVICE] Preallocation exists for userId={} and initiativeId={}. Resending save consent.",

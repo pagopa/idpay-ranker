@@ -33,13 +33,13 @@ public class RankerProducer {
         if (dto == null) return "null";
         // Sanitize each potentially user-controlled field. List all fields for clarity.
         return String.format(
-                "OnboardingDTO(userId=%s, initiativeId=%s, name=%s, surname=%s, tc=%s, verifyIsee=%s, status=%s, pdndAccept=%s, userMail=%s, channel=%s, tcAcceptTimestamp=%s, criteriaConsensusTimestamp=%s, serviceId=%s, rejectionReason=%s, sequenceNumber=%s, enqueuedTime=%s)",
+                "OnboardingDTO(userId=%s, initiativeId=%s, name=%s, surname=%s, tc=%s, verifies=%s, status=%s, pdndAccept=%s, userMail=%s, channel=%s, tcAcceptTimestamp=%s, criteriaConsensusTimestamp=%s, serviceId=%s, rejectionReason=%s, sequenceNumber=%s, enqueuedTime=%s)",
                 sanitizeField(dto.getUserId()),
                 sanitizeField(dto.getInitiativeId()),
                 sanitizeField(dto.getName()),
                 sanitizeField(dto.getSurname()),
                 dto.getTc(),
-                dto.getVerifyIsee(),
+                dto.getVerifies(),
                 sanitizeField(dto.getStatus()),
                 dto.getPdndAccept(),
                 sanitizeField(dto.getUserMail()),

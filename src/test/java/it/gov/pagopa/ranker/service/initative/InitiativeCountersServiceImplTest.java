@@ -1,6 +1,8 @@
 package it.gov.pagopa.ranker.service.initative;
 
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
+import it.gov.pagopa.ranker.domain.model.InitiativeConfig;
+import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
 import it.gov.pagopa.ranker.domain.model.InitiativeCountersPreallocations;
 import it.gov.pagopa.ranker.enums.PreallocationStatus;
 import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
@@ -33,6 +35,9 @@ class InitiativeCountersServiceImplTest {
     @Mock
     private InitiativeCountersRepository initiativeCountersRepositoryMock;
 
+    @Mock
+    private InitiativeBeneficiaryRuleService initiativeBeneficiaryRuleServiceMock;
+
     private InitiativeCountersServiceImpl initiativeCountersService;
 
     @BeforeEach
@@ -40,7 +45,8 @@ class InitiativeCountersServiceImplTest {
         initiativeCountersService = new InitiativeCountersServiceImpl(
                 initiativeCountersRepositoryMock,
                 INITIATIVE_ID,
-                initiativeCountersPreallocationsRepository
+                initiativeCountersPreallocationsRepository,
+                initiativeBeneficiaryRuleServiceMock
         );
     }
 
@@ -108,21 +114,133 @@ class InitiativeCountersServiceImplTest {
 
     @Test
     void testHasAvailableBudget_true() {
-        when(initiativeCountersRepositoryMock
-                .existsByIdInAndResidualInitiativeBudgetCentsGreaterThanEqual(INITIATIVE_ID, 20000))
-                .thenReturn(true);
+        InitiativeCounters counterMock = InitiativeCounters.builder()
+                .id(INITIATIVE_ID.getFirst())
+                .residualInitiativeBudgetCents(500L)
+                .build();
+        when(initiativeCountersRepositoryMock.findByIdIn(INITIATIVE_ID)).thenReturn(List.of(counterMock));
+
+        InitiativeConfig config = InitiativeConfig.builder()
+                .initiativeId(INITIATIVE_ID.getFirst())
+                .beneficiaryInitiativeBudgetCents(100L)
+                .beneficiaryInitiativeBudgetMaxCents(500L)
+                .build();
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
 
         assertTrue(initiativeCountersService.hasAvailableBudget());
     }
 
     @Test
-    void testHasAvailableBudget_false() {
-        when(initiativeCountersRepositoryMock
-                .existsByIdInAndResidualInitiativeBudgetCentsGreaterThanEqual(INITIATIVE_ID, 20000))
-                .thenReturn(false);
+    void testHasAvailableBudget_trueWithoutBeneficiaryBudgetMax() {
+        InitiativeCounters counterMock = InitiativeCounters.builder()
+                .id(INITIATIVE_ID.getFirst())
+                .residualInitiativeBudgetCents(100L)
+                .build();
+        when(initiativeCountersRepositoryMock.findByIdIn(INITIATIVE_ID)).thenReturn(List.of(counterMock));
+
+        InitiativeConfig config = InitiativeConfig.builder()
+                .initiativeId(INITIATIVE_ID.getFirst())
+                .beneficiaryInitiativeBudgetCents(100L)
+                .build();
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
+
+        assertTrue(initiativeCountersService.hasAvailableBudget());
+    }
+
+    @Test
+    void testHasAvailableBudget_falseNotRetrieveInitiativeConfig() {
+        InitiativeCounters counterMock = InitiativeCounters.builder()
+                .id(INITIATIVE_ID.getFirst())
+                .residualInitiativeBudgetCents(100L)
+                .build();
+        when(initiativeCountersRepositoryMock.findByIdIn(INITIATIVE_ID)).thenReturn(List.of(counterMock));
+
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(null);
+
 
         assertFalse(initiativeCountersService.hasAvailableBudget());
     }
+
+    @Test
+    void testHasAvailableBudget_false() {
+        InitiativeCounters counterMock = InitiativeCounters.builder()
+                .id(INITIATIVE_ID.getFirst())
+                .residualInitiativeBudgetCents(400L)
+                .build();
+        when(initiativeCountersRepositoryMock.findByIdIn(INITIATIVE_ID)).thenReturn(List.of(counterMock));
+
+        InitiativeConfig config = InitiativeConfig.builder()
+                .initiativeId(INITIATIVE_ID.getFirst())
+                .beneficiaryInitiativeBudgetCents(100L)
+                .beneficiaryInitiativeBudgetMaxCents(500L)
+                .build();
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
+
+
+        assertFalse(initiativeCountersService.hasAvailableBudget());
+    }
+
+    @Test
+    void testHasAvailableBudget_falseWithoutBeneficiaryBudgetMacNull() {
+        InitiativeCounters counterMock = InitiativeCounters.builder()
+                .id(INITIATIVE_ID.getFirst())
+                .residualInitiativeBudgetCents(50L)
+                .build();
+        when(initiativeCountersRepositoryMock.findByIdIn(INITIATIVE_ID)).thenReturn(List.of(counterMock));
+
+        InitiativeConfig config = InitiativeConfig.builder()
+                .initiativeId(INITIATIVE_ID.getFirst())
+                .beneficiaryInitiativeBudgetCents(100L)
+                .build();
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
+
+
+        assertFalse(initiativeCountersService.hasAvailableBudget());
+    }
+
+    @Test
+    void testRetrieveInitiativesAvailableBudget(){
+        InitiativeCounters counterMock = InitiativeCounters.builder()
+                .id(INITIATIVE_ID.getFirst())
+                .residualInitiativeBudgetCents(500L)
+                .build();
+        when(initiativeCountersRepositoryMock.findByIdIn(INITIATIVE_ID)).thenReturn(List.of(counterMock));
+
+        InitiativeConfig config = InitiativeConfig.builder()
+                .initiativeId(INITIATIVE_ID.getFirst())
+                .beneficiaryInitiativeBudgetCents(100L)
+                .beneficiaryInitiativeBudgetMaxCents(500L)
+                .build();
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
+
+        List<String> result = initiativeCountersService.retrieveInitiativesAvailableBudget();
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(INITIATIVE_ID, result);
+    }
+
+    @Test
+    void testRetrieveInitiativesAvailableBudget_withoutBudget(){
+        InitiativeCounters counterMock = InitiativeCounters.builder()
+                .id(INITIATIVE_ID.getFirst())
+                .residualInitiativeBudgetCents(90L)
+                .build();
+        when(initiativeCountersRepositoryMock.findByIdIn(INITIATIVE_ID)).thenReturn(List.of(counterMock));
+
+        InitiativeConfig config = InitiativeConfig.builder()
+                .initiativeId(INITIATIVE_ID.getFirst())
+                .beneficiaryInitiativeBudgetCents(100L)
+                .build();
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
+
+        List<String> result = initiativeCountersService.retrieveInitiativesAvailableBudget();
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+
 
     @Test
     void testUpdateInitiativeCounters_preallocationMissing() {

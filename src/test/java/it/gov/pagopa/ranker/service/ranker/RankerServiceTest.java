@@ -2,7 +2,6 @@ package it.gov.pagopa.ranker.service.ranker;
 
 import com.azure.messaging.servicebus.ServiceBusMessage;
 import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import it.gov.pagopa.ranker.connector.event.producer.RankerProducer;
 import it.gov.pagopa.ranker.domain.dto.OnboardingDTO;
 import it.gov.pagopa.ranker.domain.mapper.ConsentMapper;
@@ -17,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DuplicateKeyException;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.*;
 import java.util.List;

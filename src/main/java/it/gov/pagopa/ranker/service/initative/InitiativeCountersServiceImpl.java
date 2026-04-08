@@ -86,6 +86,15 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
         return getInitiativeCountersStream().findFirst().isPresent();
     }
 
+    @Override
+    public boolean hasAvailableBudget(String initiativeId) {
+        InitiativeCounters counter = initiativeCountersRepository.findById(initiativeId).orElse(null);
+        if(counter == null){
+            return false;
+        }
+        return hasInitiativeBudgetToPreallocate(counter);
+    }
+
     public long calculateReservationCents(boolean verifyIsee) {
         return verifyIsee ? 20000L : 10000L;
     }
@@ -115,16 +124,18 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
 
     private Stream<InitiativeCounters> getInitiativeCountersStream() {
         return initiativeCountersRepository.findByIdIn(initiativeIds).stream()
-                .filter(initiativeCounters -> {
-                    InitiativeConfig initiativeConfig = initiativeBeneficiaryRuleService.getInitiativeConfig(initiativeCounters.getId());
-                    if (initiativeConfig != null) {
-                        if (initiativeConfig.getBeneficiaryInitiativeBudgetMaxCents() != null) {
-                            return initiativeCounters.getResidualInitiativeBudgetCents() >= initiativeConfig.getBeneficiaryInitiativeBudgetMaxCents();
-                        }
-                        return initiativeCounters.getResidualInitiativeBudgetCents() >= initiativeConfig.getBeneficiaryInitiativeBudgetCents();
-                    }
-                    return false;
-                });
+                .filter(this::hasInitiativeBudgetToPreallocate);
+    }
+
+    private boolean hasInitiativeBudgetToPreallocate(InitiativeCounters initiativeCounters) {
+        InitiativeConfig initiativeConfig = initiativeBeneficiaryRuleService.getInitiativeConfig(initiativeCounters.getId());
+        if (initiativeConfig != null) {
+            if (initiativeConfig.getBeneficiaryInitiativeBudgetMaxCents() != null) {
+                return initiativeCounters.getResidualInitiativeBudgetCents() >= initiativeConfig.getBeneficiaryInitiativeBudgetMaxCents();
+            }
+            return initiativeCounters.getResidualInitiativeBudgetCents() >= initiativeConfig.getBeneficiaryInitiativeBudgetCents();
+        }
+        return false;
     }
 
     public static String sanitizeString(String str){

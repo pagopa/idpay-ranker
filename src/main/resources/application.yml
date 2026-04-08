@@ -178,6 +178,7 @@ app:
     processor:
       max-parallel-sessions: ${SESSIONS_MAX_PARALLEL:2}
       idle-timeout-seconds: ${SESSIONS_IDLE_TIMEOUT:120}
+      wait-message-seconds: ${SESSIONS_WAIT_MESSAGE:5}
       reconcile-delay-ms: ${SESSIONS_RECONCILE_DELAY_MS:300000}
       initiatives-enabled: ${INITIATIVE_ID:68dd003ccce8c534d1da22bc, 68de7fc681ce9e35a476e985}
   threads:

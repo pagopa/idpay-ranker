@@ -49,7 +49,7 @@ public class RankerServiceImpl implements RankerService {
     @Override
     public void preallocate(OnboardingDTO dto) {
         if (this.initiativeCountersService.existsByInitiativeIdAndUserId(dto.getInitiativeId(), dto.getUserId())) {
-            log.info("User {} already preallocated for initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
+            log.info("[PREALLOCATE] User {} already preallocated for initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
             return;
         }
 
@@ -66,7 +66,7 @@ public class RankerServiceImpl implements RankerService {
                 dto.getEnqueuedTime()
         );
 
-        log.info("Preallocation added for user {} in initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
+        log.info("[PREALLOCATE] Preallocation added for user {} in initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
         this.rankerProducer.sendSaveConsent(dto);
     }
 

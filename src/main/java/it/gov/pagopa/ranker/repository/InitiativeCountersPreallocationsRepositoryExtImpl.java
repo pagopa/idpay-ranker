@@ -8,15 +8,17 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
-import java.time.LocalDateTime;
+import java.time.Clock;
+import java.time.Instant;
 
 
 public class InitiativeCountersPreallocationsRepositoryExtImpl implements InitiativeCountersPreallocationsRepositoryExt {
 
     private final MongoTemplate mongoTemplate;
-
-    public InitiativeCountersPreallocationsRepositoryExtImpl(MongoTemplate mongoTemplate) {
+    private final Clock clock;
+    public InitiativeCountersPreallocationsRepositoryExtImpl(MongoTemplate mongoTemplate, Clock clock) {
         this.mongoTemplate = mongoTemplate;
+        this.clock = clock;
     }
 
     @Override
@@ -27,7 +29,7 @@ public class InitiativeCountersPreallocationsRepositoryExtImpl implements Initia
                                 .and(InitiativeCountersPreallocations.Fields.status).is(status)),
                 new Update()
                         .set(InitiativeCountersPreallocations.Fields.status, PreallocationStatus.CAPTURED)
-                        .set(InitiativeCountersPreallocations.Fields.updateDate, LocalDateTime.now()),
+                        .set(InitiativeCountersPreallocations.Fields.updateDate, Instant.now(clock)),
                 FindAndModifyOptions.options().returnNew(true),
                 InitiativeCountersPreallocations.class);
         return initiativeCountersPreallocations != null;

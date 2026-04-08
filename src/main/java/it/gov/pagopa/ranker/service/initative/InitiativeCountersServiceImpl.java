@@ -13,7 +13,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,11 +28,14 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
     private final InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository;
     private final InitiativeCountersRepository initiativeCountersRepository;
 
+    private final Clock clock;
+
     public InitiativeCountersServiceImpl(InitiativeCountersRepository initiativeCounterRepository,
-                                         @Value("${app.initiative.identified}") List<String> initiativeId, InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository) {
+                                         @Value("${app.initiative.identified}") List<String> initiativeId, InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository, Clock clock) {
         this.initiativeCountersRepository = initiativeCounterRepository;
         this.initiativeId = initiativeId;
         this.initiativeCountersPreallocationsRepository = initiativeCountersPreallocationsRepository;
+        this.clock = clock;
     }
 
     public boolean existsByInitiativeIdAndUserId(String initiativeId, String userId){
@@ -43,7 +47,7 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
     }
 
     @Transactional
-    public void addPreallocatedUser(String initiativeId, String userId, boolean verifyIsee, Long sequenceNumber, LocalDateTime enqueuedTime) {
+    public void addPreallocatedUser(String initiativeId, String userId, boolean verifyIsee, Long sequenceNumber, Instant enqueuedTime) {
         long reservationCents = calculateReservationCents(verifyIsee);
 
         try {
@@ -59,8 +63,8 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
                             .userId(userId)
                             .sequenceNumber(sequenceNumber)
                             .enqueuedTime(enqueuedTime)
-                            .createdAt(LocalDateTime.now())
-                            .updateDate(LocalDateTime.now())
+                            .createdAt(Instant.now(clock))
+                            .updateDate(Instant.now(clock))
                             .status(PreallocationStatus.PREALLOCATED)
                             .preallocatedAmountCents(reservationCents)
                             .build()

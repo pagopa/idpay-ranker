@@ -15,7 +15,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DuplicateKeyException;
 
-import java.time.LocalDateTime;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,14 +36,14 @@ class InitiativeCountersServiceImplTest {
     private InitiativeCountersRepository initiativeCountersRepositoryMock;
 
     private InitiativeCountersServiceImpl initiativeCountersService;
-
+    private final Clock clock = Clock.fixed(Instant.parse("2026-04-03T10:00:00Z"), ZoneOffset.UTC);
     @BeforeEach
     void setUp() {
         initiativeCountersService = new InitiativeCountersServiceImpl(
                 initiativeCountersRepositoryMock,
                 INITIATIVE_ID,
-                initiativeCountersPreallocationsRepository
-        );
+                initiativeCountersPreallocationsRepository,
+                clock);
     }
 
     @Test
@@ -73,7 +75,7 @@ class InitiativeCountersServiceImplTest {
     @Test
     void testAddPreallocatedUser_success() {
         String userId = "USER123";
-        LocalDateTime time = LocalDateTime.now();
+        Instant time = Instant.now();
 
         initiativeCountersService.addPreallocatedUser(
                 INITIATIVE_ID.getFirst(), userId, true, 1L, time);
@@ -99,7 +101,7 @@ class InitiativeCountersServiceImplTest {
 
         assertThrows(BudgetExhaustedException.class, () ->
                 initiativeCountersService.addPreallocatedUser(
-                        INITIATIVE_ID.getFirst(), "USER", false, 10L, LocalDateTime.now())
+                        INITIATIVE_ID.getFirst(), "USER", false, 10L, Instant.now())
         );
 
         verify(initiativeCountersRepositoryMock)

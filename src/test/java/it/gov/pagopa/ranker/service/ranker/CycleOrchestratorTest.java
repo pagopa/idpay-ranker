@@ -48,6 +48,8 @@ class CycleOrchestratorTest {
         when(initiativeCountersServiceMock.retrieveInitiativesAvailableBudget()).thenReturn(List.of());
 
         cycleOrchestrator.reconcile();
+
+        verify(initiativeCountersServiceMock).retrieveInitiativesAvailableBudget();
     }
 
     @Test
@@ -73,6 +75,11 @@ class CycleOrchestratorTest {
         doNothing().when(executorMock).execute(sessionWorkerMock);
 
         cycleOrchestrator.reconcile();
+
+        verify(initiativeCountersServiceMock).retrieveInitiativesAvailableBudget();
+        verify(cycleHandlerStateMock).isCycleProcessing();
+        verify(cycleHandlerStateMock).openCycle();
+        verify(sessionWorkerFactoryMock).create(anyString(),any());
     }
 
     @Test
@@ -100,5 +107,10 @@ class CycleOrchestratorTest {
         doNothing().when(executorMock).execute(sessionWorkerMock2);
 
         cycleOrchestrator.reconcile();
+
+        verify(initiativeCountersServiceMock).retrieveInitiativesAvailableBudget();
+        verify(cycleHandlerStateMock).isCycleProcessing();
+        verify(cycleHandlerStateMock, times(3)).hasFreeSlot(anyInt());
+        verify(sessionWorkerFactoryMock).create(anyString(),any());
     }
 }

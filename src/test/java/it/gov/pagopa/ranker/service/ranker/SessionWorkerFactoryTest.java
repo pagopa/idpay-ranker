@@ -17,7 +17,7 @@ class SessionWorkerFactoryTest {
     @Mock private ServiceBusClientBuilder clientBuilderMock;
     @Mock private RankerProcessorProperties propertiesMock;
     @Mock private InitiativeCountersService initiativeCountersServiceMock;
-    @Mock private RankerService rankerServiceMock;;
+    @Mock private RankerService rankerServiceMock;
     private final String queueName = "QUEUE_NAME";
 
     private SessionWorkerFactory factory;

@@ -28,7 +28,6 @@ public class CycleHandlerStateImpl implements CycleHandlerState{
     public void closeCycle() {
         cycleProcessing.set(false);
         pendingSessions.clear();
-        //todo active?
     }
 
     @Override

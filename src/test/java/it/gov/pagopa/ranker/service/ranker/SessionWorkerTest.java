@@ -10,6 +10,7 @@ import com.azure.messaging.servicebus.ServiceBusSessionReceiverClient;
 import it.gov.pagopa.ranker.config.RankerProcessorProperties;
 import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,7 +44,9 @@ class SessionWorkerTest {
         doThrow(new RuntimeException("DUMMY")).when(serviceBusClientBuilderMock).sessionReceiver();
         doNothing().when(onCompletedMock).run();
 
-        sessionWorker.run();
+        Assertions.assertDoesNotThrow(() -> sessionWorker.run());
+
+
     }
 
     @Test

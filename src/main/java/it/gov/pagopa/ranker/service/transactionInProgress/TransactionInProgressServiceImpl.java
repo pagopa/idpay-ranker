@@ -1,7 +1,5 @@
 package it.gov.pagopa.ranker.service.transactionInProgress;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import it.gov.pagopa.ranker.connector.event.consumer.BaseKafkaConsumer;
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
 import it.gov.pagopa.ranker.exception.UnmanagedStrategyException;
@@ -13,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.Set;
 
@@ -53,7 +53,7 @@ public class TransactionInProgressServiceImpl extends BaseKafkaConsumer implemen
                 throw new ConstraintViolationException(constraintValidators);
             }
 
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException _) {
             log.error("[PROCESS_TRX_EH] Unable to map message to TransactionInProgress");
             return;
         } catch (ConstraintViolationException constraintViolationException) {
@@ -67,7 +67,7 @@ public class TransactionInProgressServiceImpl extends BaseKafkaConsumer implemen
         try {
             transactionInProgressProcessorStrategyFactory.getStrategy(transactionInProgressDTO.getStatus())
                     .processTransaction(transactionInProgressDTO);
-        } catch (UnmanagedStrategyException unmanagedStrategyException) {
+        } catch (UnmanagedStrategyException _) {
             log.debug("[PROCESS_TRX_EH] Unmanaged status {}", transactionInProgressDTO.getStatus());
         } catch (Exception e) {
             notifyError(message, true, e);

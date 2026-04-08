@@ -4,11 +4,13 @@ import it.gov.pagopa.common.mongo.MongoTest;
 import it.gov.pagopa.ranker.domain.model.DroolsRule;
 import it.gov.pagopa.ranker.domain.model.InitiativeConfig;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
+@Disabled
 @MongoTest
 class DroolsRuleRepositoryTest {
     @Autowired

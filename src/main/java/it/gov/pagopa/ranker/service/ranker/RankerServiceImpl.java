@@ -1,8 +1,6 @@
 package it.gov.pagopa.ranker.service.ranker;
 
 import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
 import it.gov.pagopa.ranker.connector.event.producer.RankerProducer;
 import it.gov.pagopa.ranker.constants.OnboardingConstant;
 import it.gov.pagopa.ranker.domain.dto.OnboardingDTO;
@@ -14,6 +12,8 @@ import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectReader;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -119,7 +119,7 @@ public class RankerServiceImpl implements RankerService {
 
     private OnboardingDTO deserialize(String messageBody) {
         try {
-            return objectReader.readValue(messageBody, OnboardingDTO.class);
+            return objectReader.readValue(messageBody);
         } catch (Exception e) {
             log.error("[RANKER_PROCESSOR] Failed to deserialize message");
             throw new IllegalStateException("Failed to deserialize message", e);

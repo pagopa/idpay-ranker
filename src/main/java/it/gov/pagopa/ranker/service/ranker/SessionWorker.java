@@ -92,7 +92,7 @@ public class SessionWorker implements Runnable {
 
                 if (idleSeconds >= properties.getIdleTimeoutSeconds()) {
                     log.info("[SESSION_WORKER][TIMEOUT] Stop processing message because the initiative for session {} idle timeout reached", sessionId);
-                    break;
+                    requestStop();
                 }
 
                 continue;
@@ -119,8 +119,8 @@ public class SessionWorker implements Runnable {
                     sessionId, message.getSequenceNumber(), message.getMessageId(), message.getBody());
             rankerService.execute(message);
             receiver.complete(message);
-        } catch (BudgetExhaustedException e) {
-            log.error("[SESSION_WORKER][BUDGET_CONTEXT] Budget exhausted for initiative with.");
+        } catch (BudgetExhaustedException budgetExhaustedException) {
+            log.error("[SESSION_WORKER][BUDGET_CONTEXT] Budget exhausted for initiative with.", budgetExhaustedException);
             receiver.abandon(message);
             requestStop();
         } catch (Exception ex) {

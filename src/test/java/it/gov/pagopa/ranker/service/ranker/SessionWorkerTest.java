@@ -62,6 +62,8 @@ class SessionWorkerTest {
         doNothing().when(onCompletedMock).run();
 
         sessionWorker.run();
+
+        verifyNoMoreInteractions(serviceBusClientBuilderMock, initiativeCountersServiceMock,rankerServiceMock,onCompletedMock,rankerProcessorPropertiesMock);
     }
 
     @Test
@@ -81,6 +83,9 @@ class SessionWorkerTest {
         doNothing().when(onCompletedMock).run();
 
         sessionWorker.run();
+
+        verifyNoMoreInteractions(serviceBusClientBuilderMock, initiativeCountersServiceMock,rankerServiceMock,onCompletedMock,rankerProcessorPropertiesMock);
+
     }
 
     @Test
@@ -102,6 +107,9 @@ class SessionWorkerTest {
         doNothing().when(onCompletedMock).run();
 
         sessionWorker.run();
+
+        verifyNoMoreInteractions(serviceBusClientBuilderMock, initiativeCountersServiceMock,rankerServiceMock,onCompletedMock,rankerProcessorPropertiesMock);
+
     }
 
     @Test
@@ -130,6 +138,9 @@ class SessionWorkerTest {
         doNothing().when(onCompletedMock).run();
 
         sessionWorker.run();
+
+        verifyNoMoreInteractions(serviceBusClientBuilderMock, initiativeCountersServiceMock,rankerServiceMock,onCompletedMock,rankerProcessorPropertiesMock);
+
     }
 
     @Test
@@ -158,6 +169,9 @@ class SessionWorkerTest {
         doNothing().when(onCompletedMock).run();
 
         sessionWorker.run();
+
+        verifyNoMoreInteractions(serviceBusClientBuilderMock, initiativeCountersServiceMock,rankerServiceMock,onCompletedMock,rankerProcessorPropertiesMock);
+
     }
 
     @Test
@@ -190,6 +204,9 @@ class SessionWorkerTest {
         doNothing().when(onCompletedMock).run();
 
         sessionWorker.run();
+
+        verifyNoMoreInteractions(serviceBusClientBuilderMock, initiativeCountersServiceMock,rankerServiceMock,onCompletedMock,rankerProcessorPropertiesMock);
+
     }
 
 

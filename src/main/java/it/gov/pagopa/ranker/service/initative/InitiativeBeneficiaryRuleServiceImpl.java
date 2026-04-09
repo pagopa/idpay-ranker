@@ -20,7 +20,7 @@ public class InitiativeBeneficiaryRuleServiceImpl implements InitiativeBeneficia
     private final Map<String, InitiativeConfig> initiativesConfigCached = new ConcurrentHashMap<>();
 
     public InitiativeBeneficiaryRuleServiceImpl(DroolsRuleRepository droolsRuleRepository,
-                                                @Value("${app.ranker.processor.initiatives-enabled}") List<String> initiativesEnable) {
+                                                @Value("${app.initiative.identified}") List<String> initiativesEnable) {
         this.droolsRuleRepository = droolsRuleRepository;
         this.initiativesEnable = initiativesEnable;
         initializeInitiativeConfigCache();

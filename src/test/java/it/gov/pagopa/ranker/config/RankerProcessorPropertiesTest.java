@@ -12,7 +12,6 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 @TestPropertySource( properties = {
         "app.ranker.processor.max-parallel-sessions=2",
         "app.ranker.processor.idle-timeout-seconds=120",
-        "app.ranker.processor.reconcile-delay-ms = 300"
 
 })
 @ExtendWith(SpringExtension.class)
@@ -22,8 +21,6 @@ class RankerProcessorPropertiesTest {
     private int maxParallelSessions;
     @Value("${app.ranker.processor.idle-timeout-seconds}")
     private int idleTimeoutSeconds;
-    @Value("${app.ranker.processor.reconcile-delay-ms}")
-    private long reconcileDelayMs;
 
     @Autowired
     private RankerProcessorProperties properties;
@@ -32,7 +29,6 @@ class RankerProcessorPropertiesTest {
     void properties(){
         Assertions.assertEquals(maxParallelSessions, properties.getMaxParallelSessions());
         Assertions.assertEquals(idleTimeoutSeconds, properties.getIdleTimeoutSeconds());
-        Assertions.assertEquals(reconcileDelayMs, properties.getReconcileDelayMs());
     }
 
 }

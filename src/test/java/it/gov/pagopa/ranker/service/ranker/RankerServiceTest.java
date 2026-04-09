@@ -48,7 +48,7 @@ class RankerServiceTest {
     private ObjectMapper objectMapper;
 
     private RankerService rankerService;
-    private List<String> initiatives = List.of("INITIATIVE_ID");
+    private final List<String> initiatives = List.of("INITIATIVE_ID");
 
     @BeforeEach
     void setup() {
@@ -63,7 +63,7 @@ class RankerServiceTest {
         );
     }
 
-    private ServiceBusReceivedMessage buildMessage(OnboardingDTO dto) throws Exception {
+    private ServiceBusReceivedMessage buildMessage(OnboardingDTO dto) {
         String json = objectMapper.writeValueAsString(dto);
         ServiceBusMessage sbMessage = new ServiceBusMessage(json);
         ServiceBusReceivedMessage message = mock(ServiceBusReceivedMessage.class);
@@ -308,12 +308,5 @@ class RankerServiceTest {
         rankerService.recovery(input);
 
         verify(rankerProducer, never()).sendSaveConsent(any());
-    }
-
-    @Test
-    void testSanitizeString() {
-        assertNull(RankerServiceImpl.sanitizeString(null));
-        assertEquals("abc", RankerServiceImpl.sanitizeString("a\nb\rc"));
-        assertEquals("helloWorld", RankerServiceImpl.sanitizeString("hello@World!!!"));
     }
 }

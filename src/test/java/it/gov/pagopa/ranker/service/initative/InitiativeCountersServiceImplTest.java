@@ -318,10 +318,4 @@ class InitiativeCountersServiceImplTest {
         assertEquals(20000L, initiativeCountersService.calculateReservationCents(true, config));
         assertEquals(10000L, initiativeCountersService.calculateReservationCents(false, config));
     }
-
-    @Test
-    void testSanitizeString() {
-        assertNull(InitiativeCountersServiceImpl.sanitizeString(null));
-        assertEquals("hello", InitiativeCountersServiceImpl.sanitizeString("\nhe!!llo\r"));
-    }
 }

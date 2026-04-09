@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static it.gov.pagopa.utils.CommonConstants.ZONEID;
+import static it.gov.pagopa.utils.CommonUtils.sanitizeString;
 
 @Service
 @Slf4j
@@ -124,9 +125,5 @@ public class RankerServiceImpl implements RankerService {
             log.error("[RANKER_PROCESSOR] Failed to deserialize message");
             throw new IllegalStateException("Failed to deserialize message", e);
         }
-    }
-
-    public static String sanitizeString(String str){
-        return str == null? null: str.replaceAll("[\\r\\n]", "").replaceAll("[^\\w\\s-]", "");
     }
 }

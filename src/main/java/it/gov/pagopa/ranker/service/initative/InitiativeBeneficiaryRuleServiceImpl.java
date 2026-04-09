@@ -3,6 +3,7 @@ package it.gov.pagopa.ranker.service.initative;
 import it.gov.pagopa.ranker.domain.model.DroolsRule;
 import it.gov.pagopa.ranker.domain.model.InitiativeConfig;
 import it.gov.pagopa.ranker.repository.DroolsRuleRepository;
+import it.gov.pagopa.utils.CommonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -45,7 +46,7 @@ public class InitiativeBeneficiaryRuleServiceImpl implements InitiativeBeneficia
     @Override
     public InitiativeConfig getInitiativeConfig(String initiativeId) {
         if(!initiativesEnable.contains(initiativeId)){
-            log.info("[RETRIEVE_INITIATIVE_CONFIG] Initiative {} is not enable for processing.", initiativeId);
+            log.info("[RETRIEVE_INITIATIVE_CONFIG] Initiative {} is not enable for processing.", CommonUtils.sanitizeString(initiativeId));
             return null;
         }
         InitiativeConfig initiativeConfig = initiativesConfigCached.get(initiativeId);

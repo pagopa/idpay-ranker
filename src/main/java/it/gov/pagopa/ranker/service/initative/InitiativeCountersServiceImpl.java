@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -52,7 +51,7 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
 
     @Transactional
     public void addPreallocatedUser(String initiativeId, String userId, boolean verifyIsee, Long sequenceNumber, LocalDateTime enqueuedTime) {
-        long reservationCents = calculateReservationCents(verifyIsee);
+        long reservationCents = calculateReservationCents(verifyIsee, initiativeBeneficiaryRuleService.getInitiativeConfig(initiativeId));
 
         try {
             initiativeCountersRepository.incrementOnboardedAndBudget(
@@ -95,8 +94,12 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
         return hasInitiativeBudgetToPreallocate(counter);
     }
 
-    public long calculateReservationCents(boolean verifyIsee) {
-        return verifyIsee ? 20000L : 10000L;
+    public long calculateReservationCents(boolean verifyIsee, InitiativeConfig initiativeConfig) {
+        if(verifyIsee && initiativeConfig.getBeneficiaryInitiativeBudgetMaxCents() != null){
+            return initiativeConfig.getBeneficiaryInitiativeBudgetMaxCents();
+        } else {
+            return initiativeConfig.getBeneficiaryInitiativeBudgetCents();
+        }
     }
 
     @Override

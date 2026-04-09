@@ -203,4 +203,4 @@ azure:
   servicebus:
     onboarding-request:
       connection-string: ${SERVICEBUS_ONBOARDING_CONNECTION_STRING:}
-      queue-name: ${SB_ONBOARDING_REQUEST_TOPIC:idpay-onboarding-request}
+      queue-name: ${SB_ONBOARDING_REQUEST_TOPIC:idpay-onboarding-request-session}

@@ -81,6 +81,9 @@ class InitiativeCountersServiceImplTest {
         String userId = "USER123";
         LocalDateTime time = LocalDateTime.now();
 
+        InitiativeConfig config = InitiativeConfig.builder().initiativeId(INITIATIVE_ID.getFirst()).beneficiaryInitiativeBudgetCents(10000L).beneficiaryInitiativeBudgetMaxCents(20000L).build();
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
+
         initiativeCountersService.addPreallocatedUser(
                 INITIATIVE_ID.getFirst(), userId, true, 1L, time);
 
@@ -102,7 +105,8 @@ class InitiativeCountersServiceImplTest {
         doThrow(new DuplicateKeyException("Duplicate"))
                 .when(initiativeCountersRepositoryMock)
                 .incrementOnboardedAndBudget(anyString(), anyLong());
-
+        InitiativeConfig config = InitiativeConfig.builder().initiativeId(INITIATIVE_ID.getFirst()).beneficiaryInitiativeBudgetCents(10000L).beneficiaryInitiativeBudgetMaxCents(20000L).build();
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
         assertThrows(BudgetExhaustedException.class, () ->
                 initiativeCountersService.addPreallocatedUser(
                         INITIATIVE_ID.getFirst(), "USER", false, 10L, LocalDateTime.now())
@@ -310,8 +314,9 @@ class InitiativeCountersServiceImplTest {
 
     @Test
     void testCalculateReservationCents() {
-        assertEquals(20000L, initiativeCountersService.calculateReservationCents(true));
-        assertEquals(10000L, initiativeCountersService.calculateReservationCents(false));
+        InitiativeConfig config = InitiativeConfig.builder().beneficiaryInitiativeBudgetMaxCents(20000L).beneficiaryInitiativeBudgetCents(10000L).build();
+        assertEquals(20000L, initiativeCountersService.calculateReservationCents(true, config));
+        assertEquals(10000L, initiativeCountersService.calculateReservationCents(false, config));
     }
 
     @Test

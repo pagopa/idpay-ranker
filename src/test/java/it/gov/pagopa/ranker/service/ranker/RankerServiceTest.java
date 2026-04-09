@@ -76,7 +76,7 @@ class RankerServiceTest {
     }
 
     @Test
-    void testExecute_whenNewPreallocation_shouldAddAndSend() throws Exception {
+    void testExecute_whenNewPreallocation_shouldAddAndSend() {
         // Given
         OnboardingDTO dto = new OnboardingDTO();
         dto.setInitiativeId(initiatives.getFirst());
@@ -101,7 +101,7 @@ class RankerServiceTest {
     }
 
     @Test
-    void testExecute_whenUserAlreadyPreallocated_shouldDoNothing() throws Exception {
+    void testExecute_whenUserAlreadyPreallocated_shouldDoNothing(){
         // Given
         OnboardingDTO dto = new OnboardingDTO();
         dto.setInitiativeId(initiatives.getFirst());
@@ -133,7 +133,7 @@ class RankerServiceTest {
     }
 
     @Test
-    void testExecute_whenInternalServiceThrows_shouldWrapInMessageProcessingException() throws Exception {
+    void testExecute_whenInternalServiceThrows_shouldWrapInMessageProcessingException() {
         // Given
         OnboardingDTO dto = new OnboardingDTO();
         dto.setInitiativeId("INIT_FAIL");
@@ -150,7 +150,7 @@ class RankerServiceTest {
     }
 
     @Test
-    void testExecute_whenVerifyIseeNull_shouldTreatAsFalse() throws Exception {
+    void testExecute_whenVerifyIseeNull_shouldTreatAsFalse() {
         // Given
         OnboardingDTO dto = new OnboardingDTO();
         dto.setInitiativeId(initiatives.getFirst());
@@ -174,7 +174,7 @@ class RankerServiceTest {
     }
 
     @Test
-    void testExecute_AnotherInitiative() throws Exception {
+    void testExecute_AnotherInitiative() {
         // Given
         OnboardingDTO dto = new OnboardingDTO();
         dto.setInitiativeId("another-initiative");

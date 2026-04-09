@@ -36,8 +36,7 @@ public class RefundedTransactionInProgressProcessorStrategy implements Transacti
         String transactionInProgressId = transactionInProgress.getId();
         String preallocationId = computePreallocationId(transactionInProgress);
 
-        if (!initiativeCountersPreallocationsRepository.existsById(
-                preallocationId)) {
+        if (!initiativeCountersPreallocationsRepository.existsById(preallocationId)) {
             log.warn("[RefundedTransactionInProgressProcessor] received event for a transaction having initiative {}" +
                     " and user {} that does not exist in the initiative preallocation, will not update counter",
                     transactionInProgress.getInitiativeId(), transactionInProgress.getUserId());
@@ -47,6 +46,9 @@ public class RefundedTransactionInProgressProcessorStrategy implements Transacti
                         transactionInProgress.getInitiativeId(),
                         transactionInProgress.getRewardCents());
                 initiativeCountersPreallocationsRepository.deleteById(preallocationId);
+
+                log.info("[RefundedTransactionInProgressProcessor] Refund processed successfully for transaction {}", transactionInProgressId);
+
             } catch (Exception e) {
                 log.error("[RefundedTransactionInProgressProcessor] Error attempting to " +
                           "alter initiativeCounters given id {} initiativeId {} and userId {}",

@@ -16,6 +16,8 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.util.Set;
 
+import static it.gov.pagopa.utils.CommonUtils.sanitizeString;
+
 @Service
 @Slf4j
 public class TransactionInProgressServiceImpl extends BaseKafkaConsumer implements TransactionInProgressService {
@@ -44,7 +46,8 @@ public class TransactionInProgressServiceImpl extends BaseKafkaConsumer implemen
         try {
 
             transactionInProgressDTO = objectMapper.readValue(message.getPayload(), TransactionInProgressDTO.class);
-            log.debug("Received Transaction in Progress: trx {} with status {}",
+
+            log.debug("[TRANSACTION_PROCESS][RECEIVED_MESSAGE] Received Transaction in Progress: trx {} with status {}",
                     transactionInProgressDTO.getId(), transactionInProgressDTO.getStatus());
 
             Set<ConstraintViolation<TransactionInProgressDTO>> constraintValidators =
@@ -54,11 +57,12 @@ public class TransactionInProgressServiceImpl extends BaseKafkaConsumer implemen
             }
 
         } catch (JacksonException _) {
-            log.error("[PROCESS_TRX_EH] Unable to map message to TransactionInProgress");
+            log.error("[TRANSACTION_PROCESS][RECEIVED_MESSAGE][{}] Unable to map message to TransactionInProgress: {}",
+                    getFlowName(), sanitizeString(message.getPayload()));
             return;
         } catch (ConstraintViolationException constraintViolationException) {
             assert transactionInProgressDTO != null;
-            log.error("[PROCESS_TRX_EH] Encountered violations for received transaction with id " +
+            log.error("[PROCESS_TRX_EH] Encountered violations for received transaction with id {}",
                     transactionInProgressDTO.getId());
             notifyError(message, false, constraintViolationException);
             return;

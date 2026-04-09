@@ -54,6 +54,9 @@ public class CapturedTransactionInProgressProcessorStrategy implements Transacti
                         transactionInProgress.getInitiativeId(),
                         transactionInProgress.getRewardCents(),
                         transactionInProgress.getVoucherAmountCents());
+
+                log.info("[CapturedTransactionInProgressProcessor] Updated counter for captured transaction {}", transactionInProgressId);
+
             } catch (Exception e) {
                 log.error("[CapturedTransactionInProgressProcessor] Error attempting to " +
                           "alter initiativeCounters given id {} initiativeId {} and userId {}",
@@ -65,7 +68,6 @@ public class CapturedTransactionInProgressProcessorStrategy implements Transacti
                 throw e;
             }
         }
-
     }
 
 }

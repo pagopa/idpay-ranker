@@ -11,5 +11,4 @@ public class RankerProcessorProperties {
     private int maxParallelSessions;
     private int idleTimeoutSeconds;
     private int waitMessageSeconds;
-    private long reconcileDelayMs;
 }

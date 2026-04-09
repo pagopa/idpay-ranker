@@ -176,8 +176,8 @@ app:
     forceStopped: ${FORCE_STOPPED:false}
     processor:
       max-parallel-sessions: ${SESSIONS_MAX_PARALLEL:2}
-      idle-timeout-seconds_SECONDS: ${SESSIONS_IDLE_TIMEOUT:120}
-      wait-message-seconds_SECONDS: ${SESSIONS_WAIT_MESSAGE:5}
+      idle-timeout-seconds: ${SESSIONS_IDLE_TIMEOUT_SECONDS:120}
+      wait-message-seconds: ${SESSIONS_WAIT_MESSAGE_SECONDS:5}
   threads:
     # the size of the thread pool to handle @Scheduled tasks
     schedule-max-number: ${THREADS_SCHEDULE_MAX_NUMBER:1}

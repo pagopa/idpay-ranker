@@ -32,6 +32,7 @@ public class RefundedTransactionInProgressProcessorStrategy implements Transacti
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void processTransaction(TransactionInProgressDTO transactionInProgress) {
+        log.info("[RefundedTransactionInProgressProcessor] Starting refund handling process for transaction {}", transactionInProgress.getId());
         String transactionInProgressId = transactionInProgress.getId();
         String preallocationId = computePreallocationId(transactionInProgress);
 

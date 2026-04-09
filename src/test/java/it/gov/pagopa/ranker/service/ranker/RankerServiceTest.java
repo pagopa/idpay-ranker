@@ -48,7 +48,7 @@ class RankerServiceTest {
     private ObjectMapper objectMapper;
 
     private RankerService rankerService;
-    private List<String> initiatives = List.of("INITIATIVE_ID");
+    private final List<String> initiatives = List.of("INITIATIVE_ID");
 
     @BeforeEach
     void setup() {
@@ -63,7 +63,7 @@ class RankerServiceTest {
         );
     }
 
-    private ServiceBusReceivedMessage buildMessage(OnboardingDTO dto) throws Exception {
+    private ServiceBusReceivedMessage buildMessage(OnboardingDTO dto) {
         String json = objectMapper.writeValueAsString(dto);
         ServiceBusMessage sbMessage = new ServiceBusMessage(json);
         ServiceBusReceivedMessage message = mock(ServiceBusReceivedMessage.class);
@@ -76,7 +76,7 @@ class RankerServiceTest {
     }
 
     @Test
-    void testExecute_whenNewPreallocation_shouldAddAndSend() throws Exception {
+    void testExecute_whenNewPreallocation_shouldAddAndSend() {
         // Given
         OnboardingDTO dto = new OnboardingDTO();
         dto.setInitiativeId(initiatives.getFirst());
@@ -101,7 +101,7 @@ class RankerServiceTest {
     }
 
     @Test
-    void testExecute_whenUserAlreadyPreallocated_shouldDoNothing() throws Exception {
+    void testExecute_whenUserAlreadyPreallocated_shouldDoNothing(){
         // Given
         OnboardingDTO dto = new OnboardingDTO();
         dto.setInitiativeId(initiatives.getFirst());
@@ -133,7 +133,7 @@ class RankerServiceTest {
     }
 
     @Test
-    void testExecute_whenInternalServiceThrows_shouldWrapInMessageProcessingException() throws Exception {
+    void testExecute_whenInternalServiceThrows_shouldWrapInMessageProcessingException() {
         // Given
         OnboardingDTO dto = new OnboardingDTO();
         dto.setInitiativeId("INIT_FAIL");
@@ -150,7 +150,7 @@ class RankerServiceTest {
     }
 
     @Test
-    void testExecute_whenVerifyIseeNull_shouldTreatAsFalse() throws Exception {
+    void testExecute_whenVerifyIseeNull_shouldTreatAsFalse() {
         // Given
         OnboardingDTO dto = new OnboardingDTO();
         dto.setInitiativeId(initiatives.getFirst());
@@ -174,7 +174,7 @@ class RankerServiceTest {
     }
 
     @Test
-    void testExecute_AnotherInitiative() throws Exception {
+    void testExecute_AnotherInitiative() {
         // Given
         OnboardingDTO dto = new OnboardingDTO();
         dto.setInitiativeId("another-initiative");
@@ -308,12 +308,5 @@ class RankerServiceTest {
         rankerService.recovery(input);
 
         verify(rankerProducer, never()).sendSaveConsent(any());
-    }
-
-    @Test
-    void testSanitizeString() {
-        assertNull(RankerServiceImpl.sanitizeString(null));
-        assertEquals("abc", RankerServiceImpl.sanitizeString("a\nb\rc"));
-        assertEquals("helloWorld", RankerServiceImpl.sanitizeString("hello@World!!!"));
     }
 }

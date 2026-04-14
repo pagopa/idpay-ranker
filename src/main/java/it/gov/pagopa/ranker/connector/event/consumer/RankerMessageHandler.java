@@ -26,7 +26,7 @@ public class RankerMessageHandler {
   public void handle(ServiceBusReceivedMessageContext context) {
     try {
       rankerService.execute(context.getMessage());
-    } catch (BudgetExhaustedException e) {
+    } catch (BudgetExhaustedException _) {
       log.error("[BUDGET_CONTEXT] Budget exhausted.");
       publisher.publishEvent(BudgetExhaustedEvent.of("initiative budget exhausted",clock));
     } catch (Exception e) {

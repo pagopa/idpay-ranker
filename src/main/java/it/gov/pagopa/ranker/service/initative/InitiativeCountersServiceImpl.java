@@ -8,7 +8,6 @@ import it.gov.pagopa.ranker.enums.PreallocationStatus;
 import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
 import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
-import it.gov.pagopa.utils.CommonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
@@ -20,6 +19,9 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
+
+import static it.gov.pagopa.utils.CommonUtils.sanitizeString;
 
 @Slf4j
 @Service
@@ -37,10 +39,11 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
     public InitiativeCountersServiceImpl(InitiativeCountersRepository initiativeCounterRepository,
                                          @Value("${app.initiative.identified}") List<String> initiativeIds,
                                          InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository,
-                                         InitiativeBeneficiaryRuleService initiativeBeneficiaryRuleService) {
+                                         InitiativeBeneficiaryRuleService initiativeBeneficiaryRuleService, Clock clock) {
         this.initiativeCountersRepository = initiativeCounterRepository;
-        this.initiativeId = initiativeId;
+        this.initiativeIds = initiativeIds;
         this.initiativeCountersPreallocationsRepository = initiativeCountersPreallocationsRepository;
+        this.initiativeBeneficiaryRuleService = initiativeBeneficiaryRuleService;
         this.clock = clock;
     }
 

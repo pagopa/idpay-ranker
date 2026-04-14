@@ -1,11 +1,14 @@
 package it.gov.pagopa.ranker.service.initative;
 
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
+import it.gov.pagopa.ranker.domain.model.InitiativeConfig;
+import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
 import it.gov.pagopa.ranker.domain.model.InitiativeCountersPreallocations;
 import it.gov.pagopa.ranker.enums.PreallocationStatus;
 import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
 import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
+import it.gov.pagopa.utils.CommonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
@@ -23,15 +26,18 @@ import java.util.Optional;
 public class InitiativeCountersServiceImpl implements InitiativeCountersService {
 
     public static final String ID_SEPARATOR = "_";
-    private final List<String> initiativeId;
+    private final List<String> initiativeIds;
 
     private final InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository;
     private final InitiativeCountersRepository initiativeCountersRepository;
+    private final InitiativeBeneficiaryRuleService initiativeBeneficiaryRuleService;
 
     private final Clock clock;
 
     public InitiativeCountersServiceImpl(InitiativeCountersRepository initiativeCounterRepository,
-                                         @Value("${app.initiative.identified}") List<String> initiativeId, InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository, Clock clock) {
+                                         @Value("${app.initiative.identified}") List<String> initiativeIds,
+                                         InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository,
+                                         InitiativeBeneficiaryRuleService initiativeBeneficiaryRuleService) {
         this.initiativeCountersRepository = initiativeCounterRepository;
         this.initiativeId = initiativeId;
         this.initiativeCountersPreallocationsRepository = initiativeCountersPreallocationsRepository;
@@ -48,7 +54,7 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
 
     @Transactional
     public void addPreallocatedUser(String initiativeId, String userId, boolean verifyIsee, Long sequenceNumber, Instant enqueuedTime) {
-        long reservationCents = calculateReservationCents(verifyIsee);
+        long reservationCents = calculateReservationCents(verifyIsee, initiativeBeneficiaryRuleService.getInitiativeConfig(initiativeId));
 
         try {
             initiativeCountersRepository.incrementOnboardedAndBudget(
@@ -79,12 +85,24 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
 
     @Override
     public boolean hasAvailableBudget() {
-        return initiativeCountersRepository.existsByIdInAndResidualInitiativeBudgetCentsGreaterThanEqual(
-                initiativeId, 20000);
+        return getInitiativeCountersStream().findFirst().isPresent();
     }
 
-    public long calculateReservationCents(boolean verifyIsee) {
-        return verifyIsee ? 20000L : 10000L;
+    @Override
+    public boolean hasAvailableBudget(String initiativeId) {
+        InitiativeCounters counter = initiativeCountersRepository.findById(initiativeId).orElse(null);
+        if(counter == null){
+            return false;
+        }
+        return hasInitiativeBudgetToPreallocate(counter);
+    }
+
+    public long calculateReservationCents(boolean verifyIsee, InitiativeConfig initiativeConfig) {
+        if(verifyIsee && initiativeConfig.getBeneficiaryInitiativeBudgetMaxCents() != null){
+            return initiativeConfig.getBeneficiaryInitiativeBudgetMaxCents();
+        } else {
+            return initiativeConfig.getBeneficiaryInitiativeBudgetCents();
+        }
     }
 
     @Override
@@ -102,7 +120,27 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
         }
     }
 
-    public static String sanitizeString(String str){
-        return str == null? null: str.replaceAll("[\\r\\n]", "").replaceAll("[^\\w\\s-]", "");
+
+    @Override
+    public List<String> retrieveInitiativesAvailableBudget() {
+        return getInitiativeCountersStream()
+                .map(InitiativeCounters::getId)
+                .toList();
+    }
+
+    private Stream<InitiativeCounters> getInitiativeCountersStream() {
+        return initiativeCountersRepository.findByIdIn(initiativeIds).stream()
+                .filter(this::hasInitiativeBudgetToPreallocate);
+    }
+
+    private boolean hasInitiativeBudgetToPreallocate(InitiativeCounters initiativeCounters) {
+        InitiativeConfig initiativeConfig = initiativeBeneficiaryRuleService.getInitiativeConfig(initiativeCounters.getId());
+        if (initiativeConfig != null) {
+            if (initiativeConfig.getBeneficiaryInitiativeBudgetMaxCents() != null) {
+                return initiativeCounters.getResidualInitiativeBudgetCents() >= initiativeConfig.getBeneficiaryInitiativeBudgetMaxCents();
+            }
+            return initiativeCounters.getResidualInitiativeBudgetCents() >= initiativeConfig.getBeneficiaryInitiativeBudgetCents();
+        }
+        return false;
     }
 }

@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static it.gov.pagopa.utils.CommonConstants.ZONEID;
+import static it.gov.pagopa.utils.CommonUtils.sanitizeString;
 
 @Service
 @Slf4j
@@ -49,7 +50,7 @@ public class RankerServiceImpl implements RankerService {
     @Override
     public void preallocate(OnboardingDTO dto) {
         if (this.initiativeCountersService.existsByInitiativeIdAndUserId(dto.getInitiativeId(), dto.getUserId())) {
-            log.info("User {} already preallocated for initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
+            log.info("[PREALLOCATE] User {} already preallocated for initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
             return;
         }
 
@@ -66,7 +67,7 @@ public class RankerServiceImpl implements RankerService {
                 dto.getEnqueuedTime()
         );
 
-        log.info("Preallocation added for user {} in initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
+        log.info("[PREALLOCATE] Preallocation added for user {} in initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
         this.rankerProducer.sendSaveConsent(dto);
     }
 
@@ -124,9 +125,5 @@ public class RankerServiceImpl implements RankerService {
             log.error("[RANKER_PROCESSOR] Failed to deserialize message");
             throw new IllegalStateException("Failed to deserialize message", e);
         }
-    }
-
-    public static String sanitizeString(String str){
-        return str == null? null: str.replaceAll("[\\r\\n]", "").replaceAll("[^\\w\\s-]", "");
     }
 }

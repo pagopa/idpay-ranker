@@ -12,6 +12,10 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -26,10 +30,10 @@ class InitiativeCountersPreallocationsRepositoryExtImplTest  {
     private MongoTemplate mongoTemplate;
 
     private InitiativeCountersPreallocationsRepositoryExtImpl repository;
-
+    private final Clock clock = Clock.fixed(Instant.parse("2026-04-03T10:00:00Z"), ZoneOffset.UTC);
     @BeforeEach
     void setUp() {
-        repository = new InitiativeCountersPreallocationsRepositoryExtImpl(mongoTemplate);
+        repository = new InitiativeCountersPreallocationsRepositoryExtImpl(mongoTemplate, clock);
     }
     @Test
     void findByIdAndStatusThenUpdateStatusToCaptured() {

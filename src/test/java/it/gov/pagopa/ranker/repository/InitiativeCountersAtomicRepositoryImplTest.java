@@ -11,7 +11,9 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
-import java.time.LocalDateTime;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -26,16 +28,14 @@ class InitiativeCountersAtomicRepositoryImplTest {
     private MongoTemplate mongoTemplate;
 
     private InitiativeCountersAtomicRepositoryImpl repository;
-
+    private final Clock clock = Clock.fixed(Instant.parse("2026-04-03T10:00:00Z"), ZoneOffset.UTC);
     @BeforeEach
     void setUp() {
-        repository = new InitiativeCountersAtomicRepositoryImpl(mongoTemplate);
+        repository = new InitiativeCountersAtomicRepositoryImpl(mongoTemplate, clock);
     }
 
     @Test
     void testIncrementOnboardedAndBudget() {
-        LocalDateTime now = LocalDateTime.now();
-        Long sequenceNumber = 123L;
 
         InitiativeCounters expected = InitiativeCounters.builder()
                 .id("initiative1")

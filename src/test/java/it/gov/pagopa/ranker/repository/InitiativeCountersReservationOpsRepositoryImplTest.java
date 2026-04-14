@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -37,8 +36,7 @@ class InitiativeCountersReservationOpsRepositoryImplTest {
         storeInitiative(budget);
 
         final ExecutorService executorService = Executors.newFixedThreadPool(n);
-        LocalDateTime now = LocalDateTime.now();
-        Long sequenceNumber = 123L;
+
 
         final List<Future<InitiativeCounters>> tasks = IntStream.range(0, n)
                 .mapToObj(i -> executorService.submit(() ->

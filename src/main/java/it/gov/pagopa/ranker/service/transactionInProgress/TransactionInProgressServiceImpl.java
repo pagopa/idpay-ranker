@@ -56,7 +56,7 @@ public class TransactionInProgressServiceImpl extends BaseKafkaConsumer implemen
                 throw new ConstraintViolationException(constraintValidators);
             }
 
-        } catch (JacksonException ex) {
+        } catch (JacksonException _) {
             log.error("[TRANSACTION_PROCESS][RECEIVED_MESSAGE][{}] Unable to map message to TransactionInProgress: {}",
                     getFlowName(), sanitizeString(message.getPayload()));
             return;

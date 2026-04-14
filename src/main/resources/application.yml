@@ -116,19 +116,18 @@ spring:
          default-candidate: false
          environment:
            spring.cloud.azure.servicebus.connection-string: ${SERVICEBUS_ADMISSIBILITY_CONNECTION_STRING:}
-  data:
-      mongodb:
-        uri: ${MONGODB_URI:mongodb://localhost:27017}
-        database: ${MONGODB_DBNAME:idpay}
-        # custom configured properties
-        config:
-          connectionPool:
-            maxSize: ${MONGODB_CONNECTIONPOOL_MAX_SIZE:100}
-            minSize: ${MONGODB_CONNECTIONPOOL_MIN_SIZE:0}
-            maxWaitTimeMS: ${MONGODB_CONNECTIONPOOL_MAX_WAIT_MS:120000}
-            maxConnectionLifeTimeMS: ${MONGODB_CONNECTIONPOOL_MAX_CONNECTION_LIFE_MS:0}
-            maxConnectionIdleTimeMS: ${MONGODB_CONNECTIONPOOL_MAX_CONNECTION_IDLE_MS:120000}
-            maxConnecting: ${MONGODB_CONNECTIONPOOL_MAX_CONNECTING:2}
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017}
+    database: ${MONGODB_DBNAME:idpay}
+    # custom configured properties
+    config:
+      connectionPool:
+        maxSize: ${MONGODB_CONNECTIONPOOL_MAX_SIZE:100}
+        minSize: ${MONGODB_CONNECTIONPOOL_MIN_SIZE:0}
+        maxWaitTimeMS: ${MONGODB_CONNECTIONPOOL_MAX_WAIT_MS:120000}
+        maxConnectionLifeTimeMS: ${MONGODB_CONNECTIONPOOL_MAX_CONNECTION_LIFE_MS:0}
+        maxConnectionIdleTimeMS: ${MONGODB_CONNECTIONPOOL_MAX_CONNECTION_IDLE_MS:120000}
+        maxConnecting: ${MONGODB_CONNECTIONPOOL_MAX_CONNECTING:2}
 
 management:
   health:
@@ -175,6 +174,10 @@ logging:
 app:
   ranker:
     forceStopped: ${FORCE_STOPPED:false}
+    processor:
+      max-parallel-sessions: ${SESSIONS_MAX_PARALLEL:2}
+      idle-timeout-seconds: ${SESSIONS_IDLE_TIMEOUT_SECONDS:120}
+      wait-message-seconds: ${SESSIONS_WAIT_MESSAGE_SECONDS:5}
   threads:
     # the size of the thread pool to handle @Scheduled tasks
     schedule-max-number: ${THREADS_SCHEDULE_MAX_NUMBER:1}
@@ -198,4 +201,4 @@ azure:
   servicebus:
     onboarding-request:
       connection-string: ${SERVICEBUS_ONBOARDING_CONNECTION_STRING:}
-      queue-name: ${SB_ONBOARDING_REQUEST_TOPIC:idpay-onboarding-request}
+      queue-name: ${SB_ONBOARDING_REQUEST_TOPIC:idpay-onboarding-request-session}

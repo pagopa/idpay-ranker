@@ -1,7 +1,5 @@
 package it.gov.pagopa.ranker.service.transactionInProgress;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import it.gov.pagopa.ranker.connector.event.consumer.BaseKafkaConsumer;
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
 import it.gov.pagopa.ranker.exception.UnmanagedStrategyException;
@@ -13,8 +11,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.Set;
+
+import static it.gov.pagopa.utils.CommonUtils.sanitizeString;
 
 @Service
 @Slf4j
@@ -44,7 +46,8 @@ public class TransactionInProgressServiceImpl extends BaseKafkaConsumer implemen
         try {
 
             transactionInProgressDTO = objectMapper.readValue(message.getPayload(), TransactionInProgressDTO.class);
-            log.debug("Received Transaction in Progress: trx {} with status {}",
+
+            log.debug("[TRANSACTION_PROCESS][RECEIVED_MESSAGE] Received Transaction in Progress: trx {} with status {}",
                     transactionInProgressDTO.getId(), transactionInProgressDTO.getStatus());
 
             Set<ConstraintViolation<TransactionInProgressDTO>> constraintValidators =
@@ -53,12 +56,13 @@ public class TransactionInProgressServiceImpl extends BaseKafkaConsumer implemen
                 throw new ConstraintViolationException(constraintValidators);
             }
 
-        } catch (JsonProcessingException e) {
-            log.error("[PROCESS_TRX_EH] Unable to map message to TransactionInProgress");
+        } catch (JacksonException _) {
+            log.error("[TRANSACTION_PROCESS][RECEIVED_MESSAGE][{}] Unable to map message to TransactionInProgress: {}",
+                    getFlowName(), sanitizeString(message.getPayload()));
             return;
         } catch (ConstraintViolationException constraintViolationException) {
             assert transactionInProgressDTO != null;
-            log.error("[PROCESS_TRX_EH] Encountered violations for received transaction with id " +
+            log.error("[PROCESS_TRX_EH] Encountered violations for received transaction with id {}",
                     transactionInProgressDTO.getId());
             notifyError(message, false, constraintViolationException);
             return;
@@ -67,7 +71,7 @@ public class TransactionInProgressServiceImpl extends BaseKafkaConsumer implemen
         try {
             transactionInProgressProcessorStrategyFactory.getStrategy(transactionInProgressDTO.getStatus())
                     .processTransaction(transactionInProgressDTO);
-        } catch (UnmanagedStrategyException unmanagedStrategyException) {
+        } catch (UnmanagedStrategyException _) {
             log.debug("[PROCESS_TRX_EH] Unmanaged status {}", transactionInProgressDTO.getStatus());
         } catch (Exception e) {
             notifyError(message, true, e);

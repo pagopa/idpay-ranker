@@ -1,8 +1,6 @@
 package it.gov.pagopa.ranker.service.ranker;
 
 import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
 import it.gov.pagopa.ranker.connector.event.producer.RankerProducer;
 import it.gov.pagopa.ranker.constants.OnboardingConstant;
 import it.gov.pagopa.ranker.domain.dto.OnboardingDTO;
@@ -14,12 +12,15 @@ import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectReader;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 import static it.gov.pagopa.utils.CommonConstants.ZONEID;
+import static it.gov.pagopa.utils.CommonUtils.sanitizeString;
 
 @Service
 @Slf4j
@@ -49,7 +50,7 @@ public class RankerServiceImpl implements RankerService {
     @Override
     public void preallocate(OnboardingDTO dto) {
         if (this.initiativeCountersService.existsByInitiativeIdAndUserId(dto.getInitiativeId(), dto.getUserId())) {
-            log.info("User {} already preallocated for initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
+            log.info("[PREALLOCATE] User {} already preallocated for initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
             return;
         }
 
@@ -66,7 +67,7 @@ public class RankerServiceImpl implements RankerService {
                 dto.getEnqueuedTime()
         );
 
-        log.info("Preallocation added for user {} in initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
+        log.info("[PREALLOCATE] Preallocation added for user {} in initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
         this.rankerProducer.sendSaveConsent(dto);
     }
 
@@ -119,14 +120,10 @@ public class RankerServiceImpl implements RankerService {
 
     private OnboardingDTO deserialize(String messageBody) {
         try {
-            return objectReader.readValue(messageBody, OnboardingDTO.class);
+            return objectReader.readValue(messageBody);
         } catch (Exception e) {
             log.error("[RANKER_PROCESSOR] Failed to deserialize message");
             throw new IllegalStateException("Failed to deserialize message", e);
         }
-    }
-
-    public static String sanitizeString(String str){
-        return str == null? null: str.replaceAll("[\\r\\n]", "").replaceAll("[^\\w\\s-]", "");
     }
 }

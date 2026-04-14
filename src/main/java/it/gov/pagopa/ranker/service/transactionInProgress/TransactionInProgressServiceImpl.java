@@ -71,7 +71,7 @@ public class TransactionInProgressServiceImpl extends BaseKafkaConsumer implemen
         try {
             transactionInProgressProcessorStrategyFactory.getStrategy(transactionInProgressDTO.getStatus())
                     .processTransaction(transactionInProgressDTO);
-        } catch (UnmanagedStrategyException ex) {
+        } catch (UnmanagedStrategyException _) {
             log.debug("[PROCESS_TRX_EH] Unmanaged status {}", transactionInProgressDTO.getStatus());
         } catch (Exception e) {
             notifyError(message, true, e);

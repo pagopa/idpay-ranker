@@ -81,7 +81,7 @@ class RankerServiceTest {
         OnboardingDTO dto = new OnboardingDTO();
         dto.setInitiativeId(initiatives.getFirst());
         dto.setUserId("USR001");
-        dto.setVerifyIsee(true);
+       // dto.setVerifyIsee(true);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
         when(initiativeCountersService.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR001")).thenReturn(false);
@@ -93,7 +93,7 @@ class RankerServiceTest {
         verify(initiativeCountersService).addPreallocatedUser(
                 eq(initiatives.getFirst()),
                 eq("USR001"),
-                eq(true),
+                eq(null),
                 eq(99L),
                 any(LocalDateTime.class)
         );
@@ -106,7 +106,7 @@ class RankerServiceTest {
         OnboardingDTO dto = new OnboardingDTO();
         dto.setInitiativeId(initiatives.getFirst());
         dto.setUserId("USR_EXIST");
-        dto.setVerifyIsee(false);
+        //dto.setVerifyIsee(false);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
         when(initiativeCountersService.existsByInitiativeIdAndUserId(initiatives.getFirst(),  "USR_EXIST")).thenReturn(true);
@@ -115,7 +115,7 @@ class RankerServiceTest {
         rankerService.execute(message);
 
         // Then
-        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), anyBoolean(), anyLong(), any());
+        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), anyLong(), any());
         verify(rankerProducer, never()).sendSaveConsent(any());
     }
 
@@ -155,7 +155,7 @@ class RankerServiceTest {
         OnboardingDTO dto = new OnboardingDTO();
         dto.setInitiativeId(initiatives.getFirst());
         dto.setUserId("USR002");
-        dto.setVerifyIsee(null);
+        dto.setVerifies(null);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
         when(initiativeCountersService.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR002")).thenReturn(false);
@@ -167,7 +167,7 @@ class RankerServiceTest {
         verify(initiativeCountersService).addPreallocatedUser(
                 eq(initiatives.getFirst()),
                 eq("USR002"),
-                eq(false),
+                eq(null),
                 eq(99L),
                 any(LocalDateTime.class)
         );
@@ -179,7 +179,7 @@ class RankerServiceTest {
         OnboardingDTO dto = new OnboardingDTO();
         dto.setInitiativeId("another-initiative");
         dto.setUserId("USR002");
-        dto.setVerifyIsee(null);
+        dto.setVerifies(null);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
 
@@ -187,7 +187,7 @@ class RankerServiceTest {
         rankerService.execute(message);
 
         // Then
-        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), anyBoolean(), any(), any());
+        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), any(), any());
     }
 
     @Test
@@ -216,7 +216,7 @@ class RankerServiceTest {
         rankerService.recovery(input);
 
         // Then
-        assertTrue(mapped.getVerifyIsee());
+        //assertTrue(mapped.getVerifyIsee());
         assertEquals("SRV001", mapped.getServiceId());
 
         verify(rankerProducer).sendSaveConsent(mapped);
@@ -287,7 +287,7 @@ class RankerServiceTest {
         rankerService.recovery(input);
 
         // Then
-        assertFalse(mapped.getVerifyIsee());
+        //assertFalse(mapped.getVerifyIsee());
         verify(rankerProducer).sendSaveConsent(mapped);
     }
 

@@ -314,7 +314,7 @@ class InitiativeCountersServiceImplTest {
 
     @Test
     void testCalculateReservationCents() {
-        InitiativeConfig config = InitiativeConfig.builder().beneficiaryInitiativeBudgetMaxCents(20000L).beneficiaryInitiativeBudgetCents(10000L).build();
+        InitiativeConfig config = InitiativeConfig.builder().beneficiaryBudgetMaxCents(20000L).beneficiaryInitiativeBudgetCents(10000L).build();
         assertEquals(20000L, initiativeCountersService.calculateReservationCents(true, config));
         assertEquals(10000L, initiativeCountersService.calculateReservationCents(false, config));
     }

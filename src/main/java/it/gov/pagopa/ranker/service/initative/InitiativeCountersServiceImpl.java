@@ -1,6 +1,7 @@
 package it.gov.pagopa.ranker.service.initative;
 
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
+import it.gov.pagopa.ranker.domain.dto.VerifyDTO;
 import it.gov.pagopa.ranker.domain.model.InitiativeConfig;
 import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
 import it.gov.pagopa.ranker.domain.model.InitiativeCountersPreallocations;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -51,8 +53,10 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
     }
 
     @Transactional
-    public void addPreallocatedUser(String initiativeId, String userId, boolean verifyIsee, Long sequenceNumber, LocalDateTime enqueuedTime) {
-        long reservationCents = calculateReservationCents(verifyIsee, initiativeBeneficiaryRuleService.getInitiativeConfig(initiativeId));
+    public void addPreallocatedUser(String initiativeId, String userId, List<VerifyDTO> verifies, Long sequenceNumber, LocalDateTime enqueuedTime) {
+
+
+        long reservationCents = calculateReservationCents(verifies, initiativeBeneficiaryRuleService.getInitiativeConfig(initiativeId));
 
         try {
             initiativeCountersRepository.incrementOnboardedAndBudget(
@@ -95,12 +99,13 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
         return hasInitiativeBudgetToPreallocate(counter);
     }
 
-    public long calculateReservationCents(boolean verifyIsee, InitiativeConfig initiativeConfig) {
-        if(verifyIsee && initiativeConfig.getBeneficiaryInitiativeBudgetMaxCents() != null){
-            return initiativeConfig.getBeneficiaryInitiativeBudgetMaxCents();
-        } else {
-            return initiativeConfig.getBeneficiaryInitiativeBudgetCents();
-        }
+    public long calculateReservationCents(List<VerifyDTO> verifies, InitiativeConfig initiativeConfig) {
+
+        return verifies.stream()
+                .map(VerifyDTO::getBeneficiaryBudgetCentsMax)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(initiativeConfig.getBeneficiaryBudgetFixedCents());
     }
 
     @Override
@@ -134,10 +139,11 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
     private boolean hasInitiativeBudgetToPreallocate(InitiativeCounters initiativeCounters) {
         InitiativeConfig initiativeConfig = initiativeBeneficiaryRuleService.getInitiativeConfig(initiativeCounters.getId());
         if (initiativeConfig != null) {
-            if (initiativeConfig.getBeneficiaryInitiativeBudgetMaxCents() != null) {
-                return initiativeCounters.getResidualInitiativeBudgetCents() >= initiativeConfig.getBeneficiaryInitiativeBudgetMaxCents();
+            if (initiativeConfig.getBeneficiaryBudgetMaxCents() != null) {
+                return initiativeCounters.getResidualInitiativeBudgetCents() >= initiativeConfig.getBeneficiaryBudgetMaxCents();
+            } else if (initiativeConfig.getBeneficiaryBudgetFixedCents() != null) {
+                return initiativeCounters.getResidualInitiativeBudgetCents() >= initiativeConfig.getBeneficiaryBudgetFixedCents();
             }
-            return initiativeCounters.getResidualInitiativeBudgetCents() >= initiativeConfig.getBeneficiaryInitiativeBudgetCents();
         }
         return false;
     }

@@ -1,6 +1,7 @@
 package it.gov.pagopa.ranker.service.initative;
 
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
+import it.gov.pagopa.ranker.domain.dto.VerifyDTO;
 import it.gov.pagopa.ranker.domain.model.InitiativeConfig;
 import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
 import it.gov.pagopa.ranker.domain.model.InitiativeCountersPreallocations;
@@ -81,11 +82,21 @@ class InitiativeCountersServiceImplTest {
         String userId = "USER123";
         LocalDateTime time = LocalDateTime.now();
 
+        VerifyDTO verify = VerifyDTO.builder()
+                .code("ISEE")
+                .verify(true)
+                .blockingVerify(false)
+                .thresholdCode("BELET25")
+                .beneficiaryBudgetCentsMin(10000L)
+                .beneficiaryBudgetCentsMax(20000L)
+                .result(true)
+                .build();
+
         InitiativeConfig config = InitiativeConfig.builder().initiativeId(INITIATIVE_ID.getFirst()).beneficiaryBudgetFixedCents(10000L).beneficiaryBudgetMaxCents(20000L).build();
         when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
 
         initiativeCountersService.addPreallocatedUser(
-                INITIATIVE_ID.getFirst(), userId, null, 1L, time);
+                INITIATIVE_ID.getFirst(), userId, List.of(verify), 1L, time);
 
         verify(initiativeCountersRepositoryMock)
                 .incrementOnboardedAndBudget(INITIATIVE_ID.getFirst(), 20000L);
@@ -102,6 +113,17 @@ class InitiativeCountersServiceImplTest {
 
     @Test
     void testAddPreallocatedUser_budgetExhausted() {
+
+        VerifyDTO verify = VerifyDTO.builder()
+                .code("ISEE")
+                .verify(true)
+                .blockingVerify(false)
+                .thresholdCode("BELET25")
+                .beneficiaryBudgetCentsMin(10000L)
+                .beneficiaryBudgetCentsMax(20000L)
+                .result(true)
+                .build();
+
         doThrow(new DuplicateKeyException("Duplicate"))
                 .when(initiativeCountersRepositoryMock)
                 .incrementOnboardedAndBudget(anyString(), anyLong());
@@ -109,11 +131,14 @@ class InitiativeCountersServiceImplTest {
         when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
         assertThrows(BudgetExhaustedException.class, () ->
                 initiativeCountersService.addPreallocatedUser(
-                        INITIATIVE_ID.getFirst(), "USER", null, 10L, LocalDateTime.now())
+                        INITIATIVE_ID.getFirst(), "USER", List.of(verify), 10L, LocalDateTime.now())
         );
 
         verify(initiativeCountersRepositoryMock)
-                .incrementOnboardedAndBudget(INITIATIVE_ID.getFirst(), 10000L);
+                .incrementOnboardedAndBudget(
+                        INITIATIVE_ID.getFirst(),
+                        20000L
+                );
     }
 
     @Test

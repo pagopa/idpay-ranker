@@ -132,6 +132,7 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
     }
 
     private boolean hasInitiativeBudgetToPreallocate(InitiativeCounters initiativeCounters) {
+        log.info("The initiative {} is gonna be preallocated", initiativeCounters.getId());
         InitiativeConfig initiativeConfig = initiativeBeneficiaryRuleService.getInitiativeConfig(initiativeCounters.getId());
         if (initiativeConfig != null) {
             if (initiativeConfig.getBeneficiaryInitiativeBudgetMaxCents() != null) {

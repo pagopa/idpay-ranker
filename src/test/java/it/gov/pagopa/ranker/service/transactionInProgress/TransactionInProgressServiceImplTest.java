@@ -25,7 +25,7 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.SerializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.TimeZone;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -53,7 +53,7 @@ class TransactionInProgressServiceImplTest {
     TransactionInProgressServiceImpl transactionInProgressService;
 
     @BeforeEach
-    public void init() {
+    void init() {
         Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
         Mockito.reset(transactionInProgressProcessorStrategyFactory, transactionInProgressProcessorStrategy);
         objectMapper = updateMapper();
@@ -69,7 +69,7 @@ class TransactionInProgressServiceImplTest {
         TransactionInProgressDTO transactionInProgressDTO =
                 TransactionInProgressDTO.builder()
                         .id("ID_1")
-                        .trxDate(OffsetDateTime.now())
+                        .trxDate(Instant.now())
                         .status(SyncTrxStatus.EXPIRED)
                         .extendedAuthorization(true)
                         .build();
@@ -88,7 +88,7 @@ class TransactionInProgressServiceImplTest {
     void shouldNotProcessInvalidTrx_MissingId() {
         TransactionInProgressDTO transactionInProgressDTO =
                 TransactionInProgressDTO.builder()
-                        .trxDate(OffsetDateTime.now())
+                        .trxDate(Instant.now())
                         .status(SyncTrxStatus.EXPIRED)
                         .extendedAuthorization(true)
                         .build();
@@ -106,7 +106,7 @@ class TransactionInProgressServiceImplTest {
         TransactionInProgressDTO transactionInProgressDTO =
                 TransactionInProgressDTO.builder()
                         .id("ID_1")
-                        .trxDate(OffsetDateTime.now())
+                        .trxDate(Instant.now())
                         .extendedAuthorization(true)
                         .build();
         Message<String> message = MessageBuilder.withPayload(objectMapper.writeValueAsString(transactionInProgressDTO)).build();
@@ -122,7 +122,7 @@ class TransactionInProgressServiceImplTest {
         TransactionInProgressDTO transactionInProgressDTO =
                 TransactionInProgressDTO.builder()
                         .id("ID_1")
-                        .trxDate(OffsetDateTime.now())
+                        .trxDate(Instant.now())
                         .status(SyncTrxStatus.EXPIRED)
                         .extendedAuthorization(true)
                         .build();
@@ -153,7 +153,7 @@ class TransactionInProgressServiceImplTest {
         TransactionInProgressDTO transactionInProgressDTO =
                 TransactionInProgressDTO.builder()
                         .id("ID_1")
-                        .trxDate(OffsetDateTime.now())
+                        .trxDate(Instant.now())
                         .status(SyncTrxStatus.EXPIRED)
                         .extendedAuthorization(true)
                         .build();
@@ -172,7 +172,7 @@ class TransactionInProgressServiceImplTest {
         TransactionInProgressDTO transactionInProgressDTO =
                 TransactionInProgressDTO.builder()
                         .id("ID_1")
-                        .trxDate(OffsetDateTime.now())
+                        .trxDate(Instant.now())
                         .status(SyncTrxStatus.EXPIRED)
                         .extendedAuthorization(true)
                         .build();

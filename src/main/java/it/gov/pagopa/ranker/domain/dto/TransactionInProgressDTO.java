@@ -12,8 +12,7 @@ import lombok.experimental.FieldNameConstants;
 import lombok.experimental.SuperBuilder;
 import org.springframework.format.annotation.DateTimeFormat;
 
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,13 +32,13 @@ public class TransactionInProgressDTO {
   private String idTrxAcquirer;
 
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-  private OffsetDateTime trxDate;
+  private Instant trxDate;
 
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-  private OffsetDateTime trxChargeDate;
+  private Instant trxChargeDate;
 
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-  private LocalDateTime elaborationDateTime;
+  private Instant elaborationDateTime;
 
   private String operationType;
   private OperationType operationTypeTranscoded;
@@ -68,7 +67,7 @@ public class TransactionInProgressDTO {
   @Builder.Default
   private Map<String, Reward> rewards = new HashMap<>();
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-  private LocalDateTime updateDate;
+  private Instant updateDate;
 
   private List<String> initiatives;
   @Builder.Default
@@ -77,7 +76,7 @@ public class TransactionInProgressDTO {
 
   private Boolean extendedAuthorization;
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-  private OffsetDateTime trxEndDate;
-  private OffsetDateTime initiativeEndDate;
+  private Instant trxEndDate;
+  private Instant initiativeEndDate;
   private Long voucherAmountCents;
 }

@@ -95,7 +95,7 @@ class RankerServiceTest {
                 eq("USR001"),
                 eq(true),
                 eq(99L),
-                any(LocalDateTime.class)
+                any(Instant.class)
         );
         verify(rankerProducer).sendSaveConsent(any(OnboardingDTO.class));
     }
@@ -169,7 +169,7 @@ class RankerServiceTest {
                 eq("USR002"),
                 eq(false),
                 eq(99L),
-                any(LocalDateTime.class)
+                any(Instant.class)
         );
     }
 

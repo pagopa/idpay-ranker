@@ -10,7 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Slf4j
 @Data
@@ -26,10 +26,10 @@ public class InitiativeCountersPreallocations {
     private String initiativeId;
     private String userId;
     private PreallocationStatus status;
-    private LocalDateTime createdAt;
+    private Instant createdAt;
     private Long sequenceNumber;
-    private LocalDateTime enqueuedTime;
+    private Instant enqueuedTime;
     private Long preallocatedAmountCents;
-    private LocalDateTime updateDate;
+    private Instant updateDate;
 
 }

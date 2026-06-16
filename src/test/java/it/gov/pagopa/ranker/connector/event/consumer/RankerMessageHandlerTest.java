@@ -11,6 +11,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -22,9 +26,10 @@ class RankerMessageHandlerTest {
   @Mock private ServiceBusReceivedMessageContext messageContext;
   @Mock private ServiceBusReceivedMessage message;
 
+  private final Clock clock = Clock.fixed(Instant.parse("2026-04-03T10:00:00Z"), ZoneOffset.UTC);
   @Test
   void handle_success_executesRankerService() {
-    RankerMessageHandler handler = new RankerMessageHandler(rankerService, publisher);
+    RankerMessageHandler handler = new RankerMessageHandler(rankerService, publisher, clock);
 
     when(messageContext.getMessage()).thenReturn(message);
 
@@ -36,7 +41,7 @@ class RankerMessageHandlerTest {
 
   @Test
   void handle_genericException_doesNotPublishBudgetEvent() {
-    RankerMessageHandler handler = new RankerMessageHandler(rankerService, publisher);
+    RankerMessageHandler handler = new RankerMessageHandler(rankerService, publisher, clock);
 
     when(messageContext.getMessage()).thenReturn(message);
     doThrow(new RuntimeException("test")).when(rankerService).execute(message);
@@ -49,7 +54,7 @@ class RankerMessageHandlerTest {
 
   @Test
   void handle_budgetExhausted_publishesBudgetEvent() {
-    RankerMessageHandler handler = new RankerMessageHandler(rankerService, publisher);
+    RankerMessageHandler handler = new RankerMessageHandler(rankerService, publisher, clock);
 
     when(messageContext.getMessage()).thenReturn(message);
     doThrow(new BudgetExhaustedException("test")).when(rankerService).execute(message);

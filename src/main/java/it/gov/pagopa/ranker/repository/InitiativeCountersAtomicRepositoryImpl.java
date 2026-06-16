@@ -8,7 +8,8 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.Clock;
+import java.time.Instant;
 
 @Repository
 public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCountersAtomicRepository {
@@ -21,9 +22,12 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
     private static final String FIELD_UPDATE_DATE = InitiativeCounters.Fields.updateDate;
 
     private final MongoTemplate mongoTemplate;
+    
+    private final Clock clock;
 
-    public InitiativeCountersAtomicRepositoryImpl(MongoTemplate mongoTemplate) {
+    public InitiativeCountersAtomicRepositoryImpl(MongoTemplate mongoTemplate, Clock clock) {
         this.mongoTemplate = mongoTemplate;
+        this.clock = clock;
     }
 
     @Override
@@ -38,7 +42,7 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
                 .inc(FIELD_ONBOARDED, 1L)
                 .inc(FIELD_RESERVED_BUDGET_CENTS, reservationCents)
                 .inc(FIELD_RESIDUAL_BUDGET_CENTS, -reservationCents)
-                .set(FIELD_UPDATE_DATE, LocalDateTime.now());
+                .set(FIELD_UPDATE_DATE, Instant.now(clock));
 
         return mongoTemplate.findAndModify(
                 query,
@@ -58,7 +62,7 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
                 .inc(FIELD_ONBOARDED, -1L)
                 .inc(FIELD_RESERVED_BUDGET_CENTS, -reservationCents)
                 .inc(FIELD_RESIDUAL_BUDGET_CENTS, +reservationCents)
-                .set(FIELD_UPDATE_DATE, LocalDateTime.now());
+                .set(FIELD_UPDATE_DATE, Instant.now(clock));
 
         return mongoTemplate.findAndModify(
                 query,
@@ -78,7 +82,7 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
                 .inc(FIELD_SPENT_BUDGET_CENTS, spentVoucherAmountCents)
                 .inc(FIELD_RESERVED_BUDGET_CENTS, -voucherAmountCents)
                 .inc(FIELD_RESIDUAL_BUDGET_CENTS, voucherAmountCents - spentVoucherAmountCents)
-                .set(FIELD_UPDATE_DATE, LocalDateTime.now());
+                .set(FIELD_UPDATE_DATE, Instant.now(clock));
 
         return mongoTemplate.findAndModify(
                 query,
@@ -97,7 +101,7 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
         Update update = new Update()
                 .inc(FIELD_SPENT_BUDGET_CENTS, -spentVoucherAmountCents)
                 .inc(FIELD_RESIDUAL_BUDGET_CENTS, spentVoucherAmountCents)
-                .set(FIELD_UPDATE_DATE, LocalDateTime.now());
+                .set(FIELD_UPDATE_DATE, Instant.now(clock));
 
         return mongoTemplate.findAndModify(
                 query,

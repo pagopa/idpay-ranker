@@ -4,24 +4,24 @@ import it.gov.pagopa.ranker.domain.dto.OnboardingDTO;
 import it.gov.pagopa.ranker.domain.model.Onboarding;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class ConsentMapperTest {
 
     private final ConsentMapper consentMapper = new ConsentMapper();
-
     @Test
     void testMap_success() {
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
 
         Onboarding onboarding = new Onboarding("init123", "user123");
         onboarding.setStatus("STATUS_OK");
         onboarding.setPdndAccept(true);
         onboarding.setCriteriaConsensusTimestamp(now);
         onboarding.setTc(true);
-        onboarding.setTcAcceptTimestamp(now.minusHours(1));
+        onboarding.setTcAcceptTimestamp(now.minus (1, ChronoUnit.HOURS));
         onboarding.setUserMail("email@test.com");
         onboarding.setChannel("APP");
         onboarding.setName("Mario");
@@ -36,7 +36,7 @@ class ConsentMapperTest {
         assertTrue(result.getPdndAccept());
         assertEquals(now, result.getCriteriaConsensusTimestamp());
         assertTrue(result.getTc());
-        assertEquals(now.minusHours(1), result.getTcAcceptTimestamp());
+        assertEquals(now.minus(1, ChronoUnit.HOURS), result.getTcAcceptTimestamp());
         assertEquals("email@test.com", result.getUserMail());
         assertEquals("APP", result.getChannel());
         assertEquals("Mario", result.getName());

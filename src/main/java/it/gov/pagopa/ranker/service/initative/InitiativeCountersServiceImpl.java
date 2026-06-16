@@ -8,7 +8,6 @@ import it.gov.pagopa.ranker.enums.PreallocationStatus;
 import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
 import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
-import it.gov.pagopa.utils.CommonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
@@ -16,10 +15,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
+
+import static it.gov.pagopa.utils.CommonUtils.sanitizeString;
 
 @Slf4j
 @Service
@@ -32,14 +34,17 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
     private final InitiativeCountersRepository initiativeCountersRepository;
     private final InitiativeBeneficiaryRuleService initiativeBeneficiaryRuleService;
 
+    private final Clock clock;
+
     public InitiativeCountersServiceImpl(InitiativeCountersRepository initiativeCounterRepository,
                                          @Value("${app.initiative.identified}") List<String> initiativeIds,
                                          InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository,
-                                         InitiativeBeneficiaryRuleService initiativeBeneficiaryRuleService) {
+                                         InitiativeBeneficiaryRuleService initiativeBeneficiaryRuleService, Clock clock) {
         this.initiativeCountersRepository = initiativeCounterRepository;
         this.initiativeIds = initiativeIds;
         this.initiativeCountersPreallocationsRepository = initiativeCountersPreallocationsRepository;
         this.initiativeBeneficiaryRuleService = initiativeBeneficiaryRuleService;
+        this.clock = clock;
     }
 
     public boolean existsByInitiativeIdAndUserId(String initiativeId, String userId){
@@ -51,7 +56,7 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
     }
 
     @Transactional
-    public void addPreallocatedUser(String initiativeId, String userId, boolean verifyIsee, Long sequenceNumber, LocalDateTime enqueuedTime) {
+    public void addPreallocatedUser(String initiativeId, String userId, boolean verifyIsee, Long sequenceNumber, Instant enqueuedTime) {
         long reservationCents = calculateReservationCents(verifyIsee, initiativeBeneficiaryRuleService.getInitiativeConfig(initiativeId));
 
         try {
@@ -67,8 +72,8 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
                             .userId(userId)
                             .sequenceNumber(sequenceNumber)
                             .enqueuedTime(enqueuedTime)
-                            .createdAt(LocalDateTime.now())
-                            .updateDate(LocalDateTime.now())
+                            .createdAt(Instant.now(clock))
+                            .updateDate(Instant.now(clock))
                             .status(PreallocationStatus.PREALLOCATED)
                             .preallocatedAmountCents(reservationCents)
                             .build()
@@ -76,7 +81,7 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
 
         } catch (DuplicateKeyException e){
             //CosmosDB throw DuplicateKey even if the residualInitiativeBudgetCents is less than the minimum required and is not really a duplicated id
-            log.error("[RANKER] Budget exhausted for the initiative {}", CommonUtils.sanitizeString(initiativeId));
+            log.error("[RANKER] Budget exhausted for the initiative {}", sanitizeString(initiativeId));
             throw new BudgetExhaustedException("[RANKER] Budget exhausted for the initiative: " + initiativeId, e);
         }
     }

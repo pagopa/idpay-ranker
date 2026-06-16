@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.ObjectReader;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -111,7 +111,7 @@ public class RankerServiceImpl implements RankerService {
         OnboardingDTO onboardingDTO = deserialize(message.getBody().toString());
 
         long sequenceNumber = message.getSequenceNumber();
-        LocalDateTime enqueuedTime = message.getEnqueuedTime().atZoneSameInstant(ZONEID).toLocalDateTime();
+        Instant enqueuedTime = message.getEnqueuedTime().atZoneSameInstant(ZONEID).toInstant();
 
         onboardingDTO.setSequenceNumber(sequenceNumber);
         onboardingDTO.setEnqueuedTime(enqueuedTime);

@@ -23,7 +23,7 @@ public class RankerProducer {
 
   public void sendSaveConsent(OnboardingDTO onboardingDTO) {
     streamBridge.send("rankerProducer-out-0", onboardingDTO);
-    log.info("Sending message: {}", getSafeLogString(onboardingDTO));
+    log.info("[ADMISSIBILITY_INTEGRATION] Sending message: {}", getSafeLogString(onboardingDTO));
   }
 
 /**

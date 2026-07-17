@@ -2,11 +2,14 @@ package it.gov.pagopa.ranker.service.initative;
 
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
 import it.gov.pagopa.ranker.domain.dto.VerifyDTO;
+import it.gov.pagopa.ranker.domain.model.InitiativeConfig;
+import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
 import it.gov.pagopa.ranker.domain.model.InitiativeCountersPreallocations;
 import it.gov.pagopa.ranker.enums.PreallocationStatus;
 import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
 import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
+import it.gov.pagopa.utils.CommonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
@@ -17,22 +20,27 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
 public class InitiativeCountersServiceImpl implements InitiativeCountersService {
 
     public static final String ID_SEPARATOR = "_";
-    private final List<String> initiativeId;
+    private final List<String> initiativeIds;
 
     private final InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository;
     private final InitiativeCountersRepository initiativeCountersRepository;
+    private final InitiativeBeneficiaryRuleService initiativeBeneficiaryRuleService;
 
     public InitiativeCountersServiceImpl(InitiativeCountersRepository initiativeCounterRepository,
-                                         @Value("${app.initiative.identified}") List<String> initiativeId, InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository) {
+                                         @Value("${app.initiative.identified}") List<String> initiativeIds,
+                                         InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository,
+                                         InitiativeBeneficiaryRuleService initiativeBeneficiaryRuleService) {
         this.initiativeCountersRepository = initiativeCounterRepository;
-        this.initiativeId = initiativeId;
+        this.initiativeIds = initiativeIds;
         this.initiativeCountersPreallocationsRepository = initiativeCountersPreallocationsRepository;
+        this.initiativeBeneficiaryRuleService = initiativeBeneficiaryRuleService;
     }
 
     public boolean existsByInitiativeIdAndUserId(String initiativeId, String userId){
@@ -68,15 +76,23 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
 
         } catch (DuplicateKeyException e){
             //CosmosDB throw DuplicateKey even if the residualInitiativeBudgetCents is less than the minimum required and is not really a duplicated id
-            log.error("[RANKER] Budget exhausted for the initiative {}", sanitizeString(initiativeId));
+            log.error("[RANKER] Budget exhausted for the initiative {}", CommonUtils.sanitizeString(initiativeId));
             throw new BudgetExhaustedException("[RANKER] Budget exhausted for the initiative: " + initiativeId, e);
         }
     }
 
     @Override
     public boolean hasAvailableBudget() {
-        return initiativeCountersRepository.existsByIdInAndResidualInitiativeBudgetCentsGreaterThanEqual(
-                initiativeId, 20000);
+        return getInitiativeCountersStream().findFirst().isPresent();
+    }
+
+    @Override
+    public boolean hasAvailableBudget(String initiativeId) {
+        InitiativeCounters counter = initiativeCountersRepository.findById(initiativeId).orElse(null);
+        if(counter == null){
+            return false;
+        }
+        return hasInitiativeBudgetToPreallocate(counter);
     }
 
     public long calculateReservationCents(List<VerifyDTO> verifies, Long beneficiaryBudgetFixedCents) {
@@ -103,6 +119,29 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
         }
     }
 
+
+    @Override
+    public List<String> retrieveInitiativesAvailableBudget() {
+        return getInitiativeCountersStream()
+                .map(InitiativeCounters::getId)
+                .toList();
+    }
+
+    private Stream<InitiativeCounters> getInitiativeCountersStream() {
+        return initiativeCountersRepository.findByIdIn(initiativeIds).stream()
+                .filter(this::hasInitiativeBudgetToPreallocate);
+    }
+
+    private boolean hasInitiativeBudgetToPreallocate(InitiativeCounters initiativeCounters) {
+        InitiativeConfig initiativeConfig = initiativeBeneficiaryRuleService.getInitiativeConfig(initiativeCounters.getId());
+        if (initiativeConfig != null) {
+            if (initiativeConfig.getBeneficiaryInitiativeBudgetMaxCents() != null) {
+                return initiativeCounters.getResidualInitiativeBudgetCents() >= initiativeConfig.getBeneficiaryInitiativeBudgetMaxCents();
+            }
+            return initiativeCounters.getResidualInitiativeBudgetCents() >= initiativeConfig.getBeneficiaryInitiativeBudgetCents();
+        }
+        return false;
+    }
     public static String sanitizeString(String str){
         return str == null? null: str.replaceAll("[\\r\\n]", "").replaceAll("[^\\w\\s-]", "");
     }

@@ -13,8 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.security.autoconfigure.SecurityAutoConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.test.context.ContextConfiguration;
@@ -31,13 +31,13 @@ import org.springframework.web.bind.annotation.RestController;
         properties = {
                 "de.flapdoodle.mongodb.embedded.version=4.2.24",
 
-                "spring.data.mongodb.database=idpay",
-                "spring.data.mongodb.config.connectionPool.maxSize: 100",
-                "spring.data.mongodb.config.connectionPool.minSize: 0",
-                "spring.data.mongodb.config.connectionPool.maxWaitTimeMS: 120000",
-                "spring.data.mongodb.config.connectionPool.maxConnectionLifeTimeMS: 0",
-                "spring.data.mongodb.config.connectionPool.maxConnectionIdleTimeMS: 120000",
-                "spring.data.mongodb.config.connectionPool.maxConnecting: 2",
+                "spring.mongodb.database=idpay",
+                "spring.mongodb.config.connectionPool.maxSize: 100",
+                "spring.mongodb.config.connectionPool.minSize: 0",
+                "spring.mongodb.config.connectionPool.maxWaitTimeMS: 120000",
+                "spring.mongodb.config.connectionPool.maxConnectionLifeTimeMS: 0",
+                "spring.mongodb.config.connectionPool.maxConnectionIdleTimeMS: 120000",
+                "spring.mongodb.config.connectionPool.maxConnecting: 2",
         })
 @ContextConfiguration(classes = {
         MongoRequestRateTooLargeAutomaticRetryAspect.class,

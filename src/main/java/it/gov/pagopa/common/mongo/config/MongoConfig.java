@@ -8,8 +8,8 @@ import com.mongodb.lang.NonNull;
 import it.gov.pagopa.common.mongo.repository.MongoRepositoryImpl;
 import lombok.Setter;
 import org.bson.types.Decimal128;
-import org.springframework.boot.autoconfigure.mongo.MongoClientSettingsBuilderCustomizer;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.mongodb.autoconfigure.MongoClientSettingsBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
@@ -19,7 +19,6 @@ import org.springframework.data.mongodb.MongoDatabaseFactory;
 import org.springframework.data.mongodb.MongoTransactionManager;
 import org.springframework.data.mongodb.core.convert.MongoCustomConversions;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -33,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 public class MongoConfig {
 
     @Configuration
-    @ConfigurationProperties(prefix = "spring.data.mongodb.config")
+    @ConfigurationProperties(prefix = "spring.mongodb.config")
     public static class MongoDbCustomProperties {
         @Setter
         ConnectionPoolSettings connectionPool;

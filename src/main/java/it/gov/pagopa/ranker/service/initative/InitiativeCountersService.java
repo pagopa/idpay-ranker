@@ -11,7 +11,9 @@ import java.util.Optional;
 public interface InitiativeCountersService {
     void addPreallocatedUser(String initiativeId, String userId, List<VerifyDTO> verifies, Long sequenceNumber, LocalDateTime enqueuedTime, Long beneficiaryBudgetFixedCents);
     boolean hasAvailableBudget();
+    boolean hasAvailableBudget(String initiativeId);
     boolean existsByInitiativeIdAndUserId(String initiativeId, String userId);
     void updateInitiativeCounters(TransactionInProgressDTO transactionInProgress, String preallocationId, String transactionInProgressId);
     Optional<InitiativeCountersPreallocations> findById(String initiativeId, String userId);
+    List<String> retrieveInitiativesAvailableBudget();
 }

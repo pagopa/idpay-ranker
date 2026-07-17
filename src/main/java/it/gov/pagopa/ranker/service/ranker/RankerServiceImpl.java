@@ -85,7 +85,8 @@ public class RankerServiceImpl implements RankerService {
             OnboardingDTO sendDto = consentMapper.map(onboarding.get());
             sendDto.setServiceId(inputDto.getServiceId());
 
-            sendDto.setVerifyIsee(initiativeCountersPreallocations.get().getPreallocatedAmountCents() > 10000);
+            //TODO: capire cosa fare qui
+            //sendDto.setVerifyIsee(initiativeCountersPreallocations.get().getPreallocatedAmountCents() > 10000);
 
             log.info("[RANKER_SERVICE] Preallocation exists for userId={} and initiativeId={}. Resending save consent.",
                     sanitizeString(inputDto.getUserId()),

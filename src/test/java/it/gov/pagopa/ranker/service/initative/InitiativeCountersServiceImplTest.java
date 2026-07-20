@@ -136,6 +136,41 @@ class InitiativeCountersServiceImplTest {
     }
 
     @Test
+    void testCalculateReservationCents_withBeneficiaryBudgetCentsMax() {
+        VerifyDTO verifyMock = new VerifyDTO();
+        verifyMock.setBeneficiaryBudgetCentsMax(50000L);
+        List<VerifyDTO> verifies = List.of(verifyMock);
+
+        long result = initiativeCountersService.calculateReservationCents(verifies, 10000L);
+
+        assertEquals(50000L, result);
+    }
+
+    @Test
+    void testCalculateReservationCents_withMultipleVerifiesAndFirstNull() {
+        VerifyDTO verifyFirst = new VerifyDTO();
+        verifyFirst.setBeneficiaryBudgetCentsMax(null);
+
+        VerifyDTO verifySecond = new VerifyDTO();
+        verifySecond.setBeneficiaryBudgetCentsMax(30000L);
+
+        List<VerifyDTO> verifies = List.of(verifyFirst, verifySecond);
+
+        long result = initiativeCountersService.calculateReservationCents(verifies, 10000L);
+
+        assertEquals(30000L, result);
+    }
+
+    @Test
+    void testCalculateReservationCents_withEmptyVerifiesShouldReturnFixedBudget() {
+        List<VerifyDTO> verifies = List.of();
+
+        long result = initiativeCountersService.calculateReservationCents(verifies, 10000L);
+
+        assertEquals(10000L, result);
+    }
+
+    @Test
     void testHasAvailableBudget_true() {
         InitiativeCounters counterMock = InitiativeCounters.builder()
                 .id(INITIATIVE_ID.getFirst())

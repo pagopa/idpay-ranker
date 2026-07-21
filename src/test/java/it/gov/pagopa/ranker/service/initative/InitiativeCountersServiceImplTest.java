@@ -180,8 +180,8 @@ class InitiativeCountersServiceImplTest {
 
         InitiativeConfig config = InitiativeConfig.builder()
                 .initiativeId(INITIATIVE_ID.getFirst())
-                .beneficiaryInitiativeBudgetCents(100L)
-                .beneficiaryInitiativeBudgetMaxCents(500L)
+                .beneficiaryBudgetFixedCents(100L)
+                .beneficiaryBudgetMaxCents(500L)
                 .build();
         when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
 
@@ -198,7 +198,7 @@ class InitiativeCountersServiceImplTest {
 
         InitiativeConfig config = InitiativeConfig.builder()
                 .initiativeId(INITIATIVE_ID.getFirst())
-                .beneficiaryInitiativeBudgetCents(100L)
+                .beneficiaryBudgetFixedCents(100L)
                 .build();
         when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
 
@@ -229,8 +229,8 @@ class InitiativeCountersServiceImplTest {
 
         InitiativeConfig config = InitiativeConfig.builder()
                 .initiativeId(INITIATIVE_ID.getFirst())
-                .beneficiaryInitiativeBudgetCents(100L)
-                .beneficiaryInitiativeBudgetMaxCents(500L)
+                .beneficiaryBudgetFixedCents(100L)
+                .beneficiaryBudgetMaxCents(500L)
                 .build();
         when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
 
@@ -248,7 +248,7 @@ class InitiativeCountersServiceImplTest {
 
         InitiativeConfig config = InitiativeConfig.builder()
                 .initiativeId(INITIATIVE_ID.getFirst())
-                .beneficiaryInitiativeBudgetCents(100L)
+                .beneficiaryBudgetFixedCents(100L)
                 .build();
         when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
 
@@ -266,8 +266,8 @@ class InitiativeCountersServiceImplTest {
 
         InitiativeConfig config = InitiativeConfig.builder()
                 .initiativeId(INITIATIVE_ID.getFirst())
-                .beneficiaryInitiativeBudgetCents(100L)
-                .beneficiaryInitiativeBudgetMaxCents(500L)
+                .beneficiaryBudgetFixedCents(100L)
+                .beneficiaryBudgetMaxCents(500L)
                 .build();
         when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
 
@@ -288,7 +288,7 @@ class InitiativeCountersServiceImplTest {
 
         InitiativeConfig config = InitiativeConfig.builder()
                 .initiativeId(INITIATIVE_ID.getFirst())
-                .beneficiaryInitiativeBudgetCents(100L)
+                .beneficiaryBudgetFixedCents(100L)
                 .build();
         when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
 

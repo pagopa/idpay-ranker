@@ -11,7 +11,7 @@ public class VerifyDTO {
 
     private String code;
     private boolean verify;
-    private String thersoldCode;
+    private String thresholdCode;
     private Long beneficiaryBudgetCentsMin;
     private Long beneficiaryBudgetCentsMax;
     private boolean blockingVerify;

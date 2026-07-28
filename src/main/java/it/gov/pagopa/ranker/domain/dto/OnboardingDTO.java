@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -23,7 +24,7 @@ public class OnboardingDTO {
 
     Boolean tc;
 
-    Boolean verifyIsee;
+    List<VerifyDTO> verifies;
 
     String status;
 
@@ -45,4 +46,6 @@ public class OnboardingDTO {
     Long sequenceNumber;
 
     LocalDateTime enqueuedTime;
+
+    Long beneficiaryBudgetFixedCents;
 }

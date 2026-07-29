@@ -81,7 +81,6 @@ class RankerServiceTest {
         dto.setInitiativeId(initiatives.getFirst());
         dto.setUserId("USR001");
         dto.setVerifies(mockVerifies);
-        dto.setBeneficiaryBudgetFixedCents(10000L);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
         when(initiativeCountersService.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR001")).thenReturn(false);
@@ -93,8 +92,7 @@ class RankerServiceTest {
                 eq("USR001"),
                 eq(mockVerifies),
                 eq(99L),
-                any(LocalDateTime.class),
-                eq(10000L)
+                any(LocalDateTime.class)
         );
         verify(rankerProducer).sendSaveConsent(any(OnboardingDTO.class));
     }
@@ -111,7 +109,7 @@ class RankerServiceTest {
 
         rankerService.execute(message);
 
-        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), anyLong(), any(), anyLong());
+        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), anyLong(), any());
         verify(rankerProducer, never()).sendSaveConsent(any());
     }
 
@@ -147,7 +145,6 @@ class RankerServiceTest {
         dto.setInitiativeId(initiatives.getFirst());
         dto.setUserId("USR002");
         dto.setVerifies(null);
-        dto.setBeneficiaryBudgetFixedCents(20000L);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
         when(initiativeCountersService.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR002")).thenReturn(false);
@@ -159,8 +156,7 @@ class RankerServiceTest {
                 eq("USR002"),
                 isNull(),
                 eq(99L),
-                any(LocalDateTime.class),
-                eq(20000L)
+                any(LocalDateTime.class)
         );
     }
 
@@ -175,7 +171,7 @@ class RankerServiceTest {
 
         rankerService.execute(message);
 
-        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), any(), any(), anyLong());
+        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), any(), any());
     }
 
     @Test

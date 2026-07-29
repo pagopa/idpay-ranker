@@ -18,9 +18,13 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
+
+import static it.gov.pagopa.ranker.connector.event.producer.RankerProducer.sanitizeField;
 
 @Slf4j
 @Service
@@ -52,8 +56,8 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
     }
 
     @Transactional
-    public void addPreallocatedUser(String initiativeId, String userId, List<VerifyDTO> verifies, Long sequenceNumber, LocalDateTime enqueuedTime, Long beneficiaryBudgetFixedCents) {
-        long reservationCents = calculateReservationCents(verifies, beneficiaryBudgetFixedCents);
+    public void addPreallocatedUser(String initiativeId, String userId, List<VerifyDTO> verifies, Long sequenceNumber, LocalDateTime enqueuedTime) {
+        long reservationCents = calculateReservationCents(verifies, initiativeId);
         try {
             initiativeCountersRepository.incrementOnboardedAndBudget(
                     initiativeId,
@@ -95,13 +99,23 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
         return hasInitiativeBudgetToPreallocate(counter);
     }
 
-    public long calculateReservationCents(List<VerifyDTO> verifies, Long beneficiaryBudgetFixedCents) {
-        for(VerifyDTO verify : verifies){
-            if(verify.getBeneficiaryBudgetCentsMax() != null){
-                return verify.getBeneficiaryBudgetCentsMax();
-            }
+    public long calculateReservationCents(List<VerifyDTO> verifies, String initiativeId) {
+        InitiativeConfig initiativeConfig = initiativeBeneficiaryRuleService.getInitiativeConfig(initiativeId);
+        if(initiativeConfig != null && initiativeConfig.getBeneficiaryBudgetFixedCents() != null){
+            return initiativeConfig.getBeneficiaryBudgetFixedCents();
         }
-        return beneficiaryBudgetFixedCents;
+
+        return Optional.ofNullable(verifies)
+                .orElseGet(Collections::emptyList)
+                .stream()
+                .filter(Objects::nonNull)
+                .map(VerifyDTO::getBeneficiaryBudgetCentsMax)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(
+                        ("Unable to calculate the reservation budget for initiative [%s] due to an invalid or incomplete configuration."
+                                .formatted(sanitizeField(initiativeId)))
+                ));
     }
 
     @Override

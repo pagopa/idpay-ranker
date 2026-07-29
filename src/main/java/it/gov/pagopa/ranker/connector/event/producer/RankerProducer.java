@@ -56,7 +56,7 @@ public class RankerProducer {
     /**
      * Sanitizes a single string for logging: removes line breaks, carriage returns and non-word characters except whitespace and dash.
      */
-    private static String sanitizeField(String str) {
+    public static String sanitizeField(String str) {
         // Reuse the stricter sanitation logic used elsewhere in the project
         return str == null ? null : str.replaceAll("[\\r\\n]", "").replaceAll("[^\\w\\s-]", "");
     }

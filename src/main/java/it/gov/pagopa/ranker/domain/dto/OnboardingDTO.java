@@ -46,6 +46,4 @@ public class OnboardingDTO {
     Long sequenceNumber;
 
     LocalDateTime enqueuedTime;
-
-    Long beneficiaryBudgetFixedCents;
 }

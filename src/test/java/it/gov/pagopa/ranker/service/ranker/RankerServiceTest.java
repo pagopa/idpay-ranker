@@ -4,6 +4,7 @@ import com.azure.messaging.servicebus.ServiceBusMessage;
 import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
 import it.gov.pagopa.ranker.connector.event.producer.RankerProducer;
 import it.gov.pagopa.ranker.domain.dto.OnboardingDTO;
+import it.gov.pagopa.ranker.domain.dto.VerifyDTO;
 import it.gov.pagopa.ranker.domain.mapper.ConsentMapper;
 import it.gov.pagopa.ranker.domain.model.InitiativeCountersPreallocations;
 import it.gov.pagopa.ranker.domain.model.Onboarding;
@@ -44,9 +45,7 @@ class RankerServiceTest {
     @Mock
     private ConsentMapper consentMapper;
 
-
     private ObjectMapper objectMapper;
-
     private RankerService rankerService;
     private final List<String> initiatives = List.of("INITIATIVE_ID");
 
@@ -77,56 +76,51 @@ class RankerServiceTest {
 
     @Test
     void testExecute_whenNewPreallocation_shouldAddAndSend() {
-        // Given
+        List<VerifyDTO> mockVerifies = List.of();
         OnboardingDTO dto = new OnboardingDTO();
         dto.setInitiativeId(initiatives.getFirst());
         dto.setUserId("USR001");
-        dto.setVerifyIsee(true);
+        dto.setVerifies(mockVerifies);
+        dto.setBeneficiaryBudgetFixedCents(10000L);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
         when(initiativeCountersService.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR001")).thenReturn(false);
 
-        // When
         rankerService.execute(message);
 
-        // Then
         verify(initiativeCountersService).addPreallocatedUser(
                 eq(initiatives.getFirst()),
                 eq("USR001"),
-                eq(true),
+                eq(mockVerifies),
                 eq(99L),
-                any(LocalDateTime.class)
+                any(LocalDateTime.class),
+                eq(10000L)
         );
         verify(rankerProducer).sendSaveConsent(any(OnboardingDTO.class));
     }
 
     @Test
     void testExecute_whenUserAlreadyPreallocated_shouldDoNothing(){
-        // Given
         OnboardingDTO dto = new OnboardingDTO();
         dto.setInitiativeId(initiatives.getFirst());
         dto.setUserId("USR_EXIST");
-        dto.setVerifyIsee(false);
+        dto.setVerifies(List.of());
 
         ServiceBusReceivedMessage message = buildMessage(dto);
-        when(initiativeCountersService.existsByInitiativeIdAndUserId(initiatives.getFirst(),  "USR_EXIST")).thenReturn(true);
+        when(initiativeCountersService.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR_EXIST")).thenReturn(true);
 
-        // When
         rankerService.execute(message);
 
-        // Then
-        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), anyBoolean(), anyLong(), any());
+        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), anyLong(), any(), anyLong());
         verify(rankerProducer, never()).sendSaveConsent(any());
     }
 
     @Test
     void testExecute_whenDeserializationFails_shouldThrowIllegalStateException() {
-        // Given
         ServiceBusMessage badMessage = new ServiceBusMessage("{invalid-json}");
         ServiceBusReceivedMessage message = mock(ServiceBusReceivedMessage.class);
         when(message.getBody()).thenReturn(badMessage.getBody());
 
-        // Then
         assertThrows(IllegalStateException.class, () -> rankerService.execute(message));
 
         verifyNoInteractions(rankerProducer, initiativeCountersRepository, initiativeCountersService);
@@ -134,7 +128,6 @@ class RankerServiceTest {
 
     @Test
     void testExecute_whenInternalServiceThrows_shouldWrapInMessageProcessingException() {
-        // Given
         OnboardingDTO dto = new OnboardingDTO();
         dto.setInitiativeId("INIT_FAIL");
         dto.setUserId("USR_FAIL");
@@ -144,55 +137,49 @@ class RankerServiceTest {
         when(initiativeCountersService.existsByInitiativeIdAndUserId(any(), any()))
                 .thenThrow(new DuplicateKeyException("MESSAGE"));
 
-        // Then
         DuplicateKeyException ex = assertThrows(DuplicateKeyException.class, () -> rankerService.execute(message));
         assertTrue(ex.getMessage().contains("MESSAGE"));
     }
 
     @Test
-    void testExecute_whenVerifyIseeNull_shouldTreatAsFalse() {
-        // Given
+    void testExecute_whenVerifiesNull_shouldPassNullOrEmpty() {
         OnboardingDTO dto = new OnboardingDTO();
         dto.setInitiativeId(initiatives.getFirst());
         dto.setUserId("USR002");
-        dto.setVerifyIsee(null);
+        dto.setVerifies(null);
+        dto.setBeneficiaryBudgetFixedCents(20000L);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
         when(initiativeCountersService.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR002")).thenReturn(false);
 
-        // When
         rankerService.execute(message);
 
-        // Then
         verify(initiativeCountersService).addPreallocatedUser(
                 eq(initiatives.getFirst()),
                 eq("USR002"),
-                eq(false),
+                isNull(),
                 eq(99L),
-                any(LocalDateTime.class)
+                any(LocalDateTime.class),
+                eq(20000L)
         );
     }
 
     @Test
     void testExecute_AnotherInitiative() {
-        // Given
         OnboardingDTO dto = new OnboardingDTO();
         dto.setInitiativeId("another-initiative");
         dto.setUserId("USR002");
-        dto.setVerifyIsee(null);
+        dto.setVerifies(null);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
 
-        // When
         rankerService.execute(message);
 
-        // Then
-        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), anyBoolean(), any(), any());
+        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), any(), any(), anyLong());
     }
 
     @Test
     void testRecovery_whenDataValid_shouldResendConsent() {
-        // Given
         OnboardingDTO input = new OnboardingDTO();
         input.setInitiativeId("INITIATIVE_ID");
         input.setUserId("USER123");
@@ -212,12 +199,10 @@ class RankerServiceTest {
         OnboardingDTO mapped = new OnboardingDTO();
         when(consentMapper.map(onboarding)).thenReturn(mapped);
 
-        // When
         rankerService.recovery(input);
 
-        // Then
-        assertTrue(mapped.getVerifyIsee());
         assertEquals("SRV001", mapped.getServiceId());
+        assertNotNull(mapped);
 
         verify(rankerProducer).sendSaveConsent(mapped);
     }
@@ -239,7 +224,6 @@ class RankerServiceTest {
 
     @Test
     void testRecovery_whenStatusNotOnEvaluation_shouldGoToErrorBranch() {
-        // Given
         OnboardingDTO input = new OnboardingDTO();
         input.setInitiativeId("INITIATIVE_ID");
         input.setUserId("USER123");
@@ -255,40 +239,9 @@ class RankerServiceTest {
         when(onboardingRepository.findById("USER123_INITIATIVE_ID"))
                 .thenReturn(Optional.of(onboarding));
 
-        // When
         rankerService.recovery(input);
 
-        // Then
         verify(rankerProducer, never()).sendSaveConsent(any());
-    }
-
-    @Test
-    void testRecovery_verifyIseeFalse_whenAmountLow() {
-        // Given
-        OnboardingDTO input = new OnboardingDTO();
-        input.setInitiativeId("INITIATIVE_ID");
-        input.setUserId("USER123");
-
-        InitiativeCountersPreallocations pre = new InitiativeCountersPreallocations();
-        pre.setPreallocatedAmountCents(8000L);
-
-        Onboarding onboarding = new Onboarding("INITIATIVE_ID", "USER123");
-        onboarding.setStatus(ON_EVALUATION);
-
-        when(initiativeCountersService.findById("INITIATIVE_ID","USER123"))
-                .thenReturn(Optional.of(pre));
-        when(onboardingRepository.findById("USER123_INITIATIVE_ID"))
-                .thenReturn(Optional.of(onboarding));
-
-        OnboardingDTO mapped = new OnboardingDTO();
-        when(consentMapper.map(onboarding)).thenReturn(mapped);
-
-        // When
-        rankerService.recovery(input);
-
-        // Then
-        assertFalse(mapped.getVerifyIsee());
-        verify(rankerProducer).sendSaveConsent(mapped);
     }
 
     @Test

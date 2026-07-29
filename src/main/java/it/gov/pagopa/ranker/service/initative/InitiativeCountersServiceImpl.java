@@ -1,6 +1,7 @@
 package it.gov.pagopa.ranker.service.initative;
 
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
+import it.gov.pagopa.ranker.domain.dto.VerifyDTO;
 import it.gov.pagopa.ranker.domain.model.InitiativeConfig;
 import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
 import it.gov.pagopa.ranker.domain.model.InitiativeCountersPreallocations;
@@ -51,9 +52,8 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
     }
 
     @Transactional
-    public void addPreallocatedUser(String initiativeId, String userId, boolean verifyIsee, Long sequenceNumber, LocalDateTime enqueuedTime) {
-        long reservationCents = calculateReservationCents(verifyIsee, initiativeBeneficiaryRuleService.getInitiativeConfig(initiativeId));
-
+    public void addPreallocatedUser(String initiativeId, String userId, List<VerifyDTO> verifies, Long sequenceNumber, LocalDateTime enqueuedTime, Long beneficiaryBudgetFixedCents) {
+        long reservationCents = calculateReservationCents(verifies, beneficiaryBudgetFixedCents);
         try {
             initiativeCountersRepository.incrementOnboardedAndBudget(
                     initiativeId,
@@ -95,12 +95,13 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
         return hasInitiativeBudgetToPreallocate(counter);
     }
 
-    public long calculateReservationCents(boolean verifyIsee, InitiativeConfig initiativeConfig) {
-        if(verifyIsee && initiativeConfig.getBeneficiaryInitiativeBudgetMaxCents() != null){
-            return initiativeConfig.getBeneficiaryInitiativeBudgetMaxCents();
-        } else {
-            return initiativeConfig.getBeneficiaryInitiativeBudgetCents();
+    public long calculateReservationCents(List<VerifyDTO> verifies, Long beneficiaryBudgetFixedCents) {
+        for(VerifyDTO verify : verifies){
+            if(verify.getBeneficiaryBudgetCentsMax() != null){
+                return verify.getBeneficiaryBudgetCentsMax();
+            }
         }
+        return beneficiaryBudgetFixedCents;
     }
 
     @Override
@@ -134,11 +135,14 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
     private boolean hasInitiativeBudgetToPreallocate(InitiativeCounters initiativeCounters) {
         InitiativeConfig initiativeConfig = initiativeBeneficiaryRuleService.getInitiativeConfig(initiativeCounters.getId());
         if (initiativeConfig != null) {
-            if (initiativeConfig.getBeneficiaryInitiativeBudgetMaxCents() != null) {
-                return initiativeCounters.getResidualInitiativeBudgetCents() >= initiativeConfig.getBeneficiaryInitiativeBudgetMaxCents();
+            if (initiativeConfig.getBeneficiaryBudgetMaxCents() != null) {
+                return initiativeCounters.getResidualInitiativeBudgetCents() >= initiativeConfig.getBeneficiaryBudgetMaxCents();
             }
-            return initiativeCounters.getResidualInitiativeBudgetCents() >= initiativeConfig.getBeneficiaryInitiativeBudgetCents();
+            return initiativeCounters.getResidualInitiativeBudgetCents() >= initiativeConfig.getBeneficiaryBudgetFixedCents();
         }
         return false;
+    }
+    public static String sanitizeString(String str){
+        return str == null? null: str.replaceAll("[\\r\\n]", "").replaceAll("[^\\w\\s-]", "");
     }
 }

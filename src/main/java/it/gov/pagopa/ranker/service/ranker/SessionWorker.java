@@ -60,9 +60,8 @@ public class SessionWorker implements Runnable {
         int idleSeconds = 0;
 
         try (ServiceBusSessionReceiverClient sessionClient =
-                     clientBuilder.sessionReceiver().queueName(queueName).buildClient()) {
-
-            ServiceBusReceiverClient receiver = lockSession(sessionClient);
+                     clientBuilder.sessionReceiver().queueName(queueName).buildClient();
+             ServiceBusReceiverClient receiver = lockSession(sessionClient)) {
 
             if (!initiativeCountersService.hasAvailableBudget(sessionId)) {
                 log.info("[SESSION_WORKER][CHECK_BUDGET] Stop processing message because the initiative for session {} has not budget", sessionId);

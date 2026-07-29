@@ -64,8 +64,7 @@ public class RankerServiceImpl implements RankerService {
                 dto.getUserId(),
                 dto.getVerifies(),
                 dto.getSequenceNumber(),
-                dto.getEnqueuedTime(),
-                dto.getBeneficiaryBudgetFixedCents()
+                dto.getEnqueuedTime()
 
         );
 

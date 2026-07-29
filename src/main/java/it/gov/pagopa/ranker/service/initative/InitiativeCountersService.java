@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface InitiativeCountersService {
-    void addPreallocatedUser(String initiativeId, String userId, List<VerifyDTO> verifies, Long sequenceNumber, LocalDateTime enqueuedTime, Long beneficiaryBudgetFixedCents);
+    void addPreallocatedUser(String initiativeId, String userId, List<VerifyDTO> verifies, Long sequenceNumber, LocalDateTime enqueuedTime);
     boolean hasAvailableBudget();
     boolean hasAvailableBudget(String initiativeId);
     boolean existsByInitiativeIdAndUserId(String initiativeId, String userId);

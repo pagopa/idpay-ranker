@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static it.gov.pagopa.ranker.connector.event.producer.RankerProducer.sanitizeField;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -85,10 +86,16 @@ class InitiativeCountersServiceImplTest {
         Long sequenceNumber = 1L;
         Long beneficiaryBudgetFixedCents = 20000L;
 
+        InitiativeConfig config = InitiativeConfig.builder()
+                .initiativeId(INITIATIVE_ID.getFirst())
+                .beneficiaryBudgetFixedCents(beneficiaryBudgetFixedCents).build();
+
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
+
         // Nota: Rimosso il mock di initiativeBeneficiaryRuleService se non più usato internamente da addPreallocatedUser
 
         initiativeCountersService.addPreallocatedUser(
-                INITIATIVE_ID.getFirst(), userId, verifies, sequenceNumber, time, beneficiaryBudgetFixedCents);
+                INITIATIVE_ID.getFirst(), userId, verifies, sequenceNumber, time);
 
         // Il valore atteso dipende da come calculateReservationCents elabora i parametri.
         // Assumendo che rispecchi il beneficiaryBudgetFixedCents passato:
@@ -115,9 +122,15 @@ class InitiativeCountersServiceImplTest {
         Long sequenceNumber = 10L;
         Long beneficiaryBudgetFixedCents = 10000L;
 
+        InitiativeConfig config = InitiativeConfig.builder()
+                .initiativeId(INITIATIVE_ID.getFirst())
+                .beneficiaryBudgetFixedCents(beneficiaryBudgetFixedCents).build();
+
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
+
         assertThrows(BudgetExhaustedException.class, () ->
                 initiativeCountersService.addPreallocatedUser(
-                        INITIATIVE_ID.getFirst(), "USER", verifies, sequenceNumber, LocalDateTime.now(), beneficiaryBudgetFixedCents)
+                        INITIATIVE_ID.getFirst(), "USER", verifies, sequenceNumber, LocalDateTime.now())
         );
 
         verify(initiativeCountersRepositoryMock)
@@ -128,11 +141,18 @@ class InitiativeCountersServiceImplTest {
     void testCalculateReservationCents() {
         List<VerifyDTO> verifies = List.of();
         Long beneficiaryBudgetFixedCents = 10000L;
+        String initiativeId = "INITIATIVE_ID";
+
+        InitiativeConfig config = InitiativeConfig.builder()
+                .initiativeId(initiativeId)
+                .beneficiaryBudgetFixedCents(beneficiaryBudgetFixedCents).build();
+
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(initiativeId)).thenReturn(config);
 
         // Modificare l'asserzione in base alla reale logica di calculateReservationCents(verifies, budget)
-        long result = initiativeCountersService.calculateReservationCents(verifies, beneficiaryBudgetFixedCents);
+        long result = initiativeCountersService.calculateReservationCents(verifies, initiativeId);
 
-        assertEquals(10000L, result);
+        assertEquals(beneficiaryBudgetFixedCents, result);
     }
 
     @Test
@@ -141,7 +161,15 @@ class InitiativeCountersServiceImplTest {
         verifyMock.setBeneficiaryBudgetCentsMax(50000L);
         List<VerifyDTO> verifies = List.of(verifyMock);
 
-        long result = initiativeCountersService.calculateReservationCents(verifies, 10000L);
+        String initiativeId = "INITIATIVE_ID";
+
+        InitiativeConfig config = InitiativeConfig.builder()
+                .initiativeId(initiativeId)
+                .beneficiaryBudgetMaxCents(80000L).build();
+
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(initiativeId)).thenReturn(config);
+
+        long result = initiativeCountersService.calculateReservationCents(verifies, initiativeId);
 
         assertEquals(50000L, result);
     }
@@ -156,18 +184,31 @@ class InitiativeCountersServiceImplTest {
 
         List<VerifyDTO> verifies = List.of(verifyFirst, verifySecond);
 
-        long result = initiativeCountersService.calculateReservationCents(verifies, 10000L);
+        String initiativeId = "INITIATIVE_ID";
+
+        InitiativeConfig config = InitiativeConfig.builder()
+                .initiativeId(initiativeId)
+                .beneficiaryBudgetMaxCents(50000L).build();
+
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(initiativeId)).thenReturn(config);
+
+        long result = initiativeCountersService.calculateReservationCents(verifies, initiativeId);
 
         assertEquals(30000L, result);
     }
 
     @Test
-    void testCalculateReservationCents_withEmptyVerifiesShouldReturnFixedBudget() {
+    void testCalculateReservationCents_withEmptyVerifiesShouldThrowException() {
         List<VerifyDTO> verifies = List.of();
 
-        long result = initiativeCountersService.calculateReservationCents(verifies, 10000L);
+        String initiativeId = "INITIATIVE_ID";
 
-        assertEquals(10000L, result);
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(initiativeId)).thenReturn(null);
+
+        IllegalStateException errorResult = assertThrows(IllegalStateException.class, () -> initiativeCountersService.calculateReservationCents(verifies, initiativeId));
+
+        assertEquals("Unable to calculate the reservation budget for initiative [%s] due to an invalid or incomplete configuration."
+                .formatted(sanitizeField(initiativeId)), errorResult.getMessage());
     }
 
     @Test

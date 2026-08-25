@@ -168,6 +168,7 @@ logging:
     org.drools: ${LOG_LEVEL_ORG_DROOLS:WARN}
     org.drools.mvel.MVELConstraint: ${LOG_LEVEL_ORG_DROOLS_COMPILE:ERROR}
     org.mongodb.driver: ${LOG_LEVEL_MONGODB_DRIVER:WARN}
+    com.azure: ${LOG_LEVEL_AZURE:WARN}
     org.apache.kafka: WARN
     org.springframework.boot.autoconfigure: WARN
 

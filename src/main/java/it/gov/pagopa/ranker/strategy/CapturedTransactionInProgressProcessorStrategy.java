@@ -1,11 +1,11 @@
 package it.gov.pagopa.ranker.strategy;
 
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
+import it.gov.pagopa.ranker.connector.rest.PaymentRestClient;
 import it.gov.pagopa.ranker.enums.PreallocationStatus;
 import it.gov.pagopa.ranker.enums.SyncTrxStatus;
 import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
-import it.gov.pagopa.ranker.repository.TransactionInProgressRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -16,14 +16,14 @@ import static it.gov.pagopa.utils.InitiativeCountersUtils.computePreallocationId
 public class CapturedTransactionInProgressProcessorStrategy implements TransactionInProgressProcessorStrategy {
     private final InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository;
     private final InitiativeCountersRepository initiativeCountersRepository;
-    private final TransactionInProgressRepository transactionInProgressRepository;
+    private final PaymentRestClient paymentRestClient;
 
     public CapturedTransactionInProgressProcessorStrategy(
             InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository, InitiativeCountersRepository initiativeCountersRepository,
-            TransactionInProgressRepository transactionInProgressRepository) {
+            PaymentRestClient paymentRestClient) {
         this.initiativeCountersPreallocationsRepository = initiativeCountersPreallocationsRepository;
         this.initiativeCountersRepository = initiativeCountersRepository;
-        this.transactionInProgressRepository = transactionInProgressRepository;
+        this.paymentRestClient = paymentRestClient;
     }
 
     @Override
@@ -35,7 +35,7 @@ public class CapturedTransactionInProgressProcessorStrategy implements Transacti
     public void processTransaction(TransactionInProgressDTO transactionInProgress) {
 
         String transactionInProgressId = transactionInProgress.getId();
-        if (!transactionInProgressRepository.existsByIdAndStatus(
+        if (!paymentRestClient.existsByIdAndStatus(
                 transactionInProgressId, SyncTrxStatus.CAPTURED)) {
             log.warn("[CapturedTransactionInProgressProcessor] Provided transaction with id {} with status EXPIRED" +
                             " not found, no counter will be updated",

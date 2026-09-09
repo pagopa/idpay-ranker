@@ -49,7 +49,7 @@ public class ExpiredTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setUserId("USER_1");
         String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
         doNothing().when(initiativeCountersServiceMock).updateInitiativeCounters(transactionInProgressDTO, preallocationId, transactionInProgressDTO.getId());
-        when(paymentRestClient.existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED)))
+        when(paymentRestClient.existsByIdAndStatus("ID_1", SyncTrxStatus.EXPIRED))
                 .thenReturn(true);
         Assertions.assertDoesNotThrow(() -> expiredTransactionInProgressProcessorStrategy
                 .processTransaction(transactionInProgressDTO));
@@ -64,7 +64,7 @@ public class ExpiredTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setInitiativeId("INIT_1");
         transactionInProgressDTO.setVoucherAmountCents(1000L);
         transactionInProgressDTO.setUserId("USER_1");
-        when(paymentRestClient.existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED)))
+        when(paymentRestClient.existsByIdAndStatus("ID_1", SyncTrxStatus.EXPIRED))
                 .thenReturn(false);
         Assertions.assertDoesNotThrow(() -> expiredTransactionInProgressProcessorStrategy
                 .processTransaction(transactionInProgressDTO));
@@ -80,7 +80,7 @@ public class ExpiredTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setVoucherAmountCents(1000L);
         transactionInProgressDTO.setUserId("USER_1");
         String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
-        when(paymentRestClient.existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED)))
+        when(paymentRestClient.existsByIdAndStatus("ID_1", SyncTrxStatus.EXPIRED))
                 .thenReturn(true);
         doNothing().when(initiativeCountersServiceMock).updateInitiativeCounters(transactionInProgressDTO, preallocationId, transactionInProgressDTO.getId());
 
@@ -98,14 +98,14 @@ public class ExpiredTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setVoucherAmountCents(1000L);
         transactionInProgressDTO.setUserId("USER_1");
         String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
-        when(paymentRestClient.existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED)))
+        when(paymentRestClient.existsByIdAndStatus("ID_1", SyncTrxStatus.EXPIRED))
                 .thenReturn(true);
         doThrow(new RuntimeException("error")).when(initiativeCountersServiceMock)
                 .updateInitiativeCounters(transactionInProgressDTO, preallocationId, transactionInProgressDTO.getId());
 
         Assertions.assertThrows(RuntimeException.class,
                 () -> expiredTransactionInProgressProcessorStrategy.processTransaction(transactionInProgressDTO));
-        verify(paymentRestClient).existsByIdAndStatus(eq("ID_1"),eq(SyncTrxStatus.EXPIRED));
+        verify(paymentRestClient).existsByIdAndStatus("ID_1", SyncTrxStatus.EXPIRED);
         verify(initiativeCountersServiceMock).updateInitiativeCounters(any(),any(),any());
         verifyNoMoreInteractions(paymentRestClient, initiativeCountersServiceMock);
     }

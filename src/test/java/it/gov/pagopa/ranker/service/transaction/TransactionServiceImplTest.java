@@ -53,7 +53,7 @@ class TransactionServiceImplTest {
     TransactionServiceImpl transactionInProgressService;
 
     @BeforeEach
-    public void init() {
+    void init() {
         Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
         Mockito.reset(transactionInProgressProcessorStrategyFactory, transactionInProgressProcessorStrategy);
         objectMapper = updateMapper();

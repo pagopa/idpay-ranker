@@ -49,7 +49,8 @@ class TransactionErrorNotifierServiceImplTest {
                 .destination("transaction-topic")
                 .group("transaction-group")
                 .build();
-        when(kafkaConfiguration.getStream()).thenReturn(mock(KafkaConfiguration.Stream.class));
+        KafkaConfiguration.Stream mockStream = mock(KafkaConfiguration.Stream.class);
+        when(kafkaConfiguration.getStream()).thenReturn(mockStream);
         when(kafkaConfiguration.getStream().getBindings()).thenReturn(Map.of("trxProcessor-in-0",kafkaInfoDTO));
         errorNotifyMock(kafkaInfoDTO,true,false);
         transactionErrorNotifierService.notifyExpiredTransaction(

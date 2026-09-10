@@ -1,4 +1,4 @@
-package it.gov.pagopa.ranker.service.transactionInProgress;
+package it.gov.pagopa.ranker.service.transaction;
 
 import it.gov.pagopa.common.config.KafkaConfiguration;
 import it.gov.pagopa.common.kafka.service.ErrorNotifierService;
@@ -30,13 +30,13 @@ class TransactionErrorNotifierServiceImplTest {
     @Mock
     private ErrorNotifierService errorNotifierServiceMock;
 
-    private TransactionInProgressErrorNotifierService transactionErrorNotifierService;
+    private TransactionErrorNotifierService transactionErrorNotifierService;
     @Mock
     private KafkaConfiguration kafkaConfiguration;
 
     @BeforeEach
     void setUp() {
-        transactionErrorNotifierService = new TransactionInProgressErrorNotifierServiceImpl(
+        transactionErrorNotifierService = new TransactionErrorNotifierServiceImpl(
                 errorNotifierServiceMock, kafkaConfiguration
         );
     }
@@ -49,7 +49,8 @@ class TransactionErrorNotifierServiceImplTest {
                 .destination("transaction-topic")
                 .group("transaction-group")
                 .build();
-        when(kafkaConfiguration.getStream()).thenReturn(mock(KafkaConfiguration.Stream.class));
+        KafkaConfiguration.Stream mockStream = mock(KafkaConfiguration.Stream.class);
+        when(kafkaConfiguration.getStream()).thenReturn(mockStream);
         when(kafkaConfiguration.getStream().getBindings()).thenReturn(Map.of("trxProcessor-in-0",kafkaInfoDTO));
         errorNotifyMock(kafkaInfoDTO,true,false);
         transactionErrorNotifierService.notifyExpiredTransaction(

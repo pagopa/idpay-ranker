@@ -1,8 +1,8 @@
 package it.gov.pagopa.ranker.strategy;
 
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
+import it.gov.pagopa.ranker.connector.rest.PaymentRestClient;
 import it.gov.pagopa.ranker.enums.SyncTrxStatus;
-import it.gov.pagopa.ranker.repository.TransactionInProgressRepository;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,12 +14,13 @@ import static it.gov.pagopa.utils.InitiativeCountersUtils.computePreallocationId
 public class ExpiredTransactionInProgressProcessorStrategy implements TransactionInProgressProcessorStrategy {
 
 
-    private final TransactionInProgressRepository transactionInProgressRepository;
+    private final PaymentRestClient paymentRestClient;
     private final InitiativeCountersService initiativeCountersService;
 
     public ExpiredTransactionInProgressProcessorStrategy(
-            TransactionInProgressRepository transactionInProgressRepository, InitiativeCountersService initiativeCountersService) {
-        this.transactionInProgressRepository = transactionInProgressRepository;
+            PaymentRestClient paymentRestClient,
+            InitiativeCountersService initiativeCountersService) {
+        this.paymentRestClient = paymentRestClient;
         this.initiativeCountersService = initiativeCountersService;
     }
 
@@ -33,7 +34,7 @@ public class ExpiredTransactionInProgressProcessorStrategy implements Transactio
 
         String transactionInProgressId = transactionInProgress.getId();
         String preallocationId = computePreallocationId(transactionInProgress);
-        if (!transactionInProgressRepository.existsByIdAndStatus(
+        if (!paymentRestClient.existsByIdAndStatus(
                 transactionInProgressId, SyncTrxStatus.EXPIRED)) {
             log.warn("[ExpiredTransactionInProgressProcessor] Provided transaction with id {} with status EXPIRED not found",
                     transactionInProgressId);
@@ -42,8 +43,6 @@ public class ExpiredTransactionInProgressProcessorStrategy implements Transactio
 
         try {
             initiativeCountersService.updateInitiativeCounters(transactionInProgress, preallocationId, transactionInProgressId);
-
-            transactionInProgressRepository.deleteById(transactionInProgressId);
 
             log.info("[ExpiredTransactionInProgressProcessor] Reverted counters for expired transaction {}", transactionInProgressId);
 

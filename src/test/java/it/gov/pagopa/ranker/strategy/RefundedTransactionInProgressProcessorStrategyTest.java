@@ -15,7 +15,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,18 +56,18 @@ class RefundedTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setUserId("USER_1");
         String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
         when(initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatus(
-                eq(preallocationId),
-                eq(PreallocationStatus.CAPTURED),
-                eq(PreallocationStatus.REFUNDED)))
+                preallocationId,
+                PreallocationStatus.CAPTURED,
+                PreallocationStatus.REFUNDED))
                 .thenReturn(true);
         when(initiativeCountersRepositoryMock.updateCounterForRefunded("INIT_1",500L))
                 .thenReturn(new InitiativeCounters());
         Assertions.assertDoesNotThrow(() -> refundedTransactionInProgressProcessorStrategy
                 .processTransaction(transactionInProgressDTO));
         verify(initiativeCountersPreallocationsRepository).findByIdAndStatusThenUpdateStatus(
-                eq(preallocationId),
-                eq(PreallocationStatus.CAPTURED),
-                eq(PreallocationStatus.REFUNDED));
+                preallocationId,
+                PreallocationStatus.CAPTURED,
+                PreallocationStatus.REFUNDED);
         verify(initiativeCountersRepositoryMock).updateCounterForRefunded("INIT_1",500L);
 
     }
@@ -82,16 +81,16 @@ class RefundedTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setUserId("USER_1");
         String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
         when(initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatus(
-                eq(preallocationId),
-                eq(PreallocationStatus.CAPTURED),
-                eq(PreallocationStatus.REFUNDED)))
+                preallocationId,
+                PreallocationStatus.CAPTURED,
+                PreallocationStatus.REFUNDED))
                 .thenReturn(false);
         Assertions.assertDoesNotThrow(() -> refundedTransactionInProgressProcessorStrategy
                 .processTransaction(transactionInProgressDTO));
         verify(initiativeCountersPreallocationsRepository).findByIdAndStatusThenUpdateStatus(
-                eq(preallocationId),
-                eq(PreallocationStatus.CAPTURED),
-                eq(PreallocationStatus.REFUNDED));
+                preallocationId,
+                PreallocationStatus.CAPTURED,
+                PreallocationStatus.REFUNDED);
         verifyNoInteractions(initiativeCountersRepositoryMock);
     }
 
@@ -107,18 +106,18 @@ class RefundedTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setUserId("USER_1");
         String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
         when(initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatus(
-                eq(preallocationId),
-                eq(PreallocationStatus.CAPTURED),
-                eq(PreallocationStatus.REFUNDED)))
+                preallocationId,
+                PreallocationStatus.CAPTURED,
+                PreallocationStatus.REFUNDED))
                 .thenReturn(true);
         when(initiativeCountersRepositoryMock.updateCounterForRefunded("INIT_1",500L))
                 .thenThrow(new RuntimeException("test"));
         Assertions.assertThrows(Exception.class, () ->
                 refundedTransactionInProgressProcessorStrategy.processTransaction(transactionInProgressDTO));
         verify(initiativeCountersPreallocationsRepository).findByIdAndStatusThenUpdateStatus(
-                eq(preallocationId),
-                eq(PreallocationStatus.CAPTURED),
-                eq(PreallocationStatus.REFUNDED));
+                preallocationId,
+                PreallocationStatus.CAPTURED,
+                PreallocationStatus.REFUNDED);
         verify(initiativeCountersRepositoryMock).updateCounterForRefunded("INIT_1",500L);
     }
 

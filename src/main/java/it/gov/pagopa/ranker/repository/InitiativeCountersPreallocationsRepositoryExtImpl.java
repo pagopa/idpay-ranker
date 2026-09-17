@@ -9,6 +9,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 
 public class InitiativeCountersPreallocationsRepositoryExtImpl implements InitiativeCountersPreallocationsRepositoryExt {
@@ -27,7 +28,7 @@ public class InitiativeCountersPreallocationsRepositoryExtImpl implements Initia
                                 .and(InitiativeCountersPreallocations.Fields.status).is(currentStatus)),
                 new Update()
                         .set(InitiativeCountersPreallocations.Fields.status, newStatus)
-                        .set(InitiativeCountersPreallocations.Fields.updateDate, LocalDateTime.now()),
+                        .set(InitiativeCountersPreallocations.Fields.updateDate, LocalDateTime.now(ZoneId.of("Europe/Rome"))),
                 FindAndModifyOptions.options().returnNew(true),
                 InitiativeCountersPreallocations.class);
         return initiativeCountersPreallocations != null;

@@ -29,7 +29,7 @@ class RefundedTransactionInProgressProcessorStrategyTest {
     private RefundedTransactionInProgressProcessorStrategy refundedTransactionInProgressProcessorStrategy;
 
     @BeforeEach
-    public void init() {
+    void init() {
         Mockito.reset(initiativeCountersRepositoryMock, initiativeCountersRepositoryMock);
         refundedTransactionInProgressProcessorStrategy =
                 new RefundedTransactionInProgressProcessorStrategy(

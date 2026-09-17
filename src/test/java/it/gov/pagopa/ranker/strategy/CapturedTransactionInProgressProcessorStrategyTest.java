@@ -61,7 +61,10 @@ class CapturedTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setRewardCents(500L);
         transactionInProgressDTO.setUserId("USER_1");
         String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
-        when(initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatusToCaptured(preallocationId, PreallocationStatus.PREALLOCATED))
+        when(initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatus(
+                preallocationId,
+                PreallocationStatus.PREALLOCATED,
+                PreallocationStatus.CAPTURED))
                 .thenReturn(true);
         when(initiativeCountersRepositoryMock.updateCounterForCaptured("INIT_1",500L,1000L))
                 .thenReturn(new InitiativeCounters());
@@ -71,7 +74,10 @@ class CapturedTransactionInProgressProcessorStrategyTest {
         Assertions.assertDoesNotThrow(() -> capturedTransactionInProgressProcessorStrategy
                 .processTransaction(transactionInProgressDTO));
 
-        verify(initiativeCountersPreallocationsRepository).findByIdAndStatusThenUpdateStatusToCaptured(preallocationId,PreallocationStatus.PREALLOCATED);
+        verify(initiativeCountersPreallocationsRepository).findByIdAndStatusThenUpdateStatus(
+                preallocationId,
+                PreallocationStatus.PREALLOCATED,
+                PreallocationStatus.CAPTURED);
         verify(initiativeCountersRepositoryMock).updateCounterForCaptured("INIT_1",500L,1000L);
 
     }
@@ -102,12 +108,18 @@ class CapturedTransactionInProgressProcessorStrategyTest {
         String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
         when(paymentRestClient.existsByIdAndStatus("ID_1",SyncTrxStatus.CAPTURED))
                 .thenReturn(true);
-        when(initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatusToCaptured(preallocationId,PreallocationStatus.PREALLOCATED))
+        when(initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatus(
+                preallocationId,
+                PreallocationStatus.PREALLOCATED,
+                PreallocationStatus.CAPTURED))
                 .thenReturn(false);
         Assertions.assertDoesNotThrow(() -> capturedTransactionInProgressProcessorStrategy
                 .processTransaction(transactionInProgressDTO));
         verify(paymentRestClient).existsByIdAndStatus(any(),any());
-        verify(initiativeCountersPreallocationsRepository).findByIdAndStatusThenUpdateStatusToCaptured(preallocationId,PreallocationStatus.PREALLOCATED);
+        verify(initiativeCountersPreallocationsRepository).findByIdAndStatusThenUpdateStatus(
+                preallocationId,
+                PreallocationStatus.PREALLOCATED,
+                PreallocationStatus.CAPTURED);
         verifyNoInteractions(initiativeCountersRepositoryMock);
     }
 
@@ -121,7 +133,10 @@ class CapturedTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setRewardCents(500L);
         transactionInProgressDTO.setUserId("USER_1");
         String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
-        when(initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatusToCaptured(preallocationId,PreallocationStatus.PREALLOCATED))
+        when(initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatus(
+                preallocationId,
+                PreallocationStatus.PREALLOCATED,
+                PreallocationStatus.CAPTURED))
                 .thenReturn(true);
         when(paymentRestClient.existsByIdAndStatus("ID_1",SyncTrxStatus.CAPTURED))
                 .thenReturn(true);

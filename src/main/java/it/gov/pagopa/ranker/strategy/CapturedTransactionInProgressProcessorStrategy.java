@@ -43,8 +43,10 @@ public class CapturedTransactionInProgressProcessorStrategy implements Transacti
             return;
         }
 
-        if (!initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatusToCaptured(
-                computePreallocationId(transactionInProgress), PreallocationStatus.PREALLOCATED)) {
+        if (!initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatus(
+                computePreallocationId(transactionInProgress),
+                PreallocationStatus.PREALLOCATED,
+                PreallocationStatus.CAPTURED)) {
             log.warn("[CapturedTransactionInProgressProcessor] received event for a transaction having initiative {}" +
                     " and user {} that does not exist in the initiative preallocation or already processed, will not update counter",
                     transactionInProgress.getInitiativeId(), transactionInProgress.getUserId());

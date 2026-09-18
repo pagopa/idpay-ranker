@@ -13,6 +13,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -32,7 +33,7 @@ class InitiativeCountersPreallocationsRepositoryExtImplTest  {
         repository = new InitiativeCountersPreallocationsRepositoryExtImpl(mongoTemplate);
     }
     @Test
-    void findByIdAndStatusThenUpdateStatusToCaptured() {
+    void findByIdAndStatusThenUpdateStatus() {
 
         InitiativeCountersPreallocations expected = new InitiativeCountersPreallocations();
 
@@ -43,9 +44,10 @@ class InitiativeCountersPreallocationsRepositoryExtImplTest  {
                 eq(InitiativeCountersPreallocations.class)
         )).thenReturn(expected);
 
-        boolean result = repository.findByIdAndStatusThenUpdateStatusToCaptured(
+        boolean result = repository.findByIdAndStatusThenUpdateStatus(
                 "initiative1",
-                PreallocationStatus.PREALLOCATED
+                PreallocationStatus.PREALLOCATED,
+                PreallocationStatus.CAPTURED
         );
 
         assertTrue(result);
@@ -56,5 +58,23 @@ class InitiativeCountersPreallocationsRepositoryExtImplTest  {
                 any(FindAndModifyOptions.class),
                 eq(InitiativeCountersPreallocations.class)
         );
+    }
+
+    @Test
+    void findByIdAndStatusThenUpdateStatusShouldReturnFalseWhenNoDocumentMatches() {
+        when(mongoTemplate.findAndModify(
+                any(Query.class),
+                any(Update.class),
+                any(FindAndModifyOptions.class),
+                eq(InitiativeCountersPreallocations.class)
+        )).thenReturn(null);
+
+        boolean result = repository.findByIdAndStatusThenUpdateStatus(
+                "initiative1",
+                PreallocationStatus.CAPTURED,
+                PreallocationStatus.REFUNDED
+        );
+
+        assertFalse(result);
     }
 }

@@ -9,6 +9,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 
 public class InitiativeCountersPreallocationsRepositoryExtImpl implements InitiativeCountersPreallocationsRepositoryExt {
@@ -20,14 +21,14 @@ public class InitiativeCountersPreallocationsRepositoryExtImpl implements Initia
     }
 
     @Override
-    public boolean findByIdAndStatusThenUpdateStatusToCaptured(String id, PreallocationStatus status) {
+    public boolean findByIdAndStatusThenUpdateStatus(String id, PreallocationStatus currentStatus, PreallocationStatus newStatus) {
         InitiativeCountersPreallocations initiativeCountersPreallocations = mongoTemplate.findAndModify(
                 Query.query(
                         Criteria.where(InitiativeCountersPreallocations.Fields.id).is(id)
-                                .and(InitiativeCountersPreallocations.Fields.status).is(status)),
+                                .and(InitiativeCountersPreallocations.Fields.status).is(currentStatus)),
                 new Update()
-                        .set(InitiativeCountersPreallocations.Fields.status, PreallocationStatus.CAPTURED)
-                        .set(InitiativeCountersPreallocations.Fields.updateDate, LocalDateTime.now()),
+                        .set(InitiativeCountersPreallocations.Fields.status, newStatus)
+                        .set(InitiativeCountersPreallocations.Fields.updateDate, LocalDateTime.now(ZoneId.of("Europe/Rome"))),
                 FindAndModifyOptions.options().returnNew(true),
                 InitiativeCountersPreallocations.class);
         return initiativeCountersPreallocations != null;

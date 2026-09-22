@@ -1,6 +1,7 @@
 package it.gov.pagopa.ranker.strategy;
 
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
+import it.gov.pagopa.ranker.enums.PreallocationStatus;
 import it.gov.pagopa.ranker.enums.SyncTrxStatus;
 import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
@@ -36,16 +37,18 @@ public class RefundedTransactionInProgressProcessorStrategy implements Transacti
         String transactionInProgressId = transactionInProgress.getId();
         String preallocationId = computePreallocationId(transactionInProgress);
 
-        if (!initiativeCountersPreallocationsRepository.existsById(preallocationId)) {
+        if (!initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatus(
+                preallocationId,
+                PreallocationStatus.CAPTURED,
+                PreallocationStatus.REFUNDED)) {
             log.warn("[RefundedTransactionInProgressProcessor] received event for a transaction having initiative {}" +
-                    " and user {} that does not exist in the initiative preallocation, will not update counter",
+                    " and user {} that does not exist in the initiative preallocation or already processed, will not update counter",
                     transactionInProgress.getInitiativeId(), transactionInProgress.getUserId());
         } else {
             try {
                 initiativeCountersRepository.updateCounterForRefunded(
                         transactionInProgress.getInitiativeId(),
                         transactionInProgress.getRewardCents());
-                initiativeCountersPreallocationsRepository.deleteById(preallocationId);
 
                 log.info("[RefundedTransactionInProgressProcessor] Refund processed successfully for transaction {}", transactionInProgressId);
 

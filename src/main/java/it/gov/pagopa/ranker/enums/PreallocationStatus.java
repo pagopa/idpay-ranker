@@ -4,5 +4,7 @@ public enum PreallocationStatus {
     PREALLOCATED,
     CONFIRMED,
     REJECTED,
-    CAPTURED
+    CAPTURED,
+    EXPIRED,
+    REFUNDED
 }

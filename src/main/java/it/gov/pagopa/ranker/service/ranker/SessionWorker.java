@@ -60,10 +60,7 @@ public class SessionWorker implements Runnable {
         int idleSeconds = 0;
 
         try (ServiceBusSessionReceiverClient sessionClient =
-                     clientBuilder.sessionReceiver()
-                             .queueName(queueName)
-                             .disableAutoComplete()
-                             .buildClient();
+                     clientBuilder.sessionReceiver().queueName(queueName).disableAutoComplete().buildClient();
              ServiceBusReceiverClient receiver = lockSession(sessionClient)) {
 
             if (!initiativeCountersService.hasAvailableBudget(sessionId)) {

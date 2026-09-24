@@ -57,6 +57,7 @@ class SessionWorkerTest {
 
         ServiceBusClientBuilder.ServiceBusSessionReceiverClientBuilder clientReceiverBuilderMockWithQueue = mock(ServiceBusClientBuilder.ServiceBusSessionReceiverClientBuilder.class);
         when(clientReceiverBuilderMock.queueName(QUEUE_NAME)).thenReturn(clientReceiverBuilderMockWithQueue);
+        lenient().when(clientReceiverBuilderMockWithQueue.disableAutoComplete()).thenReturn(clientReceiverBuilderMockWithQueue);
 
         ServiceBusSessionReceiverClient clientBuilderMock = mock(ServiceBusSessionReceiverClient.class);
         when(clientReceiverBuilderMockWithQueue.buildClient()).thenReturn(clientBuilderMock);
@@ -77,6 +78,7 @@ class SessionWorkerTest {
 
         ServiceBusClientBuilder.ServiceBusSessionReceiverClientBuilder clientReceiverBuilderMockWithQueue = mock(ServiceBusClientBuilder.ServiceBusSessionReceiverClientBuilder.class);
         when(clientReceiverBuilderMock.queueName(QUEUE_NAME)).thenReturn(clientReceiverBuilderMockWithQueue);
+        lenient().when(clientReceiverBuilderMockWithQueue.disableAutoComplete()).thenReturn(clientReceiverBuilderMockWithQueue);
 
         ServiceBusSessionReceiverClient clientBuilderMock = mock(ServiceBusSessionReceiverClient.class);
         when(clientReceiverBuilderMockWithQueue.buildClient()).thenReturn(clientBuilderMock);
@@ -99,6 +101,7 @@ class SessionWorkerTest {
 
         ServiceBusClientBuilder.ServiceBusSessionReceiverClientBuilder clientReceiverBuilderMockWithQueue = mock(ServiceBusClientBuilder.ServiceBusSessionReceiverClientBuilder.class);
         when(clientReceiverBuilderMock.queueName(QUEUE_NAME)).thenReturn(clientReceiverBuilderMockWithQueue);
+        lenient().when(clientReceiverBuilderMockWithQueue.disableAutoComplete()).thenReturn(clientReceiverBuilderMockWithQueue);
 
         ServiceBusSessionReceiverClient clientBuilderMock = mock(ServiceBusSessionReceiverClient.class);
         when(clientReceiverBuilderMockWithQueue.buildClient()).thenReturn(clientBuilderMock);
@@ -123,6 +126,7 @@ class SessionWorkerTest {
 
         ServiceBusClientBuilder.ServiceBusSessionReceiverClientBuilder clientReceiverBuilderMockWithQueue = mock(ServiceBusClientBuilder.ServiceBusSessionReceiverClientBuilder.class);
         when(clientReceiverBuilderMock.queueName(QUEUE_NAME)).thenReturn(clientReceiverBuilderMockWithQueue);
+        lenient().when(clientReceiverBuilderMockWithQueue.disableAutoComplete()).thenReturn(clientReceiverBuilderMockWithQueue);
 
         ServiceBusSessionReceiverClient clientBuilderMock = mock(ServiceBusSessionReceiverClient.class);
         when(clientReceiverBuilderMockWithQueue.buildClient()).thenReturn(clientBuilderMock);
@@ -154,6 +158,7 @@ class SessionWorkerTest {
 
         ServiceBusClientBuilder.ServiceBusSessionReceiverClientBuilder clientReceiverBuilderMockWithQueue = mock(ServiceBusClientBuilder.ServiceBusSessionReceiverClientBuilder.class);
         when(clientReceiverBuilderMock.queueName(QUEUE_NAME)).thenReturn(clientReceiverBuilderMockWithQueue);
+        lenient().when(clientReceiverBuilderMockWithQueue.disableAutoComplete()).thenReturn(clientReceiverBuilderMockWithQueue);
 
         ServiceBusSessionReceiverClient clientBuilderMock = mock(ServiceBusSessionReceiverClient.class);
         when(clientReceiverBuilderMockWithQueue.buildClient()).thenReturn(clientBuilderMock);
@@ -185,6 +190,7 @@ class SessionWorkerTest {
 
         ServiceBusClientBuilder.ServiceBusSessionReceiverClientBuilder clientReceiverBuilderMockWithQueue = mock(ServiceBusClientBuilder.ServiceBusSessionReceiverClientBuilder.class);
         when(clientReceiverBuilderMock.queueName(QUEUE_NAME)).thenReturn(clientReceiverBuilderMockWithQueue);
+        lenient().when(clientReceiverBuilderMockWithQueue.disableAutoComplete()).thenReturn(clientReceiverBuilderMockWithQueue);
 
         ServiceBusSessionReceiverClient clientBuilderMock = mock(ServiceBusSessionReceiverClient.class);
         when(clientReceiverBuilderMockWithQueue.buildClient()).thenReturn(clientBuilderMock);

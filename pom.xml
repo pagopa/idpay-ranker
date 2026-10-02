@@ -70,11 +70,6 @@
             <artifactId>commons-lang3</artifactId>
         </dependency>
 
-        <!-- Required by logback-spring.xml <if> conditional processing -->
-        <dependency>
-            <groupId>org.codehaus.janino</groupId>
-            <artifactId>janino</artifactId>
-        </dependency>
 
         <!--3rd party library-->
         <dependency>

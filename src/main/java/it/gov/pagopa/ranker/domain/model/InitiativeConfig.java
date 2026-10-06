@@ -23,8 +23,8 @@ public class InitiativeConfig {
     private LocalDate startDate;
     private LocalDate endDate;
     private Long initiativeBudgetCents;
-    private Long beneficiaryInitiativeBudgetCents;
-    private Long beneficiaryInitiativeBudgetMaxCents;
+    private Long beneficiaryBudgetFixedCents;
+    private Long beneficiaryBudgetMaxCents;
     private boolean rankingInitiative;
     private String initiativeRewardType;
 }

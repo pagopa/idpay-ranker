@@ -1,4 +1,4 @@
-package it.gov.pagopa.ranker.service.transactionInProgress;
+package it.gov.pagopa.ranker.service.transaction;
 
 import it.gov.pagopa.common.config.KafkaConfiguration;
 import it.gov.pagopa.common.kafka.service.ErrorNotifierService;
@@ -11,14 +11,14 @@ import org.springframework.stereotype.Service;
 
 @Service
 @Slf4j
-public class TransactionInProgressErrorNotifierServiceImpl implements TransactionInProgressErrorNotifierService {
+public class TransactionErrorNotifierServiceImpl implements TransactionErrorNotifierService {
     private static final String KAFKA_BINDINGS_TRANSACTIONS = "trxProcessor-in-0";
 
     private final ErrorNotifierService errorNotifierService;
     private final KafkaConfiguration kafkaConfiguration;
 
-    public TransactionInProgressErrorNotifierServiceImpl(ErrorNotifierService errorNotifierService,
-                                           KafkaConfiguration kafkaConfiguration) {
+    public TransactionErrorNotifierServiceImpl(ErrorNotifierService errorNotifierService,
+                                               KafkaConfiguration kafkaConfiguration) {
         this.errorNotifierService = errorNotifierService;
         this.kafkaConfiguration = kafkaConfiguration;
     }

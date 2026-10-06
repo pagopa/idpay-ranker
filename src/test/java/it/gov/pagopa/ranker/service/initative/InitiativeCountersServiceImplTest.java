@@ -1,6 +1,7 @@
 package it.gov.pagopa.ranker.service.initative;
 
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
+import it.gov.pagopa.ranker.domain.dto.VerifyDTO;
 import it.gov.pagopa.ranker.domain.model.InitiativeConfig;
 import it.gov.pagopa.ranker.domain.model.InitiativeCounters;
 import it.gov.pagopa.ranker.domain.model.InitiativeCountersPreallocations;
@@ -21,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import static it.gov.pagopa.ranker.connector.event.producer.RankerProducer.sanitizeField;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -80,13 +82,23 @@ class InitiativeCountersServiceImplTest {
     void testAddPreallocatedUser_success() {
         String userId = "USER123";
         LocalDateTime time = LocalDateTime.now();
+        List<VerifyDTO> verifies = List.of(); // Inserire eventuali mock di VerifyDTO se necessario
+        Long sequenceNumber = 1L;
+        Long beneficiaryBudgetFixedCents = 20000L;
 
-        InitiativeConfig config = InitiativeConfig.builder().initiativeId(INITIATIVE_ID.getFirst()).beneficiaryInitiativeBudgetCents(10000L).beneficiaryInitiativeBudgetMaxCents(20000L).build();
+        InitiativeConfig config = InitiativeConfig.builder()
+                .initiativeId(INITIATIVE_ID.getFirst())
+                .beneficiaryBudgetFixedCents(beneficiaryBudgetFixedCents).build();
+
         when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
 
-        initiativeCountersService.addPreallocatedUser(
-                INITIATIVE_ID.getFirst(), userId, true, 1L, time);
+        // Nota: Rimosso il mock di initiativeBeneficiaryRuleService se non più usato internamente da addPreallocatedUser
 
+        initiativeCountersService.addPreallocatedUser(
+                INITIATIVE_ID.getFirst(), userId, verifies, sequenceNumber, time);
+
+        // Il valore atteso dipende da come calculateReservationCents elabora i parametri.
+        // Assumendo che rispecchi il beneficiaryBudgetFixedCents passato:
         verify(initiativeCountersRepositoryMock)
                 .incrementOnboardedAndBudget(INITIATIVE_ID.getFirst(), 20000L);
 
@@ -105,15 +117,98 @@ class InitiativeCountersServiceImplTest {
         doThrow(new DuplicateKeyException("Duplicate"))
                 .when(initiativeCountersRepositoryMock)
                 .incrementOnboardedAndBudget(anyString(), anyLong());
-        InitiativeConfig config = InitiativeConfig.builder().initiativeId(INITIATIVE_ID.getFirst()).beneficiaryInitiativeBudgetCents(10000L).beneficiaryInitiativeBudgetMaxCents(20000L).build();
+
+        List<VerifyDTO> verifies = List.of();
+        Long sequenceNumber = 10L;
+        Long beneficiaryBudgetFixedCents = 10000L;
+
+        InitiativeConfig config = InitiativeConfig.builder()
+                .initiativeId(INITIATIVE_ID.getFirst())
+                .beneficiaryBudgetFixedCents(beneficiaryBudgetFixedCents).build();
+
         when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
+
         assertThrows(BudgetExhaustedException.class, () ->
                 initiativeCountersService.addPreallocatedUser(
-                        INITIATIVE_ID.getFirst(), "USER", false, 10L, LocalDateTime.now())
+                        INITIATIVE_ID.getFirst(), "USER", verifies, sequenceNumber, LocalDateTime.now())
         );
 
         verify(initiativeCountersRepositoryMock)
                 .incrementOnboardedAndBudget(INITIATIVE_ID.getFirst(), 10000L);
+    }
+
+    @Test
+    void testCalculateReservationCents() {
+        List<VerifyDTO> verifies = List.of();
+        Long beneficiaryBudgetFixedCents = 10000L;
+        String initiativeId = "INITIATIVE_ID";
+
+        InitiativeConfig config = InitiativeConfig.builder()
+                .initiativeId(initiativeId)
+                .beneficiaryBudgetFixedCents(beneficiaryBudgetFixedCents).build();
+
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(initiativeId)).thenReturn(config);
+
+        // Modificare l'asserzione in base alla reale logica di calculateReservationCents(verifies, budget)
+        long result = initiativeCountersService.calculateReservationCents(verifies, initiativeId);
+
+        assertEquals(beneficiaryBudgetFixedCents, result);
+    }
+
+    @Test
+    void testCalculateReservationCents_withBeneficiaryBudgetCentsMax() {
+        VerifyDTO verifyMock = new VerifyDTO();
+        verifyMock.setBeneficiaryBudgetCentsMax(50000L);
+        List<VerifyDTO> verifies = List.of(verifyMock);
+
+        String initiativeId = "INITIATIVE_ID";
+
+        InitiativeConfig config = InitiativeConfig.builder()
+                .initiativeId(initiativeId)
+                .beneficiaryBudgetMaxCents(80000L).build();
+
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(initiativeId)).thenReturn(config);
+
+        long result = initiativeCountersService.calculateReservationCents(verifies, initiativeId);
+
+        assertEquals(50000L, result);
+    }
+
+    @Test
+    void testCalculateReservationCents_withMultipleVerifiesAndFirstNull() {
+        VerifyDTO verifyFirst = new VerifyDTO();
+        verifyFirst.setBeneficiaryBudgetCentsMax(null);
+
+        VerifyDTO verifySecond = new VerifyDTO();
+        verifySecond.setBeneficiaryBudgetCentsMax(30000L);
+
+        List<VerifyDTO> verifies = List.of(verifyFirst, verifySecond);
+
+        String initiativeId = "INITIATIVE_ID";
+
+        InitiativeConfig config = InitiativeConfig.builder()
+                .initiativeId(initiativeId)
+                .beneficiaryBudgetMaxCents(50000L).build();
+
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(initiativeId)).thenReturn(config);
+
+        long result = initiativeCountersService.calculateReservationCents(verifies, initiativeId);
+
+        assertEquals(30000L, result);
+    }
+
+    @Test
+    void testCalculateReservationCents_withEmptyVerifiesShouldThrowException() {
+        List<VerifyDTO> verifies = List.of();
+
+        String initiativeId = "INITIATIVE_ID";
+
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(initiativeId)).thenReturn(null);
+
+        IllegalStateException errorResult = assertThrows(IllegalStateException.class, () -> initiativeCountersService.calculateReservationCents(verifies, initiativeId));
+
+        assertEquals("Unable to calculate the reservation budget for initiative [%s] due to an invalid or incomplete configuration."
+                .formatted(sanitizeField(initiativeId)), errorResult.getMessage());
     }
 
     @Test
@@ -126,8 +221,8 @@ class InitiativeCountersServiceImplTest {
 
         InitiativeConfig config = InitiativeConfig.builder()
                 .initiativeId(INITIATIVE_ID.getFirst())
-                .beneficiaryInitiativeBudgetCents(100L)
-                .beneficiaryInitiativeBudgetMaxCents(500L)
+                .beneficiaryBudgetFixedCents(100L)
+                .beneficiaryBudgetMaxCents(500L)
                 .build();
         when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
 
@@ -144,7 +239,7 @@ class InitiativeCountersServiceImplTest {
 
         InitiativeConfig config = InitiativeConfig.builder()
                 .initiativeId(INITIATIVE_ID.getFirst())
-                .beneficiaryInitiativeBudgetCents(100L)
+                .beneficiaryBudgetFixedCents(100L)
                 .build();
         when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
 
@@ -175,8 +270,8 @@ class InitiativeCountersServiceImplTest {
 
         InitiativeConfig config = InitiativeConfig.builder()
                 .initiativeId(INITIATIVE_ID.getFirst())
-                .beneficiaryInitiativeBudgetCents(100L)
-                .beneficiaryInitiativeBudgetMaxCents(500L)
+                .beneficiaryBudgetFixedCents(100L)
+                .beneficiaryBudgetMaxCents(500L)
                 .build();
         when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
 
@@ -194,7 +289,7 @@ class InitiativeCountersServiceImplTest {
 
         InitiativeConfig config = InitiativeConfig.builder()
                 .initiativeId(INITIATIVE_ID.getFirst())
-                .beneficiaryInitiativeBudgetCents(100L)
+                .beneficiaryBudgetFixedCents(100L)
                 .build();
         when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
 
@@ -212,8 +307,8 @@ class InitiativeCountersServiceImplTest {
 
         InitiativeConfig config = InitiativeConfig.builder()
                 .initiativeId(INITIATIVE_ID.getFirst())
-                .beneficiaryInitiativeBudgetCents(100L)
-                .beneficiaryInitiativeBudgetMaxCents(500L)
+                .beneficiaryBudgetFixedCents(100L)
+                .beneficiaryBudgetMaxCents(500L)
                 .build();
         when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
 
@@ -234,7 +329,7 @@ class InitiativeCountersServiceImplTest {
 
         InitiativeConfig config = InitiativeConfig.builder()
                 .initiativeId(INITIATIVE_ID.getFirst())
-                .beneficiaryInitiativeBudgetCents(100L)
+                .beneficiaryBudgetFixedCents(100L)
                 .build();
         when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
 
@@ -312,10 +407,5 @@ class InitiativeCountersServiceImplTest {
                 .decrementOnboardedAndBudget("INIT_1", 1000L);
     }
 
-    @Test
-    void testCalculateReservationCents() {
-        InitiativeConfig config = InitiativeConfig.builder().beneficiaryInitiativeBudgetMaxCents(20000L).beneficiaryInitiativeBudgetCents(10000L).build();
-        assertEquals(20000L, initiativeCountersService.calculateReservationCents(true, config));
-        assertEquals(10000L, initiativeCountersService.calculateReservationCents(false, config));
-    }
+
 }

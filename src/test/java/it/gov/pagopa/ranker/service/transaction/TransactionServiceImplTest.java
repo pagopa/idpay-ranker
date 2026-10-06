@@ -1,4 +1,4 @@
-package it.gov.pagopa.ranker.service.transactionInProgress;
+package it.gov.pagopa.ranker.service.transaction;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -33,7 +33,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class TransactionInProgressServiceImplTest {
+class TransactionServiceImplTest {
 
     private static final String APP_NAME = "TEST_APP";
 
@@ -44,22 +44,22 @@ class TransactionInProgressServiceImplTest {
     private TransactionInProgressProcessorStrategy transactionInProgressProcessorStrategy;
 
     @Mock
-    private TransactionInProgressErrorNotifierService transactionInProgressErrorNotifierService;
+    private TransactionErrorNotifierService transactionErrorNotifierService;
 
 
     @Spy
     ObjectMapper objectMapper;
 
-    TransactionInProgressServiceImpl transactionInProgressService;
+    TransactionServiceImpl transactionInProgressService;
 
     @BeforeEach
-    public void init() {
+    void init() {
         Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
         Mockito.reset(transactionInProgressProcessorStrategyFactory, transactionInProgressProcessorStrategy);
         objectMapper = updateMapper();
 
-        transactionInProgressService = new TransactionInProgressServiceImpl(
-                objectMapper, transactionInProgressErrorNotifierService,
+        transactionInProgressService = new TransactionServiceImpl(
+                objectMapper, transactionErrorNotifierService,
                 transactionInProgressProcessorStrategyFactory, validator, APP_NAME);
     }
 
@@ -81,7 +81,7 @@ class TransactionInProgressServiceImplTest {
                 transactionInProgressService.process(message));
         verify(transactionInProgressProcessorStrategyFactory).getStrategy(SyncTrxStatus.EXPIRED);
         verify(transactionInProgressProcessorStrategy).processTransaction(any());
-        verifyNoInteractions(transactionInProgressErrorNotifierService);
+        verifyNoInteractions(transactionErrorNotifierService);
     }
 
     @Test
@@ -97,7 +97,7 @@ class TransactionInProgressServiceImplTest {
                 transactionInProgressService.process(message));
         verifyNoInteractions(transactionInProgressProcessorStrategyFactory);
         verifyNoInteractions(transactionInProgressProcessorStrategy);
-        verify(transactionInProgressErrorNotifierService).notifyExpiredTransaction(any(),any(),eq(false),any());
+        verify(transactionErrorNotifierService).notifyExpiredTransaction(any(),any(),eq(false),any());
     }
 
     @Test
@@ -114,7 +114,7 @@ class TransactionInProgressServiceImplTest {
                 transactionInProgressService.process(message));
         verifyNoInteractions(transactionInProgressProcessorStrategyFactory);
         verifyNoInteractions(transactionInProgressProcessorStrategy);
-        verify(transactionInProgressErrorNotifierService).notifyExpiredTransaction(any(),any(),eq(false),any());
+        verify(transactionErrorNotifierService).notifyExpiredTransaction(any(),any(),eq(false),any());
     }
 
     @Test
@@ -135,7 +135,7 @@ class TransactionInProgressServiceImplTest {
                 transactionInProgressService.process(message));
         verify(transactionInProgressProcessorStrategyFactory).getStrategy(SyncTrxStatus.EXPIRED);
         verify(transactionInProgressProcessorStrategy).processTransaction(any());
-        verify(transactionInProgressErrorNotifierService).notifyExpiredTransaction(any(),any(),eq(true),any());
+        verify(transactionErrorNotifierService).notifyExpiredTransaction(any(),any(),eq(true),any());
     }
 
     @Test
@@ -145,7 +145,7 @@ class TransactionInProgressServiceImplTest {
                 transactionInProgressService.process(message));
         verifyNoInteractions(transactionInProgressProcessorStrategyFactory);
         verifyNoInteractions(transactionInProgressProcessorStrategy);
-        verifyNoInteractions(transactionInProgressErrorNotifierService);
+        verifyNoInteractions(transactionErrorNotifierService);
     }
 
     @Test
@@ -164,7 +164,7 @@ class TransactionInProgressServiceImplTest {
                 transactionInProgressService.process(message));
         verify(transactionInProgressProcessorStrategyFactory).getStrategy(SyncTrxStatus.EXPIRED);
         verify(transactionInProgressProcessorStrategy, never()).processTransaction(any());
-        verify(transactionInProgressErrorNotifierService, never()).notifyExpiredTransaction(any(),any(),eq(true),any());
+        verify(transactionErrorNotifierService, never()).notifyExpiredTransaction(any(),any(),eq(true),any());
     }
 
     @Test
@@ -181,12 +181,12 @@ class TransactionInProgressServiceImplTest {
                 .thenReturn(transactionInProgressProcessorStrategy);
         doThrow(new RuntimeException("error")).doNothing().when(transactionInProgressProcessorStrategy)
                 .processTransaction(any());
-        doThrow(new RuntimeException("DUMY_EXCEPTION")).when(transactionInProgressErrorNotifierService).notifyExpiredTransaction(eq(message),eq("error"), eq(true), any());
+        doThrow(new RuntimeException("DUMY_EXCEPTION")).when(transactionErrorNotifierService).notifyExpiredTransaction(eq(message),eq("error"), eq(true), any());
         Assertions.assertDoesNotThrow(() ->
                 transactionInProgressService.process(message));
         verify(transactionInProgressProcessorStrategyFactory).getStrategy(SyncTrxStatus.EXPIRED);
         verify(transactionInProgressProcessorStrategy).processTransaction(any());
-        verify(transactionInProgressErrorNotifierService).notifyExpiredTransaction(any(),any(),eq(true),any());
+        verify(transactionErrorNotifierService).notifyExpiredTransaction(any(),any(),eq(true),any());
     }
 
     public ObjectMapper updateMapper() {

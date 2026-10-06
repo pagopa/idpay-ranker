@@ -168,6 +168,7 @@ logging:
     org.drools: ${LOG_LEVEL_ORG_DROOLS:WARN}
     org.drools.mvel.MVELConstraint: ${LOG_LEVEL_ORG_DROOLS_COMPILE:ERROR}
     org.mongodb.driver: ${LOG_LEVEL_MONGODB_DRIVER:WARN}
+    com.azure: ${LOG_LEVEL_AZURE:WARN}
     org.apache.kafka: WARN
     org.springframework.boot.autoconfigure: WARN
 
@@ -196,6 +197,10 @@ app:
   initiative:
     identified: ${INITIATIVE_ID:68dd003ccce8c534d1da22bc, 68de7fc681ce9e35a476e985}
     schedule-check-budget: ${INITIATIVE_SCHEDULE_CHECK_BUDGET:0 */5 * * * *}
+
+rest-client:
+  payment:
+    base-url: ${IDPAY_PAYMENT_BASE_URL}
 
 azure:
   servicebus:

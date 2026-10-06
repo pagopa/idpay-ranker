@@ -1,4 +1,4 @@
-package it.gov.pagopa.ranker.service.transactionInProgress;
+package it.gov.pagopa.ranker.service.transaction;
 
 import it.gov.pagopa.ranker.connector.event.consumer.BaseKafkaConsumer;
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
@@ -20,21 +20,21 @@ import static it.gov.pagopa.utils.CommonUtils.sanitizeString;
 
 @Service
 @Slf4j
-public class TransactionInProgressServiceImpl extends BaseKafkaConsumer implements TransactionInProgressService {
+public class TransactionServiceImpl extends BaseKafkaConsumer implements TransactionService {
 
     private final ObjectMapper objectMapper;
-    private final TransactionInProgressErrorNotifierService transactionInProgressErrorNotifierService;
+    private final TransactionErrorNotifierService transactionErrorNotifierService;
     private final TransactionInProgressProcessorStrategyFactory transactionInProgressProcessorStrategyFactory;
     private final Validator validator;
 
-    public TransactionInProgressServiceImpl(
+    public TransactionServiceImpl(
             ObjectMapper objectMapper,
-            TransactionInProgressErrorNotifierService transactionInProgressErrorNotifierService,
+            TransactionErrorNotifierService transactionErrorNotifierService,
             TransactionInProgressProcessorStrategyFactory transactionInProgressProcessorStrategyFactory,
             Validator validator, @Value("${spring.application.name}") String applicationName) {
         super(applicationName);
         this.objectMapper = objectMapper;
-        this.transactionInProgressErrorNotifierService = transactionInProgressErrorNotifierService;
+        this.transactionErrorNotifierService = transactionErrorNotifierService;
         this.transactionInProgressProcessorStrategyFactory = transactionInProgressProcessorStrategyFactory;
         this.validator = validator;
     }
@@ -80,7 +80,7 @@ public class TransactionInProgressServiceImpl extends BaseKafkaConsumer implemen
 
     private void notifyError(Message<String> transactionInProgressDTO, Boolean retry, Exception e) {
         try {
-            transactionInProgressErrorNotifierService.notifyExpiredTransaction(
+            transactionErrorNotifierService.notifyExpiredTransaction(
                     transactionInProgressDTO,
                     e.getMessage(), retry, e
             );

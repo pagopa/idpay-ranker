@@ -2,6 +2,7 @@ package it.gov.pagopa.ranker.service.ranker;
 
 import it.gov.pagopa.ranker.config.RankerProcessorProperties;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
+import it.gov.pagopa.ranker.service.ranker.sessionworker.NormalSessionWorker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -66,10 +67,10 @@ class CycleOrchestratorTest {
         when(rankerProcessorPropertiesMock.getMaxParallelSessions()).thenReturn(1);
         when(cycleHandlerStateMock.hasFreeSlot(1)).thenReturn(true);
 
-        HashMap<String, SessionWorker> activeMock = new HashMap<>();
+        HashMap<String, NormalSessionWorker> activeMock = new HashMap<>();
         when(cycleHandlerStateMock.getActiveSessions()).thenReturn(activeMock);
 
-        SessionWorker sessionWorkerMock = mock(SessionWorker.class);
+        NormalSessionWorker sessionWorkerMock = mock(NormalSessionWorker.class);
         when(sessionWorkerFactoryMock.create(eq(initiative), any())).thenReturn(sessionWorkerMock);
 
         doNothing().when(executorMock).execute(sessionWorkerMock);
@@ -96,12 +97,12 @@ class CycleOrchestratorTest {
         when(rankerProcessorPropertiesMock.getMaxParallelSessions()).thenReturn(2);
         when(cycleHandlerStateMock.hasFreeSlot(2)).thenReturn(true);
 
-        HashMap<String, SessionWorker> activeMock = new HashMap<>();
-        SessionWorker sessionWorkerMock = mock(SessionWorker.class);
+        HashMap<String, NormalSessionWorker> activeMock = new HashMap<>();
+        NormalSessionWorker sessionWorkerMock = mock(NormalSessionWorker.class);
         activeMock.put(initiative, sessionWorkerMock);
         when(cycleHandlerStateMock.getActiveSessions()).thenReturn(activeMock);
 
-        SessionWorker sessionWorkerMock2 = mock(SessionWorker.class);
+        NormalSessionWorker sessionWorkerMock2 = mock(NormalSessionWorker.class);
         when(sessionWorkerFactoryMock.create(eq(initiative2), any())).thenReturn(sessionWorkerMock2);
 
         doNothing().when(executorMock).execute(sessionWorkerMock2);

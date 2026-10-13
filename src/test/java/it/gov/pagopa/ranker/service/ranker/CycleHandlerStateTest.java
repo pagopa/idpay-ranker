@@ -1,5 +1,6 @@
 package it.gov.pagopa.ranker.service.ranker;
 
+import it.gov.pagopa.ranker.service.ranker.sessionworker.NormalSessionWorker;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -59,13 +60,13 @@ class CycleHandlerStateTest {
 
     @Test
     void getActiveSessions(){
-        Map<String, SessionWorker> result1 = cycleHandlerState.getActiveSessions();
+        Map<String, NormalSessionWorker> result1 = cycleHandlerState.getActiveSessions();
         Assertions.assertNotNull(result1);
         Assertions.assertTrue(result1.isEmpty());
 
-        SessionWorker sessionWorkerMock = Mockito.mock(SessionWorker.class);
+        NormalSessionWorker sessionWorkerMock = Mockito.mock(NormalSessionWorker.class);
         result1.put("TEST", sessionWorkerMock);
-        Map<String, SessionWorker> result2 = cycleHandlerState.getActiveSessions();
+        Map<String, NormalSessionWorker> result2 = cycleHandlerState.getActiveSessions();
         Assertions.assertNotNull(result2);
         Assertions.assertEquals(1, result2.size());
     }
@@ -94,7 +95,7 @@ class CycleHandlerStateTest {
     @Test
     void isInActive_isPresent(){
         String sessionId = "TEST";
-        SessionWorker sessionWorkerMock = Mockito.mock(SessionWorker.class);
+        NormalSessionWorker sessionWorkerMock = Mockito.mock(NormalSessionWorker.class);
         cycleHandlerState.getActiveSessions().put(sessionId, sessionWorkerMock);
 
         boolean result = cycleHandlerState.isInActive(sessionId);
@@ -110,7 +111,7 @@ class CycleHandlerStateTest {
     @Test
     void hasFreeSlot_false(){
         String sessionId = "TEST";
-        SessionWorker sessionWorkerMock = Mockito.mock(SessionWorker.class);
+        NormalSessionWorker sessionWorkerMock = Mockito.mock(NormalSessionWorker.class);
         cycleHandlerState.getActiveSessions().put(sessionId, sessionWorkerMock);
 
         boolean result = cycleHandlerState.hasFreeSlot(1);
@@ -135,7 +136,7 @@ class CycleHandlerStateTest {
     @Test
     void isCompleted_withActivePresent(){
         String sessionId = "TEST";
-        SessionWorker sessionWorkerMock = Mockito.mock(SessionWorker.class);
+        NormalSessionWorker sessionWorkerMock = Mockito.mock(NormalSessionWorker.class);
         cycleHandlerState.getActiveSessions().put(sessionId, sessionWorkerMock);
 
         boolean result = cycleHandlerState.isCompleted();
@@ -145,7 +146,7 @@ class CycleHandlerStateTest {
     @Test
     void isCompleted_withPendingActivePresent(){
         cycleHandlerState.getPendingSessions().add("TEST1");
-        SessionWorker sessionWorkerMock = Mockito.mock(SessionWorker.class);
+        NormalSessionWorker sessionWorkerMock = Mockito.mock(NormalSessionWorker.class);
         cycleHandlerState.getActiveSessions().put("TEST2", sessionWorkerMock);
 
         boolean result = cycleHandlerState.isCompleted();

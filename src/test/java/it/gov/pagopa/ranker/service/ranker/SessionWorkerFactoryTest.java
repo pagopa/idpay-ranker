@@ -3,6 +3,7 @@ package it.gov.pagopa.ranker.service.ranker;
 import com.azure.messaging.servicebus.ServiceBusClientBuilder;
 import it.gov.pagopa.ranker.config.RankerProcessorProperties;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
+import it.gov.pagopa.ranker.service.ranker.sessionworker.NormalSessionWorker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,7 +31,7 @@ class SessionWorkerFactoryTest {
     @Test
     void create() {
         Runnable runnableMock = mock(Runnable.class);
-        SessionWorker result = factory.create("INITIATIVE_ID", runnableMock);
+        NormalSessionWorker result = factory.create("INITIATIVE_ID", runnableMock);
 
         assertNotNull(result);
 

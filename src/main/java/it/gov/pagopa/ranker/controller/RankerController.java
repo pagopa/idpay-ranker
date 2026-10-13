@@ -1,6 +1,6 @@
 package it.gov.pagopa.ranker.controller;
 
-import it.gov.pagopa.ranker.domain.dto.ManualDequeueDTO;
+import it.gov.pagopa.ranker.domain.dto.ManualDequeueResponseDTO;
 import it.gov.pagopa.ranker.domain.dto.OnboardingDTO;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +19,7 @@ public interface RankerController {
     public void recovery(@RequestBody OnboardingDTO onboardingDTO);
 
     @PostMapping("/{initiativeId}/dequeue")
-    public ResponseEntity<ManualDequeueDTO> manualDequeue(
+    public ResponseEntity<ManualDequeueResponseDTO> manualDequeue(
             @PathVariable("initiativeId") String initiativeId,
             @RequestParam(required = false, defaultValue = "1") int size
     );

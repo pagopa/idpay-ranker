@@ -1,4 +1,4 @@
-package it.gov.pagopa.ranker.service.ranker;
+package it.gov.pagopa.ranker.service.ranker.sessionworker;
 
 import com.azure.core.amqp.exception.AmqpErrorContext;
 import com.azure.core.amqp.exception.AmqpException;
@@ -10,6 +10,7 @@ import com.azure.messaging.servicebus.ServiceBusSessionReceiverClient;
 import it.gov.pagopa.ranker.config.RankerProcessorProperties;
 import it.gov.pagopa.ranker.exception.BudgetExhaustedException;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
+import it.gov.pagopa.ranker.service.ranker.RankerService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,11 +32,11 @@ class SessionWorkerTest {
     @Mock private RankerProcessorProperties rankerProcessorPropertiesMock;
     private static final String SESSION_ID = "SESSION_ID";
     private static final String QUEUE_NAME = "QUEUE_NAME";
-    private SessionWorker sessionWorker;
+    private NormalSessionWorker sessionWorker;
 
     @BeforeEach
     void setUp() {
-        sessionWorker = new SessionWorker(SESSION_ID, QUEUE_NAME,serviceBusClientBuilderMock,
+        sessionWorker = new NormalSessionWorker(SESSION_ID,  QUEUE_NAME,serviceBusClientBuilderMock,
                 initiativeCountersServiceMock,rankerServiceMock,rankerProcessorPropertiesMock, onCompletedMock);
     }
 

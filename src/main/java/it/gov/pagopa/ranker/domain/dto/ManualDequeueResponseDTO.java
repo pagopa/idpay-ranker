@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ManualDequeueDTO {
+public class ManualDequeueResponseDTO {
 
     String initiativeId;
     Integer requestedMessages;

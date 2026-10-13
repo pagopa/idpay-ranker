@@ -2,6 +2,7 @@ package it.gov.pagopa.ranker.service.ranker;
 
 import it.gov.pagopa.ranker.config.RankerProcessorProperties;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
+import it.gov.pagopa.ranker.service.ranker.sessionworker.NormalSessionWorker;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -75,7 +76,7 @@ public class CycleOrchestratorImpl implements CycleOrchestrator{
                 continue;
             }
 
-            SessionWorker worker = sessionWorkerFactory.create(initiativeId, () -> onWorkerClose(initiativeId));
+            NormalSessionWorker worker = sessionWorkerFactory.create(initiativeId, () -> onWorkerClose(initiativeId));
             cycleHandlerState.getActiveSessions().put(initiativeId, worker);
             executor.execute(worker);
 

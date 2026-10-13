@@ -16,7 +16,4 @@ public class ControllerExceptionHandler {
     public ErrorDTO handleManualDequeueSizeNotValidException(ManualDequeueSizeNotValidException ex) {
         return new ErrorDTO(INVALID_SIZE_CODE, ex.getMessage());
     }
-
-    // TODO: Should we handle MethodArgumentTypeMismatchException as well?
-    // -> size is an int, caller might pass a string
 }

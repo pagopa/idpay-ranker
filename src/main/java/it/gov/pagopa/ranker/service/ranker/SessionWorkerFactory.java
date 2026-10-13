@@ -3,6 +3,8 @@ package it.gov.pagopa.ranker.service.ranker;
 import com.azure.messaging.servicebus.ServiceBusClientBuilder;
 import it.gov.pagopa.ranker.config.RankerProcessorProperties;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
+import it.gov.pagopa.ranker.service.ranker.sessionworker.ManualOnlySessionWorker;
+import it.gov.pagopa.ranker.service.ranker.sessionworker.NormalSessionWorker;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -26,14 +28,31 @@ public class SessionWorkerFactory {
         this.queueName = queueName;
     }
 
-    public SessionWorker create(String sessionId, Runnable onCompleted) {
-        return new SessionWorker(
+    public NormalSessionWorker create(String sessionId, Runnable onCompleted) {
+        return new NormalSessionWorker(
                 sessionId,
                 queueName,
                 clientBuilder,
                 initiativeCountersService,
                 rankerService,
                 properties,
+                onCompleted
+        );
+    }
+
+    public ManualOnlySessionWorker createManualOnly(
+            String sessionId,
+            int requestedMessages,
+            Runnable onCompleted
+    ) {
+        return new ManualOnlySessionWorker(
+                sessionId,
+                queueName,
+                clientBuilder,
+                initiativeCountersService,
+                rankerService,
+                properties,
+                requestedMessages,
                 onCompleted
         );
     }

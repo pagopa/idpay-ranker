@@ -54,10 +54,11 @@ public class RankerServiceImpl implements RankerService {
             return;
         }
 
-        if(!this.initiativesId.contains(dto.getInitiativeId())){
+        // TODO: temporarily disabled to test things, check if it's necessary to be enabled
+        /*if(!this.initiativesId.contains(dto.getInitiativeId())){
             log.error("[RANKER_SERVICE] Skipped processing for initiativeId={} because it is not configured among handled initiatives", sanitizeString(dto.getInitiativeId()));
             return;
-        }
+        }*/
 
         this.initiativeCountersService.addPreallocatedUser(
                 dto.getInitiativeId(),

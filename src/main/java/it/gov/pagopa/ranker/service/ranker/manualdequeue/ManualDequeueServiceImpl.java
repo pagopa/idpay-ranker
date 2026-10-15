@@ -1,6 +1,7 @@
 package it.gov.pagopa.ranker.service.ranker.manualdequeue;
 
 import it.gov.pagopa.ranker.domain.dto.ManualDequeueResponseDTO;
+import it.gov.pagopa.ranker.exception.ManualDequeueSizeNotValidException;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -10,6 +11,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 
+import static it.gov.pagopa.ranker.constants.ErrorMessages.INVALID_SIZE_NOT_POSITIVE;
 import static it.gov.pagopa.ranker.constants.RankerConstants.MDC_TRACE_ID;
 import static it.gov.pagopa.ranker.constants.RankerConstants.STATUS_ACCEPTED;
 
@@ -31,19 +33,18 @@ public class ManualDequeueServiceImpl implements ManualDequeueService {
     @Override
     public ManualDequeueResponseDTO requestDequeue(String initiativeId, int size) {
         if (size < 1) {
-            throw new IllegalArgumentException("[MANUAL_DEQUEUE] Size must be greater than zero");
+            log.error("[MANUAL_DEQUEUE] Error when calling manualDequeue | size is not positive, its value is: {}", size);
+            throw new ManualDequeueSizeNotValidException(INVALID_SIZE_NOT_POSITIVE);
         }
 
         // Extract current context traceId.
         String traceId = MDC.get(MDC_TRACE_ID);
 
         // Build response to return.
-        ManualDequeueResponseDTO response = ManualDequeueResponseDTO.builder()
-                .initiativeId(initiativeId)
-                .requestedMessages(size)
-                .status(STATUS_ACCEPTED)
-                .traceId(MDC.get(MDC_TRACE_ID))
-                .build();
+        ManualDequeueResponseDTO response = buildDequeueResponse(initiativeId, size, traceId);
+
+        // Build request to send.
+        ManualDequeueRequest request = buildDequeueRequest(initiativeId, size, traceId);
 
         /*
          * Atomic check-and-reserve.
@@ -57,26 +58,18 @@ public class ManualDequeueServiceImpl implements ManualDequeueService {
             return response;
         }
 
-        // Build request to send.
-        ManualDequeueRequest request = new ManualDequeueRequest(
-                initiativeId,
-                size,
-                traceId,
-                () -> releaseManualOwnership(initiativeId)
-        );
-
         try {
             manualDequeueOrchestratorExecutor.execute(
                     () -> manualDequeueOrchestrator.orchestrate(request)
             );
-        } catch (RuntimeException exception) {
+        } catch (Exception exception) {
             /*
              * The task was never submitted, so no worker exists and its
              * onCompleted callback cannot release the reservation.
              */
             releaseManualOwnership(initiativeId);
 
-            log.error("[MANUAL_DEQUEUE] Failed to submit manual dequeue for initiative {}",
+            log.error("[MANUAL_DEQUEUE] Manual ownership released: Failed to submit manual dequeue for initiative {}",
                     initiativeId, exception);
         }
 
@@ -95,4 +88,21 @@ public class ManualDequeueServiceImpl implements ManualDequeueService {
         }
     }
 
+    private ManualDequeueResponseDTO buildDequeueResponse(String initiativeId, int size, String traceId) {
+        return ManualDequeueResponseDTO.builder()
+                .initiativeId(initiativeId)
+                .requestedMessages(size)
+                .status(STATUS_ACCEPTED)
+                .traceId(traceId)
+                .build();
+    }
+
+    private ManualDequeueRequest buildDequeueRequest(String initiativeId, int size, String traceId) {
+        return new ManualDequeueRequest(
+                initiativeId,
+                size,
+                traceId,
+                () -> releaseManualOwnership(initiativeId)
+        );
+    }
 }

@@ -1,5 +1,6 @@
 package it.gov.pagopa.ranker.service.ranker.sessionworker;
 
+import com.azure.core.util.IterableStream;
 import com.azure.messaging.servicebus.ServiceBusClientBuilder;
 import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
 import com.azure.messaging.servicebus.ServiceBusReceiverClient;
@@ -99,18 +100,13 @@ public final class NormalSessionWorker extends AbstractSessionWorker {
             ServiceBusReceiverClient receiver,
             int idleSeconds
     ) {
-        ServiceBusReceivedMessage message = receiver
-                .receiveMessages(
-                        1,
-                        Duration.ofSeconds(properties.getWaitMessageSeconds())
-                )
-                .stream()
-                .findFirst()
-                .orElse(null);
+        IterableStream<ServiceBusReceivedMessage> messages =
+                receiver.receiveMessages(1, Duration.ofSeconds(properties.getWaitMessageSeconds()));
+
+        ServiceBusReceivedMessage message = messages.stream().findFirst().orElse(null);
 
         if (message == null) {
-            int updatedIdleSeconds =
-                    idleSeconds + properties.getWaitMessageSeconds();
+            int updatedIdleSeconds = idleSeconds + properties.getWaitMessageSeconds();
 
             if (updatedIdleSeconds >= properties.getIdleTimeoutSeconds()) {
                 log.info(
@@ -138,24 +134,25 @@ public final class NormalSessionWorker extends AbstractSessionWorker {
         try {
             setMdcTraceId(request.traceId());
 
-            log.info(
-                    "[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Start session={} requested={}",
-                    sessionId,
-                    request.size()
-            );
+            log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Start session={} requested={}",
+                    sessionId, request.size());
 
-            int processedMessages =
-                    processManualBatch(receiver, request.size());
+            int processedMessages = processManualBatch(receiver, request.size());
 
-            log.info(
-                    "[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] End session={} processed={} requested={}",
-                    sessionId,
-                    processedMessages,
-                    request.size()
-            );
+            log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] End session={} processed={} requested={}",
+                    sessionId, processedMessages, request.size());
+        } catch (Exception ex) {
+            // TODO: Should the normalworker stop or not if the manual request goes to error?
+            log.error("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Manual processing failed; worker will stop | session={}",
+                    sessionId, ex);
+
+            requestStop();
         } finally {
-            setMdcTraceId(previousTraceId);
-            releaseManualRequest(request);
+            try {
+                releaseManualRequest(request);
+            } finally {
+                setMdcTraceId(previousTraceId);
+            }
         }
     }
 

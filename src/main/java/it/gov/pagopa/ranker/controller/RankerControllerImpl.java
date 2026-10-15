@@ -38,14 +38,13 @@ public class RankerControllerImpl implements RankerController {
     public ResponseEntity<ManualDequeueResponseDTO> manualDequeue(String initiativeId, int size) {
         // Checking if size parameter is valid.
         if (size < 1) {
-            log.error("Error when calling manualDequeue | size is not positive, its value is: {}", size);
+            log.error("[MANUAL_DEQUEUE] Error when calling manualDequeue | size is not positive, its value is: {}", size);
             throw new ManualDequeueSizeNotValidException(INVALID_SIZE_NOT_POSITIVE);
         }
 
-        // Create the command and start it
+        // Request dequeue.
         ManualDequeueResponseDTO response = manualDequeueService.requestDequeue(initiativeId, size);
 
-        // Return
         return ResponseEntity.accepted().body(response);
     }
 }

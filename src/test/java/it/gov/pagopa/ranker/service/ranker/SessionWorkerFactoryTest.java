@@ -3,6 +3,7 @@ package it.gov.pagopa.ranker.service.ranker;
 import com.azure.messaging.servicebus.ServiceBusClientBuilder;
 import it.gov.pagopa.ranker.config.RankerProcessorProperties;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
+import it.gov.pagopa.ranker.service.ranker.sessionworker.ManualOnlySessionWorker;
 import it.gov.pagopa.ranker.service.ranker.sessionworker.NormalSessionWorker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,12 +20,12 @@ class SessionWorkerFactoryTest {
     @Mock private RankerProcessorProperties propertiesMock;
     @Mock private InitiativeCountersService initiativeCountersServiceMock;
     @Mock private RankerService rankerServiceMock;
-    private final String queueName = "QUEUE_NAME";
 
     private SessionWorkerFactory factory;
 
     @BeforeEach
     void setUp() {
+        String queueName = "QUEUE_NAME";
         factory = new SessionWorkerFactory(clientBuilderMock, propertiesMock, initiativeCountersServiceMock, rankerServiceMock, queueName);
     }
 
@@ -35,5 +36,13 @@ class SessionWorkerFactoryTest {
 
         assertNotNull(result);
 
+    }
+
+    @Test
+    void createManualOnly() {
+        Runnable runnableMock = mock(Runnable.class);
+        ManualOnlySessionWorker result = factory.createManualOnly("INITIATIVE_ID", 1, runnableMock);
+
+        assertNotNull(result);
     }
 }

@@ -3,10 +3,13 @@ package it.gov.pagopa.ranker.service.ranker.sessionworker;
 import com.azure.messaging.servicebus.ServiceBusClientBuilder;
 import com.azure.messaging.servicebus.ServiceBusReceiverClient;
 import it.gov.pagopa.ranker.config.RankerProcessorProperties;
+import it.gov.pagopa.ranker.exception.ManualDequeueSizeNotValidException;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
 import it.gov.pagopa.ranker.service.ranker.RankerService;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+
+import static it.gov.pagopa.ranker.constants.ErrorMessages.INVALID_SIZE_NOT_POSITIVE;
 
 @Slf4j
 @Getter
@@ -35,9 +38,8 @@ public final class ManualOnlySessionWorker extends AbstractSessionWorker {
         );
 
         if (requestedMessages < 1) {
-            throw new IllegalArgumentException(
-                    "[MANUAL_ONLY_SESSION_WORKER] requestedMessages must be greater than zero"
-            );
+            log.error("[MANUAL_ONLY_SESSION_WORKER] Error when calling manualDequeue | size is not positive, its value is: {}", requestedMessages);
+            throw new ManualDequeueSizeNotValidException(INVALID_SIZE_NOT_POSITIVE);
         }
 
         this.requestedMessages = requestedMessages;

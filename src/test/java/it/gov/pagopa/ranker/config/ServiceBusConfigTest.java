@@ -38,4 +38,17 @@ class ServiceBusConfigTest {
         // Then
         Assertions.assertNotNull(result);
     }
+
+    @Test
+    void manualDequeueOrchestratorExecutor() {
+        // When
+        RankerProcessorProperties properties = new RankerProcessorProperties();
+        properties.setMaxParallelSessions(1);
+
+        // Given
+        Executor result = serviceBusConfig.manualDequeueOrchestratorExecutor(properties);
+
+        // Then
+        Assertions.assertNotNull(result);
+    }
 }

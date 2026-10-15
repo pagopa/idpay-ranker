@@ -54,10 +54,33 @@ public class RankerServiceImpl implements RankerService {
                 this.initiativeCountersService.findById(dto.getInitiativeId(), dto.getUserId());
         if (existingPreallocation.isPresent()) {
             PreallocationStatus status = existingPreallocation.get().getStatus();
-            if (!List.of(PreallocationStatus.REFUNDED, PreallocationStatus.EXPIRED, PreallocationStatus.REJECTED).contains(status)) {
+            if (List.of(PreallocationStatus.REFUNDED, PreallocationStatus.EXPIRED, PreallocationStatus.REJECTED).contains(status)) {
+                boolean reopened = this.initiativeCountersService.reopenPreallocatedUser(
+                        dto.getInitiativeId(),
+                        dto.getUserId(),
+                        dto.getVerifies(),
+                        dto.getSequenceNumber(),
+                        dto.getEnqueuedTime()
+                );
+                if (reopened) {
+                    log.info("[PREALLOCATE] User {} has terminal status {} for initiative {}. Reopening preallocation and re-sending consent.",
+                            sanitizeString(dto.getUserId()),
+                            status,
+                            sanitizeString(dto.getInitiativeId()));
+                    this.rankerProducer.sendSaveConsent(dto);
+                } else {
+                    log.warn("[PREALLOCATE] Cannot reopen preallocation for user {} and initiative {}.",
+                            sanitizeString(dto.getUserId()),
+                            sanitizeString(dto.getInitiativeId()));
+                }
                 return;
             }
-            log.info("[PREALLOCATE] User {} already preallocated for initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
+
+            log.info("[PREALLOCATE] User {} already preallocated for initiative {} with status {}",
+                    sanitizeString(dto.getUserId()),
+                    sanitizeString(dto.getInitiativeId()),
+                    status);
+            return;
         }
 
         if(!this.initiativesId.contains(dto.getInitiativeId())){

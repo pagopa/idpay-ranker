@@ -86,6 +86,48 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
     }
 
     @Override
+    @Transactional
+    public boolean reopenPreallocatedUser(String initiativeId, String userId, List<VerifyDTO> verifies, Long sequenceNumber, LocalDateTime enqueuedTime) {
+        String preallocationId = userId + ID_SEPARATOR + initiativeId;
+        Optional<InitiativeCountersPreallocations> existingOpt = initiativeCountersPreallocationsRepository.findById(preallocationId);
+        if (existingOpt.isEmpty()) {
+            log.warn("[RANKER] Cannot reopen preallocation for user {} and initiative {}: preallocation not found",
+                    CommonUtils.sanitizeString(userId),
+                    CommonUtils.sanitizeString(initiativeId));
+            return false;
+        }
+
+        InitiativeCountersPreallocations existing = existingOpt.get();
+        if (!List.of(PreallocationStatus.REFUNDED, PreallocationStatus.EXPIRED)
+                .contains(existing.getStatus())) {
+            log.info("[RANKER] Skipping preallocation reopen for user {} and initiative {} due to status {}",
+                    CommonUtils.sanitizeString(userId),
+                    CommonUtils.sanitizeString(initiativeId),
+                    existing.getStatus());
+            return false;
+        }
+
+        long reservationCents = calculateReservationCents(verifies, initiativeId);
+
+        try {
+            initiativeCountersRepository.incrementOnboardedAndBudget(initiativeId, reservationCents);
+        } catch (DuplicateKeyException e) {
+            log.error("[RANKER] Budget exhausted while reopening preallocation for user {} and initiative {}",
+                    CommonUtils.sanitizeString(userId),
+                    CommonUtils.sanitizeString(initiativeId));
+            throw new BudgetExhaustedException("[RANKER] Budget exhausted for the initiative: " + initiativeId, e);
+        }
+
+        existing.setStatus(PreallocationStatus.PREALLOCATED);
+        existing.setSequenceNumber(sequenceNumber);
+        existing.setEnqueuedTime(enqueuedTime);
+        existing.setPreallocatedAmountCents(reservationCents);
+        existing.setUpdateDate(LocalDateTime.now());
+        initiativeCountersPreallocationsRepository.save(existing);
+        return true;
+    }
+
+    @Override
     public boolean hasAvailableBudget() {
         return getInitiativeCountersStream().findFirst().isPresent();
     }

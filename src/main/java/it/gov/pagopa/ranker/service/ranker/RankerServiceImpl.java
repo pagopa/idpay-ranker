@@ -7,6 +7,7 @@ import it.gov.pagopa.ranker.domain.dto.OnboardingDTO;
 import it.gov.pagopa.ranker.domain.mapper.ConsentMapper;
 import it.gov.pagopa.ranker.domain.model.InitiativeCountersPreallocations;
 import it.gov.pagopa.ranker.domain.model.Onboarding;
+import it.gov.pagopa.ranker.enums.PreallocationStatus;
 import it.gov.pagopa.ranker.repository.OnboardingRepository;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
 import lombok.extern.slf4j.Slf4j;
@@ -52,8 +53,11 @@ public class RankerServiceImpl implements RankerService {
         Optional<InitiativeCountersPreallocations> existingPreallocation =
                 this.initiativeCountersService.findById(dto.getInitiativeId(), dto.getUserId());
         if (existingPreallocation.isPresent()) {
+            PreallocationStatus status = existingPreallocation.get().getStatus();
+            if (!List.of(PreallocationStatus.REFUNDED, PreallocationStatus.EXPIRED, PreallocationStatus.REJECTED).contains(status)) {
+                return;
+            }
             log.info("[PREALLOCATE] User {} already preallocated for initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
-            return;
         }
 
         if(!this.initiativesId.contains(dto.getInitiativeId())){

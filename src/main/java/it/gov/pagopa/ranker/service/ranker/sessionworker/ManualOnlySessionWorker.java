@@ -52,7 +52,7 @@ public final class ManualOnlySessionWorker extends AbstractSessionWorker {
 
         int processedMessages = processManualBatch(receiver, requestedMessages);
 
-        log.info("[MANUAL_ONLY_SESSION_WORKER][END] session={} processed={} requested={}",
-                sessionId, processedMessages, requestedMessages);
+        log.info("[MANUAL_ONLY_SESSION_WORKER][END] session={} processed={} requested={} stopRequested={}",
+                sessionId, processedMessages, requestedMessages, isStopRequested());
     }
 }

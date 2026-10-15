@@ -135,7 +135,6 @@ public abstract class AbstractSessionWorker implements Runnable {
     /**
      * Shared algorithm for manual-only workers and manual requests handled by
      * a normal worker.
-     *
      * A failed or abandoned message is not counted as processed.
      */
     protected final int processManualBatch(ServiceBusReceiverClient receiver, int requestedMessages) {

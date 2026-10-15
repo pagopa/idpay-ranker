@@ -5,10 +5,10 @@ import com.azure.messaging.servicebus.ServiceBusClientBuilder;
 import com.azure.messaging.servicebus.ServiceBusReceivedMessage;
 import com.azure.messaging.servicebus.ServiceBusReceiverClient;
 import it.gov.pagopa.ranker.config.RankerProcessorProperties;
+import it.gov.pagopa.ranker.enums.WorkerState;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
 import it.gov.pagopa.ranker.service.ranker.RankerService;
 import it.gov.pagopa.ranker.service.ranker.manualdequeue.ManualDequeueRequest;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 
@@ -17,12 +17,14 @@ import java.time.Duration;
 import static it.gov.pagopa.ranker.constants.RankerConstants.MDC_TRACE_ID;
 
 @Slf4j
-@Getter
 public final class NormalSessionWorker extends AbstractSessionWorker {
 
-    // Manual dequeue requests handling fields.
+    /*
+     * Manual dequeue requests handling fields.
+     * Accessed only while holding manualRequestMonitor.
+     */
     private final Object manualRequestMonitor = new Object();
-    private boolean acceptingManualRequests = true;
+    private volatile WorkerState workerState = WorkerState.NORMAL;
     private ManualDequeueRequest pendingManualRequest;
 
     public NormalSessionWorker(
@@ -47,24 +49,25 @@ public final class NormalSessionWorker extends AbstractSessionWorker {
 
     public boolean tryEnqueueManualRequest(ManualDequeueRequest request) {
         synchronized (manualRequestMonitor) {
-            if (!acceptingManualRequests) {
-                log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Worker is stopping; manual request rejected for session {}",
+            if (isStopRequested()) {
+                log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Manual request rejected because worker is stopping | session={}",
                         sessionId);
 
                 return false;
             }
 
-            if (pendingManualRequest != null) {
-                log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] A manual request is already pending for session {}",
-                        sessionId);
+            if (workerState != WorkerState.NORMAL) {
+                log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Manual request rejected because another manual request is active | session={} state={}",
+                        sessionId, workerState);
 
                 return false;
             }
 
             pendingManualRequest = request;
+            workerState = WorkerState.MANUAL_ACTIVE;
 
-            log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Manual request queued on NormalSessionWorker for session {}",
-                    sessionId);
+            log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Manual request queued | session={} requested={}",
+                    sessionId, request.size());
 
             return true;
         }
@@ -72,6 +75,15 @@ public final class NormalSessionWorker extends AbstractSessionWorker {
 
     private ManualDequeueRequest takePendingManualRequest() {
         synchronized (manualRequestMonitor) {
+            /*
+             * A request can be queued immediately before the worker begins
+             * stopping. Do not claim it after stop has been requested.
+             * onWorkerStopping() will clear it.
+             */
+            if (isStopRequested() || workerState != WorkerState.MANUAL_ACTIVE) {
+                return null;
+            }
+
             ManualDequeueRequest request = pendingManualRequest;
             pendingManualRequest = null;
 
@@ -139,54 +151,35 @@ public final class NormalSessionWorker extends AbstractSessionWorker {
 
             int processedMessages = processManualBatch(receiver, request.size());
 
-            log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] End session={} processed={} requested={}",
-                    sessionId, processedMessages, request.size());
+            log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] End session={} processed={} requested={} stopRequested={}",
+                    sessionId, processedMessages, request.size(), isStopRequested());
         } catch (Exception ex) {
             log.error("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Manual processing failed; worker will stop | session={}",
                     sessionId, ex);
 
             requestStop();
         } finally {
-            try {
-                releaseManualRequest(request);
-            } finally {
-                setMdcTraceId(previousTraceId);
+            synchronized (manualRequestMonitor) {
+                workerState = WorkerState.NORMAL;
             }
+
+            setMdcTraceId(previousTraceId);
         }
     }
 
     @Override
     protected void onWorkerStopping() {
-        ManualDequeueRequest pendingRequest;
+        boolean pendingManualRequestDiscarded;
 
         synchronized (manualRequestMonitor) {
-            /*
-             * From now on, no new request can be accepted.
-             */
-            acceptingManualRequests = false;
-
-            /*
-             * If a request was queued but not yet claimed by the normal worker,
-             * shutdown owns it and must release the orchestrator reservation.
-             */
-            pendingRequest = pendingManualRequest;
+            pendingManualRequestDiscarded = pendingManualRequest != null;
             pendingManualRequest = null;
+            workerState = WorkerState.NORMAL;
         }
 
-        /*
-         * Callback must run outside the monitor.
-         */
-        if (pendingRequest != null) {
-            releaseManualRequest(pendingRequest);
-        }
-    }
-
-    private void releaseManualRequest(ManualDequeueRequest request) {
-        try {
-            request.onCompleted().run();
-        } catch (Exception ex) {
-            log.error("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Failed to release pending manual request for session {}",
-                    sessionId, ex);
+        if (pendingManualRequestDiscarded) {
+            log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Pending manual request discarded because worker is stopping | session={}",
+                    sessionId);
         }
     }
 

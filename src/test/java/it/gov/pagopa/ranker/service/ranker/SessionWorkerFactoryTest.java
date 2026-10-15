@@ -40,8 +40,7 @@ class SessionWorkerFactoryTest {
 
     @Test
     void createManualOnly() {
-        Runnable runnableMock = mock(Runnable.class);
-        ManualOnlySessionWorker result = factory.createManualOnly("INITIATIVE_ID", 1, runnableMock);
+        ManualOnlySessionWorker result = factory.createManualOnly("INITIATIVE_ID", 1);
 
         assertNotNull(result);
     }

@@ -33,9 +33,6 @@ class ManualDequeueOrchestratorImplTest {
     @Mock
     private SessionWorkerFactory sessionWorkerFactoryMock;
 
-    @Mock
-    private Runnable onCompletedMock;
-
     private ManualDequeueOrchestratorImpl manualDequeueOrchestrator;
     private ManualDequeueRequest manualDequeueRequest;
 
@@ -49,8 +46,7 @@ class ManualDequeueOrchestratorImplTest {
         manualDequeueRequest = new ManualDequeueRequest(
                 INITIATIVE_ID,
                 REQUESTED_MESSAGES,
-                TRACE_ID,
-                onCompletedMock
+                TRACE_ID
         );
     }
 
@@ -75,14 +71,11 @@ class ManualDequeueOrchestratorImplTest {
         verify(activeWorkerMock)
                 .tryEnqueueManualRequest(manualDequeueRequest);
 
-        verifyNoInteractions(
-                sessionWorkerFactoryMock,
-                onCompletedMock
-        );
+        verifyNoInteractions(sessionWorkerFactoryMock);
     }
 
     @Test
-    void orchestrate_withActiveNormalSessionWorkerAndRejectedRequest_releasesOwnership() {
+    void orchestrate_withActiveNormalSessionWorkerAndRejectedRequest_doesNotCreateManualOnlyWorker() {
         NormalSessionWorker activeWorkerMock =
                 mock(NormalSessionWorker.class);
 
@@ -102,8 +95,6 @@ class ManualDequeueOrchestratorImplTest {
         verify(activeWorkerMock)
                 .tryEnqueueManualRequest(manualDequeueRequest);
 
-        verify(onCompletedMock).run();
-
         verifyNoInteractions(sessionWorkerFactoryMock);
     }
 
@@ -118,8 +109,7 @@ class ManualDequeueOrchestratorImplTest {
         when(
                 sessionWorkerFactoryMock.createManualOnly(
                         INITIATIVE_ID,
-                        REQUESTED_MESSAGES,
-                        onCompletedMock
+                        REQUESTED_MESSAGES
                 )
         ).thenReturn(manualOnlyWorkerMock);
 
@@ -127,39 +117,34 @@ class ManualDequeueOrchestratorImplTest {
 
         verify(sessionWorkerFactoryMock).createManualOnly(
                 INITIATIVE_ID,
-                REQUESTED_MESSAGES,
-                onCompletedMock
+                REQUESTED_MESSAGES
         );
 
         verify(manualOnlyWorkerMock).run();
-
-        /*
-         * The ManualOnlySessionWorker owns the request now.
-         * It is responsible for invoking onCompleted() in its lifecycle.
-         */
-        verifyNoInteractions(onCompletedMock);
     }
 
     @Test
-    void orchestrate_whenManualOnlyWorkerFactoryFails_releasesOwnership() {
+    void orchestrate_whenManualOnlyWorkerFactoryFails_doesNotPropagateException() {
         when(cycleHandlerStateMock.getActiveSessions())
                 .thenReturn(Collections.emptyMap());
 
         when(
                 sessionWorkerFactoryMock.createManualOnly(
                         INITIATIVE_ID,
-                        REQUESTED_MESSAGES,
-                        onCompletedMock
+                        REQUESTED_MESSAGES
                 )
         ).thenThrow(new RuntimeException("Factory error"));
 
         manualDequeueOrchestrator.orchestrate(manualDequeueRequest);
 
-        verify(onCompletedMock).run();
+        verify(sessionWorkerFactoryMock).createManualOnly(
+                INITIATIVE_ID,
+                REQUESTED_MESSAGES
+        );
     }
 
     @Test
-    void orchestrate_whenManualOnlyWorkerRunFails_releasesOwnership() {
+    void orchestrate_whenManualOnlyWorkerRunFails_doesNotPropagateException() {
         ManualOnlySessionWorker manualOnlyWorkerMock =
                 mock(ManualOnlySessionWorker.class);
 
@@ -169,8 +154,7 @@ class ManualDequeueOrchestratorImplTest {
         when(
                 sessionWorkerFactoryMock.createManualOnly(
                         INITIATIVE_ID,
-                        REQUESTED_MESSAGES,
-                        onCompletedMock
+                        REQUESTED_MESSAGES
                 )
         ).thenReturn(manualOnlyWorkerMock);
 
@@ -180,18 +164,20 @@ class ManualDequeueOrchestratorImplTest {
 
         manualDequeueOrchestrator.orchestrate(manualDequeueRequest);
 
+        verify(sessionWorkerFactoryMock).createManualOnly(
+                INITIATIVE_ID,
+                REQUESTED_MESSAGES
+        );
+
         verify(manualOnlyWorkerMock).run();
-        verify(onCompletedMock).run();
     }
 
     @Test
-    void orchestrate_whenCycleHandlerStateFails_releasesOwnership() {
+    void orchestrate_whenCycleHandlerStateFails_doesNotCreateManualOnlyWorker() {
         when(cycleHandlerStateMock.getActiveSessions())
                 .thenThrow(new RuntimeException("State error"));
 
         manualDequeueOrchestrator.orchestrate(manualDequeueRequest);
-
-        verify(onCompletedMock).run();
 
         verifyNoInteractions(sessionWorkerFactoryMock);
     }

@@ -33,25 +33,19 @@ public class ManualDequeueOrchestratorImpl implements ManualDequeueOrchestrator 
                     .getActiveSessions().get(initiativeId);
 
             if (activeWorker != null) {
-                log.info("[MANUAL_DEQUEUE_ORCHESTRATOR] Manual-only dequeue skipped because a normal SessionWorker is active | initiativeId={}",
+                log.info("[MANUAL_DEQUEUE_ORCHESTRATOR] An active NormalSessionWorker was found, trying to enqueue a manual request | initiativeId={}",
                         initiativeId);
 
                 handleActiveNormalWorker(activeWorker, request);
             }
             else {
-                log.info("[MANUAL_DEQUEUE_ORCHESTRATOR] No active SessionWorker was found, creating a new one | initiativeId={}",
+                log.info("[MANUAL_DEQUEUE_ORCHESTRATOR] No active NormalSessionWorker was found, running a new one | initiativeId={}",
                         initiativeId);
 
                 handleManualOnlyWorker(request);
             }
         } catch (Exception ex) {
-            /*
-             * No worker has reliably taken ownership of the request.
-             * Release the initiative so a later manual request can proceed.
-             */
-            request.onCompleted().run();
-
-            log.error("[MANUAL_DEQUEUE_ORCHESTRATOR] Manual ownership released: Unexpected orchestration failure | initiativeId={}",
+            log.error("[MANUAL_DEQUEUE_ORCHESTRATOR] Unexpected orchestration failure | initiativeId={}",
                     request.initiativeId(), ex);
         }
     }
@@ -60,15 +54,13 @@ public class ManualDequeueOrchestratorImpl implements ManualDequeueOrchestrator 
         boolean accepted = activeWorker.tryEnqueueManualRequest(request);
 
         if (!accepted) {
-            request.onCompleted().run();
-
-            log.info("[MANUAL_DEQUEUE_ORCHESTRATOR] Manual ownership released: Manual request could not be queued on active NormalSessionWorker | initiativeId={}",
+            log.info("[MANUAL_DEQUEUE_ORCHESTRATOR] Manual request could not be queued on active NormalSessionWorker | initiativeId={}",
                     request.initiativeId());
 
             return;
         }
 
-        log.info("[MANUAL_DEQUEUE_ORCHESTRATOR] Manual request queued on active SessionWorker | initiativeId={}",
+        log.info("[MANUAL_DEQUEUE_ORCHESTRATOR] Manual request queued on active NormalSessionWorker | initiativeId={}",
                 request.initiativeId());
     }
 
@@ -76,11 +68,10 @@ public class ManualDequeueOrchestratorImpl implements ManualDequeueOrchestrator 
         try {
             ManualOnlySessionWorker manualOnlySessionWorker = sessionWorkerFactory.createManualOnly(
                     request.initiativeId(),
-                    request.size(),
-                    request.onCompleted());
+                    request.size());
 
-            log.info("[MANUAL_DEQUEUE_ORCHESTRATOR] Manual-only SessionWorker scheduled | initiativeId={}",
-                    request.initiativeId());
+            log.info("[MANUAL_DEQUEUE_ORCHESTRATOR] Starting ManualOnlySessionWorker | initiativeId={} requested={}",
+                    request.initiativeId(), request.size());
 
             /*
              * This runs on the current manualDequeueOrchestratorExecutor thread,
@@ -88,12 +79,7 @@ public class ManualDequeueOrchestratorImpl implements ManualDequeueOrchestrator 
              */
             manualOnlySessionWorker.run();
         } catch (Exception ex) {
-            /*
-             * Factory failure or run exception.
-             */
-            request.onCompleted().run();
-
-            log.error("[MANUAL_DEQUEUE_ORCHESTRATOR] Manual ownership released: Manual-only SessionWorker could not be scheduled | initiativeId={}",
+            log.error("[MANUAL_DEQUEUE_ORCHESTRATOR] ManualOnlySessionWorker could not be scheduled | initiativeId={}",
                     request.initiativeId(), ex);
         }
     }

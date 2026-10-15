@@ -42,8 +42,7 @@ public class SessionWorkerFactory {
 
     public ManualOnlySessionWorker createManualOnly(
             String sessionId,
-            int requestedMessages,
-            Runnable onCompleted
+            int requestedMessages
     ) {
         return new ManualOnlySessionWorker(
                 sessionId,
@@ -53,7 +52,7 @@ public class SessionWorkerFactory {
                 rankerService,
                 properties,
                 requestedMessages,
-                onCompleted
+                () -> {}
         );
     }
 }

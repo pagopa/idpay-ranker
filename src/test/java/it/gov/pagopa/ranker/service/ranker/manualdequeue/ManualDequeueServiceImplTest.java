@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.MDC;
 
+import java.util.List;
 import java.util.concurrent.Executor;
 
 import static it.gov.pagopa.ranker.constants.RankerConstants.MDC_TRACE_ID;
@@ -76,7 +77,8 @@ class ManualDequeueServiceImplTest {
             task.run();
 
             return null;
-        }).when(manualDequeueOrchestratorExecutorMock).execute(any(Runnable.class));
+        }).when(manualDequeueOrchestratorExecutorMock)
+                .execute(any(Runnable.class));
 
         ManualDequeueResponseDTO response = manualDequeueService.requestDequeue(
                 INITIATIVE_ID,
@@ -84,7 +86,10 @@ class ManualDequeueServiceImplTest {
         );
 
         Assertions.assertEquals(INITIATIVE_ID, response.getInitiativeId());
-        Assertions.assertEquals(REQUESTED_MESSAGES, response.getRequestedMessages());
+        Assertions.assertEquals(
+                REQUESTED_MESSAGES,
+                response.getRequestedMessages()
+        );
         Assertions.assertEquals(STATUS_ACCEPTED, response.getStatus());
         Assertions.assertEquals(TRACE_ID, response.getTraceId());
 
@@ -96,13 +101,19 @@ class ManualDequeueServiceImplTest {
 
         ManualDequeueRequest capturedRequest = requestCaptor.getValue();
 
-        Assertions.assertEquals(INITIATIVE_ID, capturedRequest.initiativeId());
-        Assertions.assertEquals(REQUESTED_MESSAGES, capturedRequest.size());
+        Assertions.assertEquals(
+                INITIATIVE_ID,
+                capturedRequest.initiativeId()
+        );
+        Assertions.assertEquals(
+                REQUESTED_MESSAGES,
+                capturedRequest.size()
+        );
         Assertions.assertEquals(TRACE_ID, capturedRequest.traceId());
     }
 
     @Test
-    void requestDequeue_whenInitiativeIsAlreadyOwned_doesNotSubmitAnotherTask() {
+    void requestDequeue_withTwoRequestsForSameInitiative_submitsBothRequests() {
         manualDequeueService.requestDequeue(
                 INITIATIVE_ID,
                 REQUESTED_MESSAGES
@@ -114,18 +125,27 @@ class ManualDequeueServiceImplTest {
                         REQUESTED_MESSAGES
                 );
 
-        Assertions.assertEquals(INITIATIVE_ID, secondResponse.getInitiativeId());
-        Assertions.assertEquals(REQUESTED_MESSAGES, secondResponse.getRequestedMessages());
-        Assertions.assertEquals(STATUS_ACCEPTED, secondResponse.getStatus());
+        Assertions.assertEquals(
+                INITIATIVE_ID,
+                secondResponse.getInitiativeId()
+        );
+        Assertions.assertEquals(
+                REQUESTED_MESSAGES,
+                secondResponse.getRequestedMessages()
+        );
+        Assertions.assertEquals(
+                STATUS_ACCEPTED,
+                secondResponse.getStatus()
+        );
 
-        verify(manualDequeueOrchestratorExecutorMock, times(1))
+        verify(manualDequeueOrchestratorExecutorMock, times(2))
                 .execute(any(Runnable.class));
 
         verifyNoInteractions(manualDequeueOrchestratorMock);
     }
 
     @Test
-    void requestDequeue_whenExecutorSubmissionFails_releasesOwnership() {
+    void requestDequeue_whenExecutorSubmissionFails_doesNotPropagateException() {
         doThrow(new RuntimeException("Executor submission error"))
                 .when(manualDequeueOrchestratorExecutorMock)
                 .execute(any(Runnable.class));
@@ -137,10 +157,25 @@ class ManualDequeueServiceImplTest {
                 )
         );
 
-        /*
-         * The first submission fails, therefore ownership must be released.
-         * A second request for the same initiative must try to submit again.
-         */
+        verify(manualDequeueOrchestratorExecutorMock)
+                .execute(any(Runnable.class));
+
+        verifyNoInteractions(manualDequeueOrchestratorMock);
+    }
+
+    @Test
+    void requestDequeue_afterExecutorSubmissionFailure_submitsLaterRequestAgain() {
+        doThrow(new RuntimeException("Executor submission error"))
+                .when(manualDequeueOrchestratorExecutorMock)
+                .execute(any(Runnable.class));
+
+        Assertions.assertDoesNotThrow(
+                () -> manualDequeueService.requestDequeue(
+                        INITIATIVE_ID,
+                        REQUESTED_MESSAGES
+                )
+        );
+
         Assertions.assertDoesNotThrow(
                 () -> manualDequeueService.requestDequeue(
                         INITIATIVE_ID,
@@ -155,13 +190,19 @@ class ManualDequeueServiceImplTest {
     }
 
     @Test
-    void requestDequeue_whenRequestCompletionCallbackRuns_releasesOwnership() {
+    void requestDequeue_withTwoRequestsOrchestratesBothRequests() {
         doAnswer(invocation -> {
             Runnable task = invocation.getArgument(0);
             task.run();
 
             return null;
-        }).when(manualDequeueOrchestratorExecutorMock).execute(any(Runnable.class));
+        }).when(manualDequeueOrchestratorExecutorMock)
+                .execute(any(Runnable.class));
+
+        manualDequeueService.requestDequeue(
+                INITIATIVE_ID,
+                REQUESTED_MESSAGES
+        );
 
         manualDequeueService.requestDequeue(
                 INITIATIVE_ID,
@@ -171,25 +212,22 @@ class ManualDequeueServiceImplTest {
         ArgumentCaptor<ManualDequeueRequest> requestCaptor =
                 ArgumentCaptor.forClass(ManualDequeueRequest.class);
 
-        verify(manualDequeueOrchestratorMock)
+        verify(manualDequeueOrchestratorMock, times(2))
                 .orchestrate(requestCaptor.capture());
 
-        ManualDequeueRequest firstRequest = requestCaptor.getValue();
+        List<ManualDequeueRequest> requests =
+                requestCaptor.getAllValues();
 
-        /*
-         * Simulates completion by NormalSessionWorker or ManualOnlySessionWorker.
-         */
-        firstRequest.onCompleted().run();
+        Assertions.assertEquals(2, requests.size());
 
-        manualDequeueService.requestDequeue(
+        Assertions.assertEquals(
                 INITIATIVE_ID,
-                REQUESTED_MESSAGES
+                requests.get(0).initiativeId()
         );
 
-        verify(manualDequeueOrchestratorExecutorMock, times(2))
-                .execute(any(Runnable.class));
-
-        verify(manualDequeueOrchestratorMock, times(2))
-                .orchestrate(any(ManualDequeueRequest.class));
+        Assertions.assertEquals(
+                INITIATIVE_ID,
+                requests.get(1).initiativeId()
+        );
     }
 }

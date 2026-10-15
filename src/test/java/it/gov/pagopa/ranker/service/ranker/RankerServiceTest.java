@@ -8,6 +8,7 @@ import it.gov.pagopa.ranker.domain.dto.VerifyDTO;
 import it.gov.pagopa.ranker.domain.mapper.ConsentMapper;
 import it.gov.pagopa.ranker.domain.model.InitiativeCountersPreallocations;
 import it.gov.pagopa.ranker.domain.model.Onboarding;
+import it.gov.pagopa.ranker.enums.PreallocationStatus;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
 import it.gov.pagopa.ranker.repository.OnboardingRepository;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
@@ -83,7 +84,7 @@ class RankerServiceTest {
         dto.setVerifies(mockVerifies);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
-        when(initiativeCountersService.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR001")).thenReturn(false);
+        when(initiativeCountersService.findById(initiatives.getFirst(), "USR001")).thenReturn(Optional.empty());
 
         rankerService.execute(message);
 
@@ -104,12 +105,60 @@ class RankerServiceTest {
         dto.setUserId("USR_EXIST");
         dto.setVerifies(List.of());
 
+        InitiativeCountersPreallocations preallocation = new InitiativeCountersPreallocations();
+        preallocation.setStatus(PreallocationStatus.PREALLOCATED);
+
         ServiceBusReceivedMessage message = buildMessage(dto);
-        when(initiativeCountersService.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR_EXIST")).thenReturn(true);
+        when(initiativeCountersService.findById(initiatives.getFirst(), "USR_EXIST")).thenReturn(Optional.of(preallocation));
 
         rankerService.execute(message);
 
         verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), anyLong(), any());
+        verify(initiativeCountersService, never()).reopenPreallocatedUser(any(), any(), any(), anyLong(), any());
+        verify(rankerProducer, never()).sendSaveConsent(any());
+    }
+
+    @Test
+    void testExecute_whenUserRefundedAndReopenSuccess_shouldResendConsent() {
+        OnboardingDTO dto = new OnboardingDTO();
+        dto.setInitiativeId(initiatives.getFirst());
+        dto.setUserId("USR_REFUNDED");
+        dto.setVerifies(List.of());
+
+        InitiativeCountersPreallocations preallocation = new InitiativeCountersPreallocations();
+        preallocation.setStatus(PreallocationStatus.REFUNDED);
+
+        ServiceBusReceivedMessage message = buildMessage(dto);
+        when(initiativeCountersService.findById(initiatives.getFirst(), "USR_REFUNDED")).thenReturn(Optional.of(preallocation));
+        when(initiativeCountersService.reopenPreallocatedUser(eq(initiatives.getFirst()), eq("USR_REFUNDED"), any(), anyLong(), any(LocalDateTime.class)))
+                .thenReturn(true);
+
+        rankerService.execute(message);
+
+        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), anyLong(), any());
+        verify(initiativeCountersService).reopenPreallocatedUser(eq(initiatives.getFirst()), eq("USR_REFUNDED"), any(), anyLong(), any(LocalDateTime.class));
+        verify(rankerProducer).sendSaveConsent(any(OnboardingDTO.class));
+    }
+
+    @Test
+    void testExecute_whenUserRefundedAndReopenFails_shouldNotResendConsent() {
+        OnboardingDTO dto = new OnboardingDTO();
+        dto.setInitiativeId(initiatives.getFirst());
+        dto.setUserId("USR_REFUNDED");
+        dto.setVerifies(List.of());
+
+        InitiativeCountersPreallocations preallocation = new InitiativeCountersPreallocations();
+        preallocation.setStatus(PreallocationStatus.REFUNDED);
+
+        ServiceBusReceivedMessage message = buildMessage(dto);
+        when(initiativeCountersService.findById(initiatives.getFirst(), "USR_REFUNDED")).thenReturn(Optional.of(preallocation));
+        when(initiativeCountersService.reopenPreallocatedUser(eq(initiatives.getFirst()), eq("USR_REFUNDED"), any(), anyLong(), any(LocalDateTime.class)))
+                .thenReturn(false);
+
+        rankerService.execute(message);
+
+        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), anyLong(), any());
+        verify(initiativeCountersService).reopenPreallocatedUser(eq(initiatives.getFirst()), eq("USR_REFUNDED"), any(), anyLong(), any(LocalDateTime.class));
         verify(rankerProducer, never()).sendSaveConsent(any());
     }
 
@@ -132,7 +181,7 @@ class RankerServiceTest {
 
         ServiceBusReceivedMessage message = buildMessage(dto);
 
-        when(initiativeCountersService.existsByInitiativeIdAndUserId(any(), any()))
+        when(initiativeCountersService.findById(any(), any()))
                 .thenThrow(new DuplicateKeyException("MESSAGE"));
 
         DuplicateKeyException ex = assertThrows(DuplicateKeyException.class, () -> rankerService.execute(message));
@@ -147,7 +196,7 @@ class RankerServiceTest {
         dto.setVerifies(null);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
-        when(initiativeCountersService.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR002")).thenReturn(false);
+        when(initiativeCountersService.findById(initiatives.getFirst(), "USR002")).thenReturn(Optional.empty());
 
         rankerService.execute(message);
 
@@ -168,6 +217,7 @@ class RankerServiceTest {
         dto.setVerifies(null);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
+        when(initiativeCountersService.findById("another-initiative", "USR002")).thenReturn(Optional.empty());
 
         rankerService.execute(message);
 

@@ -7,6 +7,7 @@ import it.gov.pagopa.ranker.domain.dto.OnboardingDTO;
 import it.gov.pagopa.ranker.domain.mapper.ConsentMapper;
 import it.gov.pagopa.ranker.domain.model.InitiativeCountersPreallocations;
 import it.gov.pagopa.ranker.domain.model.Onboarding;
+import it.gov.pagopa.ranker.enums.PreallocationStatus;
 import it.gov.pagopa.ranker.repository.OnboardingRepository;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
 import lombok.extern.slf4j.Slf4j;
@@ -49,8 +50,36 @@ public class RankerServiceImpl implements RankerService {
 
     @Override
     public void preallocate(OnboardingDTO dto) {
-        if (this.initiativeCountersService.existsByInitiativeIdAndUserId(dto.getInitiativeId(), dto.getUserId())) {
-            log.info("[PREALLOCATE] User {} already preallocated for initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
+        Optional<InitiativeCountersPreallocations> existingPreallocation =
+                this.initiativeCountersService.findById(dto.getInitiativeId(), dto.getUserId());
+        if (existingPreallocation.isPresent()) {
+            PreallocationStatus status = existingPreallocation.get().getStatus();
+            if (List.of(PreallocationStatus.REFUNDED, PreallocationStatus.EXPIRED, PreallocationStatus.REJECTED).contains(status)) {
+                boolean reopened = this.initiativeCountersService.reopenPreallocatedUser(
+                        dto.getInitiativeId(),
+                        dto.getUserId(),
+                        dto.getVerifies(),
+                        dto.getSequenceNumber(),
+                        dto.getEnqueuedTime()
+                );
+                if (reopened) {
+                    log.info("[PREALLOCATE] User {} has terminal status {} for initiative {}. Reopening preallocation and re-sending consent.",
+                            sanitizeString(dto.getUserId()),
+                            status,
+                            sanitizeString(dto.getInitiativeId()));
+                    this.rankerProducer.sendSaveConsent(dto);
+                } else {
+                    log.warn("[PREALLOCATE] Cannot reopen preallocation for user {} and initiative {}.",
+                            sanitizeString(dto.getUserId()),
+                            sanitizeString(dto.getInitiativeId()));
+                }
+                return;
+            }
+
+            log.info("[PREALLOCATE] User {} already preallocated for initiative {} with status {}",
+                    sanitizeString(dto.getUserId()),
+                    sanitizeString(dto.getInitiativeId()),
+                    status);
             return;
         }
 

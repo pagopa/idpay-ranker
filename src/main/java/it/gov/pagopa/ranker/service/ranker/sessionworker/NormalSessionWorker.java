@@ -142,7 +142,6 @@ public final class NormalSessionWorker extends AbstractSessionWorker {
             log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] End session={} processed={} requested={}",
                     sessionId, processedMessages, request.size());
         } catch (Exception ex) {
-            // TODO: Should the normalworker stop or not if the manual request goes to error?
             log.error("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Manual processing failed; worker will stop | session={}",
                     sessionId, ex);
 

@@ -31,20 +31,17 @@ public class RankerServiceImpl implements RankerService {
     private final OnboardingRepository onboardingRepository;
     private final ConsentMapper consentMapper;
     private final ObjectReader objectReader;
-    private final List<String> initiativesId;
 
     public RankerServiceImpl(RankerProducer rankerProducer,
                              InitiativeCountersService initiativeCountersService,
                              OnboardingRepository onboardingRepository,
                              ConsentMapper consentMapper,
-                             ObjectMapper objectMapper,
-                             @Value("${app.initiative.identified}") List<String> initiativesId) {
+                             ObjectMapper objectMapper) {
         this.rankerProducer = rankerProducer;
         this.initiativeCountersService = initiativeCountersService;
         this.onboardingRepository = onboardingRepository;
         this.consentMapper = consentMapper;
         this.objectReader = objectMapper.readerFor(OnboardingDTO.class);
-        this.initiativesId = initiativesId;
     }
 
     @Override
@@ -53,12 +50,6 @@ public class RankerServiceImpl implements RankerService {
             log.info("[PREALLOCATE] User {} already preallocated for initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
             return;
         }
-
-        // TODO: temporarily disabled to test things, check if it's necessary to be enabled
-        /*if(!this.initiativesId.contains(dto.getInitiativeId())){
-            log.error("[RANKER_SERVICE] Skipped processing for initiativeId={} because it is not configured among handled initiatives", sanitizeString(dto.getInitiativeId()));
-            return;
-        }*/
 
         this.initiativeCountersService.addPreallocatedUser(
                 dto.getInitiativeId(),

@@ -57,8 +57,7 @@ class RankerServiceTest {
                 initiativeCountersService,
                 onboardingRepository,
                 consentMapper,
-                objectMapper,
-                initiatives
+                objectMapper
         );
     }
 

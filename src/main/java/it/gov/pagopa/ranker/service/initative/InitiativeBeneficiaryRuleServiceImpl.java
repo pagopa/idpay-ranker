@@ -45,11 +45,6 @@ public class InitiativeBeneficiaryRuleServiceImpl implements InitiativeBeneficia
 
     @Override
     public InitiativeConfig getInitiativeConfig(String initiativeId) {
-        // TODO: temporarily disabled to test things, check if it's necessary to be enabled
-//        if(!initiativesEnable.contains(initiativeId)){
-//            log.info("[RETRIEVE_INITIATIVE_CONFIG] Initiative {} is not enable for processing.", CommonUtils.sanitizeString(initiativeId));
-//            return null;
-//        }
         InitiativeConfig initiativeConfig = initiativesConfigCached.get(initiativeId);
         if(initiativeConfig == null){
             DroolsRule droolsRule = droolsRuleRepository.findById(initiativeId).orElse(null);

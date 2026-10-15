@@ -49,7 +49,9 @@ public class RankerServiceImpl implements RankerService {
 
     @Override
     public void preallocate(OnboardingDTO dto) {
-        if (this.initiativeCountersService.existsByInitiativeIdAndUserId(dto.getInitiativeId(), dto.getUserId())) {
+        Optional<InitiativeCountersPreallocations> existingPreallocation =
+                this.initiativeCountersService.findById(dto.getInitiativeId(), dto.getUserId());
+        if (existingPreallocation.isPresent()) {
             log.info("[PREALLOCATE] User {} already preallocated for initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
             return;
         }

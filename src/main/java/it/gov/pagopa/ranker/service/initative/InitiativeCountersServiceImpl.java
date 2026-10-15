@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -122,7 +123,7 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
         existing.setSequenceNumber(sequenceNumber);
         existing.setEnqueuedTime(enqueuedTime);
         existing.setPreallocatedAmountCents(reservationCents);
-        existing.setUpdateDate(LocalDateTime.now());
+        existing.setUpdateDate(LocalDateTime.now(ZoneId.of("Europe/Rome")));
         initiativeCountersPreallocationsRepository.save(existing);
         return true;
     }

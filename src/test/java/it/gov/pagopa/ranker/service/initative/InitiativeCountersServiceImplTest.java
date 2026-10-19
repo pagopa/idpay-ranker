@@ -167,7 +167,8 @@ class InitiativeCountersServiceImplTest {
                 enqueuedTime);
 
         assertTrue(reopened);
-        verify(initiativeCountersRepositoryMock).incrementOnboardedAndBudget(initiativeId, 20000L);
+        verify(initiativeCountersRepositoryMock).reserveBudget(initiativeId, 20000L);
+        verify(initiativeCountersRepositoryMock, never()).incrementOnboardedAndBudget(anyString(), anyLong());
 
         ArgumentCaptor<InitiativeCountersPreallocations> captor =
                 ArgumentCaptor.forClass(InitiativeCountersPreallocations.class);
@@ -178,6 +179,70 @@ class InitiativeCountersServiceImplTest {
         assertEquals(sequenceNumber, saved.getSequenceNumber());
         assertEquals(enqueuedTime, saved.getEnqueuedTime());
         assertEquals(20000L, saved.getPreallocatedAmountCents());
+    }
+
+    @Test
+    void testReopenPreallocatedUser_successFromExpired() {
+        String userId = "USER123";
+        String initiativeId = INITIATIVE_ID.getFirst();
+
+        InitiativeConfig config = InitiativeConfig.builder()
+                .initiativeId(initiativeId)
+                .beneficiaryBudgetFixedCents(20000L)
+                .build();
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(initiativeId)).thenReturn(config);
+
+        InitiativeCountersPreallocations existing = InitiativeCountersPreallocations.builder()
+                .id(userId + "_" + initiativeId)
+                .initiativeId(initiativeId)
+                .userId(userId)
+                .status(PreallocationStatus.EXPIRED)
+                .build();
+        when(initiativeCountersPreallocationsRepository.findById(userId + "_" + initiativeId))
+                .thenReturn(Optional.of(existing));
+
+        boolean reopened = initiativeCountersService.reopenPreallocatedUser(
+                initiativeId,
+                userId,
+                List.of(),
+                1L,
+                LocalDateTime.now());
+
+        assertTrue(reopened);
+        verify(initiativeCountersRepositoryMock).incrementOnboardedAndBudget(initiativeId, 20000L);
+        verify(initiativeCountersRepositoryMock, never()).reserveBudget(anyString(), anyLong());
+    }
+
+    @Test
+    void testReopenPreallocatedUser_successFromRejected() {
+        String userId = "USER123";
+        String initiativeId = INITIATIVE_ID.getFirst();
+
+        InitiativeConfig config = InitiativeConfig.builder()
+                .initiativeId(initiativeId)
+                .beneficiaryBudgetFixedCents(20000L)
+                .build();
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(initiativeId)).thenReturn(config);
+
+        InitiativeCountersPreallocations existing = InitiativeCountersPreallocations.builder()
+                .id(userId + "_" + initiativeId)
+                .initiativeId(initiativeId)
+                .userId(userId)
+                .status(PreallocationStatus.REJECTED)
+                .build();
+        when(initiativeCountersPreallocationsRepository.findById(userId + "_" + initiativeId))
+                .thenReturn(Optional.of(existing));
+
+        boolean reopened = initiativeCountersService.reopenPreallocatedUser(
+                initiativeId,
+                userId,
+                List.of(),
+                1L,
+                LocalDateTime.now());
+
+        assertTrue(reopened);
+        verify(initiativeCountersRepositoryMock).incrementOnboardedAndBudget(initiativeId, 20000L);
+        verify(initiativeCountersRepositoryMock, never()).reserveBudget(anyString(), anyLong());
     }
 
     @Test

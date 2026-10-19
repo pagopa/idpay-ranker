@@ -54,6 +54,10 @@ public class RankerServiceImpl implements RankerService {
                 this.initiativeCountersService.findById(dto.getInitiativeId(), dto.getUserId());
         if (existingPreallocation.isPresent()) {
             PreallocationStatus status = existingPreallocation.get().getStatus();
+            if (!this.initiativesId.contains(dto.getInitiativeId())) {
+                log.error("[RANKER_SERVICE] Skipped processing for initiativeId={} because it is not configured among handled initiatives", sanitizeString(dto.getInitiativeId()));
+                return;
+            }
             if (List.of(PreallocationStatus.REFUNDED, PreallocationStatus.EXPIRED, PreallocationStatus.REJECTED).contains(status)) {
                 boolean reopened = this.initiativeCountersService.reopenPreallocatedUser(
                         dto.getInitiativeId(),

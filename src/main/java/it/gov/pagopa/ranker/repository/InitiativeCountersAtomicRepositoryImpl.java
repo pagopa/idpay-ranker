@@ -49,6 +49,27 @@ public class InitiativeCountersAtomicRepositoryImpl implements InitiativeCounter
     }
 
     @Override
+    public InitiativeCounters reserveBudget(String initiativeId, long reservationCents) {
+
+        Query query = Query.query(Criteria
+                .where(FIELD_ID).is(initiativeId)
+                .and(FIELD_RESIDUAL_BUDGET_CENTS).gte(reservationCents)
+        );
+
+        Update update = new Update()
+                .inc(FIELD_RESERVED_BUDGET_CENTS, reservationCents)
+                .inc(FIELD_RESIDUAL_BUDGET_CENTS, -reservationCents)
+                .set(FIELD_UPDATE_DATE, LocalDateTime.now());
+
+        return mongoTemplate.findAndModify(
+                query,
+                update,
+                FindAndModifyOptions.options().returnNew(true).upsert(true),
+                InitiativeCounters.class
+        );
+    }
+
+    @Override
     public InitiativeCounters decrementOnboardedAndBudget(String initiativeId, long reservationCents) {
         Query query = Query.query(Criteria
                 .where(FIELD_ID).is(initiativeId)

@@ -99,7 +99,7 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
         }
 
         InitiativeCountersPreallocations existing = existingOpt.get();
-        if (!List.of(PreallocationStatus.REFUNDED, PreallocationStatus.EXPIRED)
+        if (!List.of(PreallocationStatus.REFUNDED, PreallocationStatus.EXPIRED, PreallocationStatus.REJECTED)
                 .contains(existing.getStatus())) {
             log.info("[RANKER] Skipping preallocation reopen for user {} and initiative {} due to status {}",
                     CommonUtils.sanitizeString(userId),
@@ -111,7 +111,11 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
         long reservationCents = calculateReservationCents(verifies, initiativeId);
 
         try {
-            initiativeCountersRepository.incrementOnboardedAndBudget(initiativeId, reservationCents);
+            if (PreallocationStatus.REFUNDED.equals(existing.getStatus())) {
+                initiativeCountersRepository.reserveBudget(initiativeId, reservationCents);
+            } else {
+                initiativeCountersRepository.incrementOnboardedAndBudget(initiativeId, reservationCents);
+            }
         } catch (DuplicateKeyException e) {
             log.error("[RANKER] Budget exhausted while reopening preallocation for user {} and initiative {}",
                     CommonUtils.sanitizeString(userId),

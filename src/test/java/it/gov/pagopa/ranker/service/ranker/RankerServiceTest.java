@@ -8,6 +8,7 @@ import it.gov.pagopa.ranker.domain.dto.VerifyDTO;
 import it.gov.pagopa.ranker.domain.mapper.ConsentMapper;
 import it.gov.pagopa.ranker.domain.model.InitiativeCountersPreallocations;
 import it.gov.pagopa.ranker.domain.model.Onboarding;
+import it.gov.pagopa.ranker.enums.PreallocationStatus;
 import it.gov.pagopa.ranker.repository.InitiativeCountersRepository;
 import it.gov.pagopa.ranker.repository.OnboardingRepository;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
@@ -83,7 +84,7 @@ class RankerServiceTest {
         dto.setVerifies(mockVerifies);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
-        when(initiativeCountersService.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR001")).thenReturn(false);
+        when(initiativeCountersService.findById(initiatives.getFirst(), "USR001")).thenReturn(Optional.empty());
 
         rankerService.execute(message);
 
@@ -104,8 +105,11 @@ class RankerServiceTest {
         dto.setUserId("USR_EXIST");
         dto.setVerifies(List.of());
 
+        InitiativeCountersPreallocations preallocation = new InitiativeCountersPreallocations();
+        preallocation.setStatus(PreallocationStatus.PREALLOCATED);
+
         ServiceBusReceivedMessage message = buildMessage(dto);
-        when(initiativeCountersService.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR_EXIST")).thenReturn(true);
+        when(initiativeCountersService.findById(initiatives.getFirst(), "USR_EXIST")).thenReturn(Optional.of(preallocation));
 
         rankerService.execute(message);
 
@@ -127,12 +131,12 @@ class RankerServiceTest {
     @Test
     void testExecute_whenInternalServiceThrows_shouldWrapInMessageProcessingException() {
         OnboardingDTO dto = new OnboardingDTO();
-        dto.setInitiativeId("INIT_FAIL");
+        dto.setInitiativeId(initiatives.getFirst());
         dto.setUserId("USR_FAIL");
 
         ServiceBusReceivedMessage message = buildMessage(dto);
 
-        when(initiativeCountersService.existsByInitiativeIdAndUserId(any(), any()))
+        when(initiativeCountersService.findById(any(), any()))
                 .thenThrow(new DuplicateKeyException("MESSAGE"));
 
         DuplicateKeyException ex = assertThrows(DuplicateKeyException.class, () -> rankerService.execute(message));
@@ -147,7 +151,7 @@ class RankerServiceTest {
         dto.setVerifies(null);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
-        when(initiativeCountersService.existsByInitiativeIdAndUserId(initiatives.getFirst(), "USR002")).thenReturn(false);
+        when(initiativeCountersService.findById(initiatives.getFirst(), "USR002")).thenReturn(Optional.empty());
 
         rankerService.execute(message);
 

@@ -169,17 +169,18 @@ public final class NormalSessionWorker extends AbstractSessionWorker {
 
     @Override
     protected void onWorkerStopping() {
-        boolean pendingManualRequestDiscarded;
+        ManualDequeueRequest discardedManualRequest;
 
         synchronized (manualRequestMonitor) {
-            pendingManualRequestDiscarded = pendingManualRequest != null;
+            discardedManualRequest = pendingManualRequest;
             pendingManualRequest = null;
             workerState = WorkerState.NORMAL;
         }
 
-        if (pendingManualRequestDiscarded) {
-            log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Pending manual request discarded because worker is stopping | session={}",
-                    sessionId);
+        if (discardedManualRequest != null) {
+            log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Pending manual request discarded because worker is stopping " +
+                            "| session={} manualRequestTraceId={}",
+                    sessionId, discardedManualRequest.traceId());
         }
     }
 

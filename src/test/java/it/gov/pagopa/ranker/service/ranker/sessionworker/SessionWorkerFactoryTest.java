@@ -1,10 +1,9 @@
-package it.gov.pagopa.ranker.service.ranker;
+package it.gov.pagopa.ranker.service.ranker.sessionworker;
 
 import com.azure.messaging.servicebus.ServiceBusClientBuilder;
 import it.gov.pagopa.ranker.config.RankerProcessorProperties;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
-import it.gov.pagopa.ranker.service.ranker.sessionworker.ManualOnlySessionWorker;
-import it.gov.pagopa.ranker.service.ranker.sessionworker.NormalSessionWorker;
+import it.gov.pagopa.ranker.service.ranker.RankerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

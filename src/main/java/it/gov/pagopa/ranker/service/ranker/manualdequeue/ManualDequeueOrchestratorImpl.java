@@ -1,48 +1,60 @@
 package it.gov.pagopa.ranker.service.ranker.manualdequeue;
 
-import it.gov.pagopa.ranker.service.ranker.CycleHandlerState;
-import it.gov.pagopa.ranker.service.ranker.SessionWorkerFactory;
+import it.gov.pagopa.ranker.service.ranker.sessionworker.SessionWorkerFactory;
 import it.gov.pagopa.ranker.service.ranker.sessionworker.ManualOnlySessionWorker;
 import it.gov.pagopa.ranker.service.ranker.sessionworker.NormalSessionWorker;
+import it.gov.pagopa.ranker.service.ranker.sessionworker.registry.ManualClaimResult;
+import it.gov.pagopa.ranker.service.ranker.sessionworker.registry.SessionWorkerRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.util.UUID;
 
 @Slf4j
 @Service
 public class ManualDequeueOrchestratorImpl implements ManualDequeueOrchestrator {
 
-    private final CycleHandlerState cycleHandlerState;
     private final SessionWorkerFactory sessionWorkerFactory;
+    private final SessionWorkerRegistry sessionWorkerRegistry;
 
-    public ManualDequeueOrchestratorImpl(CycleHandlerState cycleHandlerState,
-                                         SessionWorkerFactory sessionWorkerFactory) {
-        this.cycleHandlerState = cycleHandlerState;
+    public ManualDequeueOrchestratorImpl(SessionWorkerFactory sessionWorkerFactory,
+                                         SessionWorkerRegistry sessionWorkerRegistry) {
         this.sessionWorkerFactory = sessionWorkerFactory;
+        this.sessionWorkerRegistry = sessionWorkerRegistry;
     }
 
     @Override
     public void orchestrate(ManualDequeueRequest request) {
         try {
             String initiativeId = request.initiativeId();
-            /*
-             * Manual dequeue workflow:
-             * find SessionWorker, take over cron work safely,
-             * execute the manual dequeue, then release control.
-             */
-            NormalSessionWorker activeWorker = cycleHandlerState
-                    .getActiveSessions().get(initiativeId);
+            UUID claimId = UUID.randomUUID();
 
-            if (activeWorker != null) {
-                log.info("[MANUAL_DEQUEUE_ORCHESTRATOR] An active NormalSessionWorker was found, trying to enqueue a manual request | initiativeId={}",
-                        initiativeId);
+            // Try manually claiming the session.
+            ManualClaimResult claimResult = sessionWorkerRegistry.tryClaimManual(initiativeId, claimId);
 
-                handleActiveNormalWorker(activeWorker, request);
-            }
-            else {
-                log.info("[MANUAL_DEQUEUE_ORCHESTRATOR] No active NormalSessionWorker was found, running a new one | initiativeId={}",
-                        initiativeId);
+            // Evaluate the claim attempt outcome.
+            switch (claimResult.outcome()) {
+                case CLAIMED -> handleManualOnlyClaim(
+                        request,
+                        claimId
+                );
 
-                handleManualOnlyWorker(request);
+                case OWNED_BY_NORMAL -> handleActiveNormalWorker(
+                        claimResult.normalWorker(),
+                        request
+                );
+
+                case OWNED_BY_MANUAL -> log.info(
+                        "[MANUAL_DEQUEUE_ORCHESTRATOR] A ManualOnlySessionWorker already owns the initiative. "
+                                + "Manual request cannot be processed now | initiativeId={}",
+                        initiativeId
+                );
+
+                default -> log.error(
+                        "[MANUAL_DEQUEUE_ORCHESTRATOR] Unsupported manual-claim outcome {} | initiativeId={}",
+                        claimResult.outcome(),
+                        initiativeId
+                );
             }
         } catch (Exception ex) {
             log.error("[MANUAL_DEQUEUE_ORCHESTRATOR] Unexpected orchestration failure | initiativeId={}",
@@ -51,6 +63,16 @@ public class ManualDequeueOrchestratorImpl implements ManualDequeueOrchestrator 
     }
 
     private void handleActiveNormalWorker(NormalSessionWorker activeWorker, ManualDequeueRequest request) {
+        if (activeWorker == null) {
+            log.error(
+                    "[MANUAL_DEQUEUE_ORCHESTRATOR] Registry returned OWNED_BY_NORMAL without a NormalSessionWorker | initiativeId={}",
+                    request.initiativeId()
+            );
+            return;
+        }
+
+        log.info("[MANUAL_DEQUEUE_ORCHESTRATOR] An active NormalSessionWorker was found, trying to enqueue a manual request | initiativeId={}",
+                request.initiativeId());
         boolean accepted = activeWorker.tryEnqueueManualRequest(request);
 
         if (!accepted) {
@@ -64,8 +86,11 @@ public class ManualDequeueOrchestratorImpl implements ManualDequeueOrchestrator 
                 request.initiativeId());
     }
 
-    private void handleManualOnlyWorker(ManualDequeueRequest request) {
+    private void handleManualOnlyClaim(ManualDequeueRequest request, UUID claimId) {
         try {
+            log.info("[MANUAL_DEQUEUE_ORCHESTRATOR] No active NormalSessionWorker was found, running a new manual only one | initiativeId={}",
+                    request.initiativeId());
+
             ManualOnlySessionWorker manualOnlySessionWorker = sessionWorkerFactory.createManualOnly(
                     request.initiativeId(),
                     request.size());
@@ -81,6 +106,30 @@ public class ManualDequeueOrchestratorImpl implements ManualDequeueOrchestrator 
         } catch (Exception ex) {
             log.error("[MANUAL_DEQUEUE_ORCHESTRATOR] ManualOnlySessionWorker could not be scheduled | initiativeId={}",
                     request.initiativeId(), ex);
+        } finally {
+            releaseManualClaim(request.initiativeId(), claimId);
+        }
+    }
+
+    private void releaseManualClaim(
+            String initiativeId,
+            UUID claimId
+    ) {
+        try {
+            boolean released = sessionWorkerRegistry.release(initiativeId, claimId);
+
+            if (!released) {
+                log.warn("[MANUAL_DEQUEUE_ORCHESTRATOR] Could not release manual session-worker claim | initiativeId={} claimId={}",
+                        initiativeId,
+                        claimId
+                );
+            }
+        } catch (Exception exception) {
+            log.error("[MANUAL_DEQUEUE_ORCHESTRATOR] Manual session-worker claim release failed | initiativeId={} claimId={}",
+                    initiativeId,
+                    claimId,
+                    exception
+            );
         }
     }
 }

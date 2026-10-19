@@ -1,21 +1,28 @@
 package it.gov.pagopa.ranker.service.ranker.manualdequeue;
 
-import it.gov.pagopa.ranker.service.ranker.CycleHandlerState;
-import it.gov.pagopa.ranker.service.ranker.SessionWorkerFactory;
 import it.gov.pagopa.ranker.service.ranker.sessionworker.ManualOnlySessionWorker;
 import it.gov.pagopa.ranker.service.ranker.sessionworker.NormalSessionWorker;
+import it.gov.pagopa.ranker.service.ranker.sessionworker.SessionWorkerFactory;
+import it.gov.pagopa.ranker.enums.ManualClaimOutcome;
+import it.gov.pagopa.ranker.service.ranker.sessionworker.registry.ManualClaimResult;
+import it.gov.pagopa.ranker.service.ranker.sessionworker.registry.SessionWorkerRegistry;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.MDC;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -28,10 +35,10 @@ class ManualDequeueOrchestratorImplTest {
     private static final int REQUESTED_MESSAGES = 10;
 
     @Mock
-    private CycleHandlerState cycleHandlerStateMock;
+    private SessionWorkerFactory sessionWorkerFactoryMock;
 
     @Mock
-    private SessionWorkerFactory sessionWorkerFactoryMock;
+    private SessionWorkerRegistry sessionWorkerRegistryMock;
 
     private ManualDequeueOrchestratorImpl manualDequeueOrchestrator;
     private ManualDequeueRequest manualDequeueRequest;
@@ -39,8 +46,8 @@ class ManualDequeueOrchestratorImplTest {
     @BeforeEach
     void setUp() {
         manualDequeueOrchestrator = new ManualDequeueOrchestratorImpl(
-                cycleHandlerStateMock,
-                sessionWorkerFactoryMock
+                sessionWorkerFactoryMock,
+                sessionWorkerRegistryMock
         );
 
         manualDequeueRequest = new ManualDequeueRequest(
@@ -50,70 +57,95 @@ class ManualDequeueOrchestratorImplTest {
         );
     }
 
+    @AfterEach
+    void tearDown() {
+        MDC.clear();
+    }
+
     @Test
-    void orchestrate_withActiveNormalSessionWorkerAndAcceptedRequest_queuesRequest() {
-        NormalSessionWorker activeWorkerMock =
-                mock(NormalSessionWorker.class);
+    void orchestrate_whenSessionIsOwnedByNormalWorkerAndRequestIsAccepted_shouldQueueRequest() {
+        NormalSessionWorker normalWorkerMock = mock(NormalSessionWorker.class);
 
-        Map<String, NormalSessionWorker> activeSessions =
-                new HashMap<>();
+        when(sessionWorkerRegistryMock.tryClaimManual(
+                eq(INITIATIVE_ID),
+                any(UUID.class)
+        )).thenReturn(ManualClaimResult.ownedByNormal(normalWorkerMock));
 
-        activeSessions.put(INITIATIVE_ID, activeWorkerMock);
-
-        when(cycleHandlerStateMock.getActiveSessions())
-                .thenReturn(activeSessions);
-
-        when(activeWorkerMock.tryEnqueueManualRequest(manualDequeueRequest))
+        when(normalWorkerMock.tryEnqueueManualRequest(manualDequeueRequest))
                 .thenReturn(true);
 
         manualDequeueOrchestrator.orchestrate(manualDequeueRequest);
 
-        verify(activeWorkerMock)
+        verify(sessionWorkerRegistryMock).tryClaimManual(
+                eq(INITIATIVE_ID),
+                any(UUID.class)
+        );
+
+        verify(normalWorkerMock)
                 .tryEnqueueManualRequest(manualDequeueRequest);
 
         verifyNoInteractions(sessionWorkerFactoryMock);
+
+        verify(sessionWorkerRegistryMock, never()).release(
+                eq(INITIATIVE_ID),
+                any(UUID.class)
+        );
     }
 
     @Test
-    void orchestrate_withActiveNormalSessionWorkerAndRejectedRequest_doesNotCreateManualOnlyWorker() {
-        NormalSessionWorker activeWorkerMock =
-                mock(NormalSessionWorker.class);
+    void orchestrate_whenSessionIsOwnedByNormalWorkerAndRequestIsRejected_shouldNotCreateManualOnlyWorker() {
+        NormalSessionWorker normalWorkerMock = mock(NormalSessionWorker.class);
 
-        Map<String, NormalSessionWorker> activeSessions =
-                new HashMap<>();
+        when(sessionWorkerRegistryMock.tryClaimManual(
+                eq(INITIATIVE_ID),
+                any(UUID.class)
+        )).thenReturn(ManualClaimResult.ownedByNormal(normalWorkerMock));
 
-        activeSessions.put(INITIATIVE_ID, activeWorkerMock);
-
-        when(cycleHandlerStateMock.getActiveSessions())
-                .thenReturn(activeSessions);
-
-        when(activeWorkerMock.tryEnqueueManualRequest(manualDequeueRequest))
+        when(normalWorkerMock.tryEnqueueManualRequest(manualDequeueRequest))
                 .thenReturn(false);
 
         manualDequeueOrchestrator.orchestrate(manualDequeueRequest);
 
-        verify(activeWorkerMock)
+        verify(normalWorkerMock)
                 .tryEnqueueManualRequest(manualDequeueRequest);
 
         verifyNoInteractions(sessionWorkerFactoryMock);
+
+        verify(sessionWorkerRegistryMock, never()).release(
+                eq(INITIATIVE_ID),
+                any(UUID.class)
+        );
     }
 
     @Test
-    void orchestrate_withoutActiveNormalSessionWorker_createsAndRunsManualOnlyWorker() {
+    void orchestrate_whenManualClaimIsAcquired_shouldCreateRunAndReleaseManualOnlyWorker() {
         ManualOnlySessionWorker manualOnlyWorkerMock =
                 mock(ManualOnlySessionWorker.class);
 
-        when(cycleHandlerStateMock.getActiveSessions())
-                .thenReturn(Collections.emptyMap());
+        ArgumentCaptor<UUID> claimIdCaptor =
+                ArgumentCaptor.forClass(UUID.class);
 
-        when(
-                sessionWorkerFactoryMock.createManualOnly(
-                        INITIATIVE_ID,
-                        REQUESTED_MESSAGES
-                )
-        ).thenReturn(manualOnlyWorkerMock);
+        when(sessionWorkerRegistryMock.tryClaimManual(
+                eq(INITIATIVE_ID),
+                any(UUID.class)
+        )).thenReturn(ManualClaimResult.claimed());
+
+        when(sessionWorkerFactoryMock.createManualOnly(
+                INITIATIVE_ID,
+                REQUESTED_MESSAGES
+        )).thenReturn(manualOnlyWorkerMock);
+
+        when(sessionWorkerRegistryMock.release(
+                eq(INITIATIVE_ID),
+                any(UUID.class)
+        )).thenReturn(true);
 
         manualDequeueOrchestrator.orchestrate(manualDequeueRequest);
+
+        verify(sessionWorkerRegistryMock).tryClaimManual(
+                eq(INITIATIVE_ID),
+                claimIdCaptor.capture()
+        );
 
         verify(sessionWorkerFactoryMock).createManualOnly(
                 INITIATIVE_ID,
@@ -121,48 +153,88 @@ class ManualDequeueOrchestratorImplTest {
         );
 
         verify(manualOnlyWorkerMock).run();
+
+        verify(sessionWorkerRegistryMock).release(
+                eq(INITIATIVE_ID),
+                eq(claimIdCaptor.getValue())
+        );
     }
 
     @Test
-    void orchestrate_whenManualOnlyWorkerFactoryFails_doesNotPropagateException() {
-        when(cycleHandlerStateMock.getActiveSessions())
-                .thenReturn(Collections.emptyMap());
+    void orchestrate_whenManualOnlyWorkerFactoryFails_shouldStillReleaseManualClaim() {
+        ArgumentCaptor<UUID> claimIdCaptor =
+                ArgumentCaptor.forClass(UUID.class);
 
-        when(
-                sessionWorkerFactoryMock.createManualOnly(
-                        INITIATIVE_ID,
-                        REQUESTED_MESSAGES
-                )
-        ).thenThrow(new RuntimeException("Factory error"));
+        when(sessionWorkerRegistryMock.tryClaimManual(
+                eq(INITIATIVE_ID),
+                any(UUID.class)
+        )).thenReturn(ManualClaimResult.claimed());
 
-        manualDequeueOrchestrator.orchestrate(manualDequeueRequest);
+        when(sessionWorkerFactoryMock.createManualOnly(
+                INITIATIVE_ID,
+                REQUESTED_MESSAGES
+        )).thenThrow(new RuntimeException("Factory error"));
+
+        when(sessionWorkerRegistryMock.release(
+                eq(INITIATIVE_ID),
+                any(UUID.class)
+        )).thenReturn(true);
+
+        assertDoesNotThrow(() ->
+                manualDequeueOrchestrator.orchestrate(manualDequeueRequest)
+        );
+
+        verify(sessionWorkerRegistryMock).tryClaimManual(
+                eq(INITIATIVE_ID),
+                claimIdCaptor.capture()
+        );
 
         verify(sessionWorkerFactoryMock).createManualOnly(
                 INITIATIVE_ID,
                 REQUESTED_MESSAGES
         );
+
+        verify(sessionWorkerRegistryMock).release(
+                eq(INITIATIVE_ID),
+                eq(claimIdCaptor.getValue())
+        );
     }
 
     @Test
-    void orchestrate_whenManualOnlyWorkerRunFails_doesNotPropagateException() {
+    void orchestrate_whenManualOnlyWorkerRunFails_shouldStillReleaseManualClaim() {
         ManualOnlySessionWorker manualOnlyWorkerMock =
                 mock(ManualOnlySessionWorker.class);
 
-        when(cycleHandlerStateMock.getActiveSessions())
-                .thenReturn(Collections.emptyMap());
+        ArgumentCaptor<UUID> claimIdCaptor =
+                ArgumentCaptor.forClass(UUID.class);
 
-        when(
-                sessionWorkerFactoryMock.createManualOnly(
-                        INITIATIVE_ID,
-                        REQUESTED_MESSAGES
-                )
-        ).thenReturn(manualOnlyWorkerMock);
+        when(sessionWorkerRegistryMock.tryClaimManual(
+                eq(INITIATIVE_ID),
+                any(UUID.class)
+        )).thenReturn(ManualClaimResult.claimed());
+
+        when(sessionWorkerFactoryMock.createManualOnly(
+                INITIATIVE_ID,
+                REQUESTED_MESSAGES
+        )).thenReturn(manualOnlyWorkerMock);
 
         doThrow(new RuntimeException("Worker run error"))
                 .when(manualOnlyWorkerMock)
                 .run();
 
-        manualDequeueOrchestrator.orchestrate(manualDequeueRequest);
+        when(sessionWorkerRegistryMock.release(
+                eq(INITIATIVE_ID),
+                any(UUID.class)
+        )).thenReturn(true);
+
+        assertDoesNotThrow(() ->
+                manualDequeueOrchestrator.orchestrate(manualDequeueRequest)
+        );
+
+        verify(sessionWorkerRegistryMock).tryClaimManual(
+                eq(INITIATIVE_ID),
+                claimIdCaptor.capture()
+        );
 
         verify(sessionWorkerFactoryMock).createManualOnly(
                 INITIATIVE_ID,
@@ -170,15 +242,111 @@ class ManualDequeueOrchestratorImplTest {
         );
 
         verify(manualOnlyWorkerMock).run();
+
+        verify(sessionWorkerRegistryMock).release(
+                eq(INITIATIVE_ID),
+                eq(claimIdCaptor.getValue())
+        );
     }
 
     @Test
-    void orchestrate_whenCycleHandlerStateFails_doesNotCreateManualOnlyWorker() {
-        when(cycleHandlerStateMock.getActiveSessions())
-                .thenThrow(new RuntimeException("State error"));
+    void orchestrate_whenSessionIsAlreadyOwnedByManualWorker_shouldNotCreateOrReleaseWorker() {
+        when(sessionWorkerRegistryMock.tryClaimManual(
+                eq(INITIATIVE_ID),
+                any(UUID.class)
+        )).thenReturn(ManualClaimResult.ownedByManual());
 
         manualDequeueOrchestrator.orchestrate(manualDequeueRequest);
 
+        verify(sessionWorkerRegistryMock).tryClaimManual(
+                eq(INITIATIVE_ID),
+                any(UUID.class)
+        );
+
         verifyNoInteractions(sessionWorkerFactoryMock);
+
+        verify(sessionWorkerRegistryMock, never()).release(
+                eq(INITIATIVE_ID),
+                any(UUID.class)
+        );
+    }
+
+    @Test
+    void orchestrate_whenManualClaimRegistryFails_shouldNotCreateManualOnlyWorker() {
+        when(sessionWorkerRegistryMock.tryClaimManual(
+                eq(INITIATIVE_ID),
+                any(UUID.class)
+        )).thenThrow(new RuntimeException("Registry error"));
+
+        assertDoesNotThrow(() ->
+                manualDequeueOrchestrator.orchestrate(manualDequeueRequest)
+        );
+
+        verifyNoInteractions(sessionWorkerFactoryMock);
+
+        verify(sessionWorkerRegistryMock, never()).release(
+                eq(INITIATIVE_ID),
+                any(UUID.class)
+        );
+    }
+
+    @Test
+    void orchestrate_whenManualClaimReleaseFails_shouldNotPropagateException() {
+        ManualOnlySessionWorker manualOnlyWorkerMock =
+                mock(ManualOnlySessionWorker.class);
+
+        when(sessionWorkerRegistryMock.tryClaimManual(
+                eq(INITIATIVE_ID),
+                any(UUID.class)
+        )).thenReturn(ManualClaimResult.claimed());
+
+        when(sessionWorkerFactoryMock.createManualOnly(
+                INITIATIVE_ID,
+                REQUESTED_MESSAGES
+        )).thenReturn(manualOnlyWorkerMock);
+
+        when(sessionWorkerRegistryMock.release(
+                eq(INITIATIVE_ID),
+                any(UUID.class)
+        )).thenThrow(new RuntimeException("Release error"));
+
+        assertDoesNotThrow(() ->
+                manualDequeueOrchestrator.orchestrate(manualDequeueRequest)
+        );
+
+        verify(manualOnlyWorkerMock).run();
+
+        verify(sessionWorkerRegistryMock).release(
+                eq(INITIATIVE_ID),
+                any(UUID.class)
+        );
+    }
+
+    @Test
+    void orchestrate_whenRegistryReturnsOwnedByNormalWithoutWorker_shouldNotCreateManualOnlyWorker() {
+        ManualClaimResult manualClaimResultMock =
+                mock(ManualClaimResult.class);
+
+        when(manualClaimResultMock.outcome())
+                .thenReturn(ManualClaimOutcome.OWNED_BY_NORMAL);
+
+        when(manualClaimResultMock.normalWorker())
+                .thenReturn(null);
+
+        when(sessionWorkerRegistryMock.tryClaimManual(
+                eq(INITIATIVE_ID),
+                any(UUID.class)
+        )).thenReturn(manualClaimResultMock);
+
+        assertDoesNotThrow(() ->
+                manualDequeueOrchestrator.orchestrate(manualDequeueRequest)
+        );
+
+        verifyNoInteractions(sessionWorkerFactoryMock);
+
+        verify(sessionWorkerRegistryMock, never()).release(
+                eq(INITIATIVE_ID),
+                any(UUID.class)
+        );
     }
 }

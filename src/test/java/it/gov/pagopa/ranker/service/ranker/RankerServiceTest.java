@@ -96,6 +96,7 @@ class RankerServiceTest {
                 any(LocalDateTime.class)
         );
         verify(rankerProducer).sendSaveConsent(any(OnboardingDTO.class));
+        verify(initiativeCountersService).markConsentSent(eq(initiatives.getFirst()), eq("USR001"), eq(99L), any(LocalDateTime.class));
     }
 
     @Test
@@ -138,6 +139,7 @@ class RankerServiceTest {
         verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), anyLong(), any());
         verify(initiativeCountersService).reopenPreallocatedUser(eq(initiatives.getFirst()), eq("USR_REFUNDED"), any(), anyLong(), any(LocalDateTime.class));
         verify(rankerProducer).sendSaveConsent(any(OnboardingDTO.class));
+        verify(initiativeCountersService).markConsentSent(eq(initiatives.getFirst()), eq("USR_REFUNDED"), eq(99L), any(LocalDateTime.class));
     }
 
     @Test
@@ -207,6 +209,7 @@ class RankerServiceTest {
                 eq(99L),
                 any(LocalDateTime.class)
         );
+        verify(initiativeCountersService).markConsentSent(eq(initiatives.getFirst()), eq("USR002"), eq(99L), any(LocalDateTime.class));
     }
 
     @Test
@@ -222,6 +225,68 @@ class RankerServiceTest {
         rankerService.execute(message);
 
         verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void testExecute_whenPendingConsentForSameAttempt_shouldRetryWithoutReopen() {
+        OnboardingDTO dto = new OnboardingDTO();
+        dto.setInitiativeId(initiatives.getFirst());
+        dto.setUserId("USR_PENDING");
+        dto.setVerifies(List.of());
+
+        InitiativeCountersPreallocations preallocation = new InitiativeCountersPreallocations();
+        preallocation.setStatus(PreallocationStatus.PREALLOCATED);
+        preallocation.setSequenceNumber(99L);
+        preallocation.setEnqueuedTime(LocalDateTime.of(2025, 1, 1, 12, 0));
+        preallocation.setConsentSent(false);
+
+        ServiceBusReceivedMessage message = buildMessage(dto);
+        when(initiativeCountersService.findById(initiatives.getFirst(), "USR_PENDING")).thenReturn(Optional.of(preallocation));
+
+        rankerService.execute(message);
+
+        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), anyLong(), any());
+        verify(initiativeCountersService, never()).reopenPreallocatedUser(any(), any(), any(), anyLong(), any());
+        verify(rankerProducer).sendSaveConsent(any(OnboardingDTO.class));
+        verify(initiativeCountersService).markConsentSent(eq(initiatives.getFirst()), eq("USR_PENDING"), eq(99L), any(LocalDateTime.class));
+    }
+
+    @Test
+    void testExecute_whenReopenSendFails_thenRedeliveryRetriesWithoutReopen() {
+        OnboardingDTO dto = new OnboardingDTO();
+        dto.setInitiativeId(initiatives.getFirst());
+        dto.setUserId("USR_RETRY");
+        dto.setVerifies(List.of());
+
+        ServiceBusReceivedMessage firstMessage = buildMessage(dto);
+        ServiceBusReceivedMessage secondMessage = buildMessage(dto);
+
+        InitiativeCountersPreallocations refunded = new InitiativeCountersPreallocations();
+        refunded.setStatus(PreallocationStatus.REFUNDED);
+
+        InitiativeCountersPreallocations pending = new InitiativeCountersPreallocations();
+        pending.setStatus(PreallocationStatus.PREALLOCATED);
+        pending.setSequenceNumber(99L);
+        pending.setEnqueuedTime(LocalDateTime.of(2025, 1, 1, 12, 0));
+        pending.setConsentSent(false);
+
+        when(initiativeCountersService.findById(initiatives.getFirst(), "USR_RETRY"))
+                .thenReturn(Optional.of(refunded))
+                .thenReturn(Optional.of(pending));
+        when(initiativeCountersService.reopenPreallocatedUser(eq(initiatives.getFirst()), eq("USR_RETRY"), any(), anyLong(), any(LocalDateTime.class)))
+                .thenReturn(true);
+        doThrow(new RuntimeException("send-failure"))
+                .doNothing()
+                .when(rankerProducer)
+                .sendSaveConsent(any(OnboardingDTO.class));
+
+        assertThrows(RuntimeException.class, () -> rankerService.execute(firstMessage));
+        rankerService.execute(secondMessage);
+
+        verify(initiativeCountersService, times(1)).reopenPreallocatedUser(eq(initiatives.getFirst()), eq("USR_RETRY"), any(), anyLong(), any(LocalDateTime.class));
+        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), anyLong(), any());
+        verify(rankerProducer, times(2)).sendSaveConsent(any(OnboardingDTO.class));
+        verify(initiativeCountersService, times(1)).markConsentSent(eq(initiatives.getFirst()), eq("USR_RETRY"), eq(99L), any(LocalDateTime.class));
     }
 
     @Test

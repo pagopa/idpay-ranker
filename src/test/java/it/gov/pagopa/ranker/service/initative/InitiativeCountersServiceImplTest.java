@@ -110,6 +110,7 @@ class InitiativeCountersServiceImplTest {
         assertEquals("USER123_INITIATIVE_ID", captor.getValue().getId());
         assertEquals(PreallocationStatus.PREALLOCATED, captor.getValue().getStatus());
         assertEquals(20000L, captor.getValue().getPreallocatedAmountCents());
+        assertFalse(Boolean.TRUE.equals(captor.getValue().getConsentSent()));
     }
 
     @Test
@@ -179,6 +180,7 @@ class InitiativeCountersServiceImplTest {
         assertEquals(sequenceNumber, saved.getSequenceNumber());
         assertEquals(enqueuedTime, saved.getEnqueuedTime());
         assertEquals(20000L, saved.getPreallocatedAmountCents());
+        assertFalse(Boolean.TRUE.equals(saved.getConsentSent()));
     }
 
     @Test
@@ -268,6 +270,58 @@ class InitiativeCountersServiceImplTest {
 
         assertFalse(reopened);
         verify(initiativeCountersRepositoryMock, never()).incrementOnboardedAndBudget(anyString(), anyLong());
+        verify(initiativeCountersPreallocationsRepository, never()).save(any());
+    }
+
+    @Test
+    void testMarkConsentSent_shouldSaveWhenSameAttemptAndPreallocated() {
+        String userId = "USER123";
+        String initiativeId = INITIATIVE_ID.getFirst();
+        LocalDateTime enqueuedTime = LocalDateTime.now();
+        Long sequenceNumber = 10L;
+
+        InitiativeCountersPreallocations existing = InitiativeCountersPreallocations.builder()
+                .id(userId + "_" + initiativeId)
+                .initiativeId(initiativeId)
+                .userId(userId)
+                .status(PreallocationStatus.PREALLOCATED)
+                .sequenceNumber(sequenceNumber)
+                .enqueuedTime(enqueuedTime)
+                .consentSent(false)
+                .build();
+
+        when(initiativeCountersPreallocationsRepository.findById(userId + "_" + initiativeId))
+                .thenReturn(Optional.of(existing));
+
+        boolean result = initiativeCountersService.markConsentSent(initiativeId, userId, sequenceNumber, enqueuedTime);
+
+        assertTrue(result);
+        ArgumentCaptor<InitiativeCountersPreallocations> captor = ArgumentCaptor.forClass(InitiativeCountersPreallocations.class);
+        verify(initiativeCountersPreallocationsRepository).save(captor.capture());
+        assertTrue(Boolean.TRUE.equals(captor.getValue().getConsentSent()));
+    }
+
+    @Test
+    void testMarkConsentSent_shouldReturnFalseWhenAttemptDoesNotMatch() {
+        String userId = "USER123";
+        String initiativeId = INITIATIVE_ID.getFirst();
+
+        InitiativeCountersPreallocations existing = InitiativeCountersPreallocations.builder()
+                .id(userId + "_" + initiativeId)
+                .initiativeId(initiativeId)
+                .userId(userId)
+                .status(PreallocationStatus.PREALLOCATED)
+                .sequenceNumber(8L)
+                .enqueuedTime(LocalDateTime.now().minusMinutes(1))
+                .consentSent(false)
+                .build();
+
+        when(initiativeCountersPreallocationsRepository.findById(userId + "_" + initiativeId))
+                .thenReturn(Optional.of(existing));
+
+        boolean result = initiativeCountersService.markConsentSent(initiativeId, userId, 9L, LocalDateTime.now());
+
+        assertFalse(result);
         verify(initiativeCountersPreallocationsRepository, never()).save(any());
     }
 

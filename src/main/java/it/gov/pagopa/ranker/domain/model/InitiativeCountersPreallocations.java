@@ -29,6 +29,7 @@ public class InitiativeCountersPreallocations {
     private LocalDateTime createdAt;
     private Long sequenceNumber;
     private LocalDateTime enqueuedTime;
+    private Boolean consentSent;
     private Long preallocatedAmountCents;
     private LocalDateTime updateDate;
 

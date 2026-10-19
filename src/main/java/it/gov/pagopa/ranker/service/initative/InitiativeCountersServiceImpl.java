@@ -72,6 +72,7 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
                             .userId(userId)
                             .sequenceNumber(sequenceNumber)
                             .enqueuedTime(enqueuedTime)
+                            .consentSent(false)
                             .createdAt(LocalDateTime.now())
                             .updateDate(LocalDateTime.now())
                             .status(PreallocationStatus.PREALLOCATED)
@@ -126,7 +127,33 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
         existing.setStatus(PreallocationStatus.PREALLOCATED);
         existing.setSequenceNumber(sequenceNumber);
         existing.setEnqueuedTime(enqueuedTime);
+        existing.setConsentSent(false);
         existing.setPreallocatedAmountCents(reservationCents);
+        existing.setUpdateDate(LocalDateTime.now(ZoneId.of("Europe/Rome")));
+        initiativeCountersPreallocationsRepository.save(existing);
+        return true;
+    }
+
+    @Override
+    @Transactional
+    public boolean markConsentSent(String initiativeId, String userId, Long sequenceNumber, LocalDateTime enqueuedTime) {
+        String preallocationId = userId + ID_SEPARATOR + initiativeId;
+        Optional<InitiativeCountersPreallocations> existingOpt = initiativeCountersPreallocationsRepository.findById(preallocationId);
+        if (existingOpt.isEmpty()) {
+            return false;
+        }
+
+        InitiativeCountersPreallocations existing = existingOpt.get();
+        if (!PreallocationStatus.PREALLOCATED.equals(existing.getStatus())) {
+            return false;
+        }
+
+        if (!Objects.equals(existing.getSequenceNumber(), sequenceNumber)
+                || !Objects.equals(existing.getEnqueuedTime(), enqueuedTime)) {
+            return false;
+        }
+
+        existing.setConsentSent(true);
         existing.setUpdateDate(LocalDateTime.now(ZoneId.of("Europe/Rome")));
         initiativeCountersPreallocationsRepository.save(existing);
         return true;

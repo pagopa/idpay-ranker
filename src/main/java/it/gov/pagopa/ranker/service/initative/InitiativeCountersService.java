@@ -16,5 +16,6 @@ public interface InitiativeCountersService {
     boolean existsByInitiativeIdAndUserId(String initiativeId, String userId);
     void updateInitiativeCounters(TransactionInProgressDTO transactionInProgress, String preallocationId, String transactionInProgressId);
     Optional<InitiativeCountersPreallocations> findById(String initiativeId, String userId);
+    boolean markConsentSent(String initiativeId, String userId, Long sequenceNumber, LocalDateTime enqueuedTime);
     List<String> retrieveInitiativesAvailableBudget();
 }

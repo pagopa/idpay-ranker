@@ -18,6 +18,7 @@ import tools.jackson.databind.ObjectReader;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import static it.gov.pagopa.utils.CommonConstants.ZONEID;
@@ -50,14 +51,16 @@ public class RankerServiceImpl implements RankerService {
 
     @Override
     public void preallocate(OnboardingDTO dto) {
+        if(!this.initiativesId.contains(dto.getInitiativeId())){
+            log.error("[RANKER_SERVICE] Skipped processing for initiativeId={} because it is not configured among handled initiatives", sanitizeString(dto.getInitiativeId()));
+            return;
+        }
+
         Optional<InitiativeCountersPreallocations> existingPreallocation =
                 this.initiativeCountersService.findById(dto.getInitiativeId(), dto.getUserId());
         if (existingPreallocation.isPresent()) {
-            PreallocationStatus status = existingPreallocation.get().getStatus();
-            if (!this.initiativesId.contains(dto.getInitiativeId())) {
-                log.error("[RANKER_SERVICE] Skipped processing for initiativeId={} because it is not configured among handled initiatives", sanitizeString(dto.getInitiativeId()));
-                return;
-            }
+            InitiativeCountersPreallocations existing = existingPreallocation.get();
+            PreallocationStatus status = existing.getStatus();
             if (List.of(PreallocationStatus.REFUNDED, PreallocationStatus.EXPIRED, PreallocationStatus.REJECTED).contains(status)) {
                 boolean reopened = this.initiativeCountersService.reopenPreallocatedUser(
                         dto.getInitiativeId(),
@@ -71,7 +74,7 @@ public class RankerServiceImpl implements RankerService {
                             sanitizeString(dto.getUserId()),
                             status,
                             sanitizeString(dto.getInitiativeId()));
-                    this.rankerProducer.sendSaveConsent(dto);
+                    sendConsentAndMark(dto);
                 } else {
                     log.warn("[PREALLOCATE] Cannot reopen preallocation for user {} and initiative {}.",
                             sanitizeString(dto.getUserId()),
@@ -80,15 +83,20 @@ public class RankerServiceImpl implements RankerService {
                 return;
             }
 
+            if (PreallocationStatus.PREALLOCATED.equals(status)
+                    && !Boolean.TRUE.equals(existing.getConsentSent())
+                    && isSameAttempt(existing, dto)) {
+                log.info("[PREALLOCATE] Retrying pending consent send for user {} and initiative {}",
+                        sanitizeString(dto.getUserId()),
+                        sanitizeString(dto.getInitiativeId()));
+                sendConsentAndMark(dto);
+                return;
+            }
+
             log.info("[PREALLOCATE] User {} already preallocated for initiative {} with status {}",
                     sanitizeString(dto.getUserId()),
                     sanitizeString(dto.getInitiativeId()),
                     status);
-            return;
-        }
-
-        if(!this.initiativesId.contains(dto.getInitiativeId())){
-            log.error("[RANKER_SERVICE] Skipped processing for initiativeId={} because it is not configured among handled initiatives", sanitizeString(dto.getInitiativeId()));
             return;
         }
 
@@ -102,7 +110,7 @@ public class RankerServiceImpl implements RankerService {
         );
 
         log.info("[PREALLOCATE] Preallocation added for user {} in initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
-        this.rankerProducer.sendSaveConsent(dto);
+        sendConsentAndMark(dto);
     }
 
     @Override
@@ -161,5 +169,20 @@ public class RankerServiceImpl implements RankerService {
             log.error("[RANKER_PROCESSOR] Failed to deserialize message");
             throw new IllegalStateException("Failed to deserialize message", e);
         }
+    }
+
+    private boolean isSameAttempt(InitiativeCountersPreallocations preallocation, OnboardingDTO dto) {
+        return Objects.equals(preallocation.getSequenceNumber(), dto.getSequenceNumber())
+                && Objects.equals(preallocation.getEnqueuedTime(), dto.getEnqueuedTime());
+    }
+
+    private void sendConsentAndMark(OnboardingDTO dto) {
+        this.rankerProducer.sendSaveConsent(dto);
+        this.initiativeCountersService.markConsentSent(
+                dto.getInitiativeId(),
+                dto.getUserId(),
+                dto.getSequenceNumber(),
+                dto.getEnqueuedTime()
+        );
     }
 }

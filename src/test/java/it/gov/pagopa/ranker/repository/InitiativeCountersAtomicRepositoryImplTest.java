@@ -11,8 +11,6 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
-import java.time.LocalDateTime;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,9 +32,6 @@ class InitiativeCountersAtomicRepositoryImplTest {
 
     @Test
     void testIncrementOnboardedAndBudget() {
-        LocalDateTime now = LocalDateTime.now();
-        Long sequenceNumber = 123L;
-
         InitiativeCounters expected = InitiativeCounters.builder()
                 .id("initiative1")
                 .onboarded(1L)
@@ -55,6 +50,35 @@ class InitiativeCountersAtomicRepositoryImplTest {
                 "initiative1",
                 100L
         );
+
+        assertNotNull(result);
+        assertEquals(expected, result);
+
+        verify(mongoTemplate, times(1)).findAndModify(
+                any(Query.class),
+                any(Update.class),
+                any(FindAndModifyOptions.class),
+                eq(InitiativeCounters.class)
+        );
+    }
+
+    @Test
+    void testReserveBudget() {
+        InitiativeCounters expected = InitiativeCounters.builder()
+                .id("initiative1")
+                .onboarded(1L)
+                .reservedInitiativeBudgetCents(200L)
+                .residualInitiativeBudgetCents(800L)
+                .build();
+
+        when(mongoTemplate.findAndModify(
+                any(Query.class),
+                any(Update.class),
+                any(FindAndModifyOptions.class),
+                eq(InitiativeCounters.class)
+        )).thenReturn(expected);
+
+        InitiativeCounters result = repository.reserveBudget("initiative1", 100L);
 
         assertNotNull(result);
         assertEquals(expected, result);

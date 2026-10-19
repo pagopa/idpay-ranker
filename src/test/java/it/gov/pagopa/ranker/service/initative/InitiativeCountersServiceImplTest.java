@@ -138,6 +138,118 @@ class InitiativeCountersServiceImplTest {
     }
 
     @Test
+    void testReopenPreallocatedUser_whenPreallocationNotFound_shouldReturnFalse() {
+        when(initiativeCountersPreallocationsRepository.findById("USER123_INITIATIVE_ID"))
+                .thenReturn(Optional.empty());
+
+        boolean result = initiativeCountersService.reopenPreallocatedUser(
+                INITIATIVE_ID.getFirst(),
+                "USER123",
+                List.of(),
+                10L,
+                LocalDateTime.now()
+        );
+
+        assertFalse(result);
+        verify(initiativeCountersRepositoryMock, never()).incrementOnboardedAndBudget(anyString(), anyLong());
+        verify(initiativeCountersPreallocationsRepository, never()).save(any());
+    }
+
+    @Test
+    void testReopenPreallocatedUser_whenStatusIsNotTerminal_shouldReturnFalse() {
+        InitiativeCountersPreallocations existing = InitiativeCountersPreallocations.builder()
+                .id("USER123_INITIATIVE_ID")
+                .status(PreallocationStatus.PREALLOCATED)
+                .build();
+        when(initiativeCountersPreallocationsRepository.findById("USER123_INITIATIVE_ID"))
+                .thenReturn(Optional.of(existing));
+
+        boolean result = initiativeCountersService.reopenPreallocatedUser(
+                INITIATIVE_ID.getFirst(),
+                "USER123",
+                List.of(),
+                10L,
+                LocalDateTime.now()
+        );
+
+        assertFalse(result);
+        verify(initiativeCountersRepositoryMock, never()).incrementOnboardedAndBudget(anyString(), anyLong());
+        verify(initiativeCountersPreallocationsRepository, never()).save(any());
+    }
+
+    @Test
+    void testReopenPreallocatedUser_whenRefunded_shouldReopen() {
+        InitiativeConfig config = InitiativeConfig.builder()
+                .initiativeId(INITIATIVE_ID.getFirst())
+                .beneficiaryBudgetFixedCents(12000L)
+                .build();
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
+
+        InitiativeCountersPreallocations existing = InitiativeCountersPreallocations.builder()
+                .id("USER123_INITIATIVE_ID")
+                .status(PreallocationStatus.REFUNDED)
+                .build();
+        when(initiativeCountersPreallocationsRepository.findById("USER123_INITIATIVE_ID"))
+                .thenReturn(Optional.of(existing));
+
+        LocalDateTime enqueuedTime = LocalDateTime.now();
+        boolean result = initiativeCountersService.reopenPreallocatedUser(
+                INITIATIVE_ID.getFirst(),
+                "USER123",
+                List.of(),
+                10L,
+                enqueuedTime
+        );
+
+        assertTrue(result);
+        verify(initiativeCountersRepositoryMock).incrementOnboardedAndBudget(INITIATIVE_ID.getFirst(), 12000L);
+        ArgumentCaptor<InitiativeCountersPreallocations> captor = ArgumentCaptor.forClass(InitiativeCountersPreallocations.class);
+        verify(initiativeCountersPreallocationsRepository).save(captor.capture());
+        assertEquals(PreallocationStatus.PREALLOCATED, captor.getValue().getStatus());
+        assertEquals(10L, captor.getValue().getSequenceNumber());
+        assertEquals(enqueuedTime, captor.getValue().getEnqueuedTime());
+        assertEquals(12000L, captor.getValue().getPreallocatedAmountCents());
+        assertNotNull(captor.getValue().getUpdateDate());
+    }
+
+    @Test
+    void testReopenPreallocatedUser_whenBudgetExhausted_shouldThrowAndNotSave() {
+        InitiativeConfig config = InitiativeConfig.builder()
+                .initiativeId(INITIATIVE_ID.getFirst())
+                .beneficiaryBudgetFixedCents(12000L)
+                .build();
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
+
+        InitiativeCountersPreallocations existing = InitiativeCountersPreallocations.builder()
+                .id("USER123_INITIATIVE_ID")
+                .status(PreallocationStatus.EXPIRED)
+                .build();
+        when(initiativeCountersPreallocationsRepository.findById("USER123_INITIATIVE_ID"))
+                .thenReturn(Optional.of(existing));
+
+        doThrow(new DuplicateKeyException("Duplicate"))
+                .when(initiativeCountersRepositoryMock)
+                .incrementOnboardedAndBudget(INITIATIVE_ID.getFirst(), 12000L);
+
+        String initiativeId = INITIATIVE_ID.getFirst();
+        String userId = "USER123";
+        List<VerifyDTO> verifies = List.of();
+        Long sequenceNumber = 10L;
+        LocalDateTime enqueuedTime = LocalDateTime.now();
+
+        assertThrows(BudgetExhaustedException.class,
+                () -> initiativeCountersService.reopenPreallocatedUser(
+                        initiativeId,
+                        userId,
+                        verifies,
+                        sequenceNumber,
+                        enqueuedTime
+                ));
+
+        verify(initiativeCountersPreallocationsRepository, never()).save(any());
+    }
+
+    @Test
     void testCalculateReservationCents() {
         List<VerifyDTO> verifies = List.of();
         Long beneficiaryBudgetFixedCents = 10000L;
@@ -311,6 +423,65 @@ class InitiativeCountersServiceImplTest {
 
 
         assertFalse(initiativeCountersService.hasAvailableBudget());
+    }
+
+    @Test
+    void testHasAvailableBudgetByInitiative_whenCounterMissing_shouldReturnFalse() {
+        when(initiativeCountersRepositoryMock.findById("INIT_2")).thenReturn(Optional.empty());
+
+        boolean result = initiativeCountersService.hasAvailableBudget("INIT_2");
+
+        assertFalse(result);
+    }
+
+    @Test
+    void testHasAvailableBudgetByInitiative_whenConfigMissing_shouldReturnFalse() {
+        InitiativeCounters counter = InitiativeCounters.builder()
+                .id("INIT_2")
+                .residualInitiativeBudgetCents(200L)
+                .build();
+        when(initiativeCountersRepositoryMock.findById("INIT_2")).thenReturn(Optional.of(counter));
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig("INIT_2")).thenReturn(null);
+
+        boolean result = initiativeCountersService.hasAvailableBudget("INIT_2");
+
+        assertFalse(result);
+    }
+
+    @Test
+    void testHasAvailableBudgetByInitiative_whenBudgetSufficient_shouldReturnTrue() {
+        InitiativeCounters counter = InitiativeCounters.builder()
+                .id("INIT_2")
+                .residualInitiativeBudgetCents(200L)
+                .build();
+        InitiativeConfig config = InitiativeConfig.builder()
+                .initiativeId("INIT_2")
+                .beneficiaryBudgetFixedCents(100L)
+                .build();
+        when(initiativeCountersRepositoryMock.findById("INIT_2")).thenReturn(Optional.of(counter));
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig("INIT_2")).thenReturn(config);
+
+        boolean result = initiativeCountersService.hasAvailableBudget("INIT_2");
+
+        assertTrue(result);
+    }
+
+    @Test
+    void testHasAvailableBudgetByInitiative_whenBudgetInsufficient_shouldReturnFalse() {
+        InitiativeCounters counter = InitiativeCounters.builder()
+                .id("INIT_2")
+                .residualInitiativeBudgetCents(50L)
+                .build();
+        InitiativeConfig config = InitiativeConfig.builder()
+                .initiativeId("INIT_2")
+                .beneficiaryBudgetFixedCents(100L)
+                .build();
+        when(initiativeCountersRepositoryMock.findById("INIT_2")).thenReturn(Optional.of(counter));
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig("INIT_2")).thenReturn(config);
+
+        boolean result = initiativeCountersService.hasAvailableBudget("INIT_2");
+
+        assertFalse(result);
     }
 
     @Test

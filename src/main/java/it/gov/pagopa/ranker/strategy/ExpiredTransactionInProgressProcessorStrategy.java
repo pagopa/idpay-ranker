@@ -52,7 +52,7 @@ public class ExpiredTransactionInProgressProcessorStrategy implements Transactio
         }
 
         LocalDateTime preallocationCreatedUpperBound = transactionInProgress.getTrxDate() != null
-                ? transactionInProgress.getTrxDate().toLocalDateTime()
+                ? transactionInProgress.getTrxDate().atZoneSameInstant(java.time.ZoneId.systemDefault()).toLocalDateTime()
                 : transactionInProgress.getUpdateDate();
 
         boolean updated = preallocationCreatedUpperBound != null

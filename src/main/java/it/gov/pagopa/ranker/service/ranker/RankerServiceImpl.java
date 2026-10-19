@@ -186,7 +186,8 @@ public class RankerServiceImpl implements RankerService {
     }
 
     private LocalDateTime getAttemptEnqueuedTime(OnboardingDTO dto) {
-        return dto.getEnqueuedTime() != null ? dto.getEnqueuedTime() : dto.getTcAcceptTimestamp();
+        LocalDateTime attemptTime = dto.getEnqueuedTime() != null ? dto.getEnqueuedTime() : dto.getTcAcceptTimestamp();
+        return attemptTime == null ? null : attemptTime.truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
     }
 
     private boolean isRedeliveredOrOlderAttempt(InitiativeCountersPreallocations existing, Long sequenceNumber, LocalDateTime enqueuedTime) {

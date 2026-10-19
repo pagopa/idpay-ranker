@@ -109,6 +109,13 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
             return false;
         }
 
+        if (isRedeliveredOrOlderAttempt(existing, sequenceNumber, enqueuedTime)) {
+            log.info("[RANKER] Skipping preallocation reopen for user {} and initiative {} because attempt is redelivered/older",
+                    CommonUtils.sanitizeString(userId),
+                    CommonUtils.sanitizeString(initiativeId));
+            return false;
+        }
+
         long reservationCents = calculateReservationCents(verifies, initiativeId);
 
         try {
@@ -132,6 +139,20 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
         existing.setUpdateDate(LocalDateTime.now(ZoneId.of("Europe/Rome")));
         initiativeCountersPreallocationsRepository.save(existing);
         return true;
+    }
+
+    private boolean isRedeliveredOrOlderAttempt(InitiativeCountersPreallocations existing, Long sequenceNumber, LocalDateTime enqueuedTime) {
+        if (existing.getSequenceNumber() != null && sequenceNumber != null) {
+            return sequenceNumber <= existing.getSequenceNumber();
+        }
+
+        if (existing.getEnqueuedTime() != null && enqueuedTime != null) {
+            return !enqueuedTime.isAfter(existing.getEnqueuedTime());
+        }
+
+        // Without attempt identity we cannot distinguish replay from new request safely.
+        return existing.getSequenceNumber() == null && existing.getEnqueuedTime() == null
+                && sequenceNumber == null && enqueuedTime == null;
     }
 
     @Override

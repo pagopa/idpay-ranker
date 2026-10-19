@@ -274,6 +274,64 @@ class InitiativeCountersServiceImplTest {
     }
 
     @Test
+    void testReopenPreallocatedUser_shouldReturnFalseWhenSameSequenceIsRedelivered() {
+        String userId = "USER123";
+        String initiativeId = INITIATIVE_ID.getFirst();
+
+        InitiativeCountersPreallocations existing = InitiativeCountersPreallocations.builder()
+                .id(userId + "_" + initiativeId)
+                .initiativeId(initiativeId)
+                .userId(userId)
+                .status(PreallocationStatus.REFUNDED)
+                .sequenceNumber(10L)
+                .enqueuedTime(LocalDateTime.now().minusMinutes(2))
+                .build();
+        when(initiativeCountersPreallocationsRepository.findById(userId + "_" + initiativeId))
+                .thenReturn(Optional.of(existing));
+
+        boolean reopened = initiativeCountersService.reopenPreallocatedUser(
+                initiativeId,
+                userId,
+                List.of(),
+                10L,
+                LocalDateTime.now());
+
+        assertFalse(reopened);
+        verify(initiativeCountersRepositoryMock, never()).reserveBudget(anyString(), anyLong());
+        verify(initiativeCountersRepositoryMock, never()).incrementOnboardedAndBudget(anyString(), anyLong());
+        verify(initiativeCountersPreallocationsRepository, never()).save(any());
+    }
+
+    @Test
+    void testReopenPreallocatedUser_shouldReturnFalseWhenOlderEnqueuedTime() {
+        String userId = "USER123";
+        String initiativeId = INITIATIVE_ID.getFirst();
+        LocalDateTime existingTime = LocalDateTime.now();
+
+        InitiativeCountersPreallocations existing = InitiativeCountersPreallocations.builder()
+                .id(userId + "_" + initiativeId)
+                .initiativeId(initiativeId)
+                .userId(userId)
+                .status(PreallocationStatus.EXPIRED)
+                .enqueuedTime(existingTime)
+                .build();
+        when(initiativeCountersPreallocationsRepository.findById(userId + "_" + initiativeId))
+                .thenReturn(Optional.of(existing));
+
+        boolean reopened = initiativeCountersService.reopenPreallocatedUser(
+                initiativeId,
+                userId,
+                List.of(),
+                null,
+                existingTime.minusSeconds(1));
+
+        assertFalse(reopened);
+        verify(initiativeCountersRepositoryMock, never()).reserveBudget(anyString(), anyLong());
+        verify(initiativeCountersRepositoryMock, never()).incrementOnboardedAndBudget(anyString(), anyLong());
+        verify(initiativeCountersPreallocationsRepository, never()).save(any());
+    }
+
+    @Test
     void testMarkConsentSent_shouldSaveWhenSameAttemptAndPreallocated() {
         String userId = "USER123";
         String initiativeId = INITIATIVE_ID.getFirst();

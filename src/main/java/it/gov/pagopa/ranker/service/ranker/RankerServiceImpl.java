@@ -56,25 +56,34 @@ public class RankerServiceImpl implements RankerService {
             return;
         }
 
+        Long attemptSequenceNumber = dto.getSequenceNumber();
+        LocalDateTime attemptEnqueuedTime = getAttemptEnqueuedTime(dto);
+
         Optional<InitiativeCountersPreallocations> existingPreallocation =
                 this.initiativeCountersService.findById(dto.getInitiativeId(), dto.getUserId());
         if (existingPreallocation.isPresent()) {
             InitiativeCountersPreallocations existing = existingPreallocation.get();
             PreallocationStatus status = existing.getStatus();
             if (List.of(PreallocationStatus.REFUNDED, PreallocationStatus.EXPIRED, PreallocationStatus.REJECTED).contains(status)) {
+                if (isRedeliveredOrOlderAttempt(existing, attemptSequenceNumber, attemptEnqueuedTime)) {
+                    log.info("[PREALLOCATE] Skipping redelivered or older terminal request for user {} and initiative {}",
+                            sanitizeString(dto.getUserId()),
+                            sanitizeString(dto.getInitiativeId()));
+                    return;
+                }
                 boolean reopened = this.initiativeCountersService.reopenPreallocatedUser(
                         dto.getInitiativeId(),
                         dto.getUserId(),
                         dto.getVerifies(),
-                        dto.getSequenceNumber(),
-                        dto.getEnqueuedTime()
+                        attemptSequenceNumber,
+                        attemptEnqueuedTime
                 );
                 if (reopened) {
                     log.info("[PREALLOCATE] User {} has terminal status {} for initiative {}. Reopening preallocation and re-sending consent.",
                             sanitizeString(dto.getUserId()),
                             status,
                             sanitizeString(dto.getInitiativeId()));
-                    sendConsentAndMark(dto);
+                    sendConsentAndMark(dto, attemptSequenceNumber, attemptEnqueuedTime);
                 } else {
                     log.warn("[PREALLOCATE] Cannot reopen preallocation for user {} and initiative {}.",
                             sanitizeString(dto.getUserId()),
@@ -85,11 +94,11 @@ public class RankerServiceImpl implements RankerService {
 
             if (PreallocationStatus.PREALLOCATED.equals(status)
                     && !Boolean.TRUE.equals(existing.getConsentSent())
-                    && isSameAttempt(existing, dto)) {
+                    && isSameAttempt(existing, attemptSequenceNumber, attemptEnqueuedTime)) {
                 log.info("[PREALLOCATE] Retrying pending consent send for user {} and initiative {}",
                         sanitizeString(dto.getUserId()),
                         sanitizeString(dto.getInitiativeId()));
-                sendConsentAndMark(dto);
+                sendConsentAndMark(dto, attemptSequenceNumber, attemptEnqueuedTime);
                 return;
             }
 
@@ -104,13 +113,13 @@ public class RankerServiceImpl implements RankerService {
                 dto.getInitiativeId(),
                 dto.getUserId(),
                 dto.getVerifies(),
-                dto.getSequenceNumber(),
-                dto.getEnqueuedTime()
+                attemptSequenceNumber,
+                attemptEnqueuedTime
 
         );
 
         log.info("[PREALLOCATE] Preallocation added for user {} in initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
-        sendConsentAndMark(dto);
+        sendConsentAndMark(dto, attemptSequenceNumber, attemptEnqueuedTime);
     }
 
     @Override
@@ -171,18 +180,36 @@ public class RankerServiceImpl implements RankerService {
         }
     }
 
-    private boolean isSameAttempt(InitiativeCountersPreallocations preallocation, OnboardingDTO dto) {
-        return Objects.equals(preallocation.getSequenceNumber(), dto.getSequenceNumber())
-                && Objects.equals(preallocation.getEnqueuedTime(), dto.getEnqueuedTime());
+    private boolean isSameAttempt(InitiativeCountersPreallocations preallocation, Long sequenceNumber, LocalDateTime enqueuedTime) {
+        return Objects.equals(preallocation.getSequenceNumber(), sequenceNumber)
+                && Objects.equals(preallocation.getEnqueuedTime(), enqueuedTime);
     }
 
-    private void sendConsentAndMark(OnboardingDTO dto) {
+    private LocalDateTime getAttemptEnqueuedTime(OnboardingDTO dto) {
+        return dto.getEnqueuedTime() != null ? dto.getEnqueuedTime() : dto.getTcAcceptTimestamp();
+    }
+
+    private boolean isRedeliveredOrOlderAttempt(InitiativeCountersPreallocations existing, Long sequenceNumber, LocalDateTime enqueuedTime) {
+        if (existing.getSequenceNumber() != null && sequenceNumber != null) {
+            return sequenceNumber <= existing.getSequenceNumber();
+        }
+
+        if (existing.getEnqueuedTime() != null && enqueuedTime != null) {
+            return !enqueuedTime.isAfter(existing.getEnqueuedTime());
+        }
+
+        // If attempt identity is missing, avoid reserving budget again.
+        return existing.getSequenceNumber() == null && existing.getEnqueuedTime() == null
+                && sequenceNumber == null && enqueuedTime == null;
+    }
+
+    private void sendConsentAndMark(OnboardingDTO dto, Long sequenceNumber, LocalDateTime enqueuedTime) {
         this.rankerProducer.sendSaveConsent(dto);
         this.initiativeCountersService.markConsentSent(
                 dto.getInitiativeId(),
                 dto.getUserId(),
-                dto.getSequenceNumber(),
-                dto.getEnqueuedTime()
+                sequenceNumber,
+                enqueuedTime
         );
     }
 }

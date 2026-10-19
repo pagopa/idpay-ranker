@@ -165,6 +165,27 @@ class RankerServiceTest {
     }
 
     @Test
+    void testExecute_whenTerminalRequestIsRedelivered_shouldSkipReopenAndSend() {
+        OnboardingDTO dto = new OnboardingDTO();
+        dto.setInitiativeId(initiatives.getFirst());
+        dto.setUserId("USR_DUPLICATE");
+        dto.setVerifies(List.of());
+
+        InitiativeCountersPreallocations preallocation = new InitiativeCountersPreallocations();
+        preallocation.setStatus(PreallocationStatus.REFUNDED);
+        preallocation.setSequenceNumber(99L);
+        preallocation.setEnqueuedTime(LocalDateTime.of(2025, 1, 1, 12, 0));
+
+        ServiceBusReceivedMessage message = buildMessage(dto);
+        when(initiativeCountersService.findById(initiatives.getFirst(), "USR_DUPLICATE")).thenReturn(Optional.of(preallocation));
+
+        rankerService.execute(message);
+
+        verify(initiativeCountersService, never()).reopenPreallocatedUser(any(), any(), any(), any(), any());
+        verify(rankerProducer, never()).sendSaveConsent(any());
+    }
+
+    @Test
     void testExecute_whenDeserializationFails_shouldThrowIllegalStateException() {
         ServiceBusMessage badMessage = new ServiceBusMessage("{invalid-json}");
         ServiceBusReceivedMessage message = mock(ServiceBusReceivedMessage.class);
@@ -178,7 +199,7 @@ class RankerServiceTest {
     @Test
     void testExecute_whenInternalServiceThrows_shouldWrapInMessageProcessingException() {
         OnboardingDTO dto = new OnboardingDTO();
-        dto.setInitiativeId("INIT_FAIL");
+        dto.setInitiativeId(initiatives.getFirst());
         dto.setUserId("USR_FAIL");
 
         ServiceBusReceivedMessage message = buildMessage(dto);
@@ -220,11 +241,37 @@ class RankerServiceTest {
         dto.setVerifies(null);
 
         ServiceBusReceivedMessage message = buildMessage(dto);
-        when(initiativeCountersService.findById("another-initiative", "USR002")).thenReturn(Optional.empty());
 
         rankerService.execute(message);
 
         verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void testPreallocate_restPathWithTcTimestampFallback_shouldUseTcTimestampAsAttemptTime() {
+        OnboardingDTO dto = new OnboardingDTO();
+        dto.setInitiativeId(initiatives.getFirst());
+        dto.setUserId("USR_REST");
+        dto.setVerifies(List.of());
+        dto.setTcAcceptTimestamp(LocalDateTime.of(2026, 10, 19, 11, 0));
+
+        when(initiativeCountersService.findById(initiatives.getFirst(), "USR_REST")).thenReturn(Optional.empty());
+
+        rankerService.preallocate(dto);
+
+        verify(initiativeCountersService).addPreallocatedUser(
+                eq(initiatives.getFirst()),
+                eq("USR_REST"),
+                any(),
+                isNull(),
+                eq(LocalDateTime.of(2026, 10, 19, 11, 0))
+        );
+        verify(initiativeCountersService).markConsentSent(
+                eq(initiatives.getFirst()),
+                eq("USR_REST"),
+                isNull(),
+                eq(LocalDateTime.of(2026, 10, 19, 11, 0))
+        );
     }
 
     @Test

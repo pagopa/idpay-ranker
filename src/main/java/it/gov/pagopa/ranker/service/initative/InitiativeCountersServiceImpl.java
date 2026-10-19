@@ -150,13 +150,21 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
             return sequenceNumber <= existing.getSequenceNumber();
         }
 
+        if (sequenceNumber == null && existing.getSequenceNumber() != null) {
+            // Missing sequence cannot supersede an already tracked attempt identity.
+            return true;
+        }
+
         if (existing.getEnqueuedTime() != null && enqueuedTime != null) {
             return !enqueuedTime.isAfter(existing.getEnqueuedTime());
         }
 
-        // Without attempt identity we cannot distinguish replay from new request safely.
-        return existing.getSequenceNumber() == null && existing.getEnqueuedTime() == null
-                && sequenceNumber == null && enqueuedTime == null;
+        if (enqueuedTime == null && existing.getEnqueuedTime() != null) {
+            return true;
+        }
+
+        // Without an incoming identity we cannot distinguish replay from a real new attempt safely.
+        return sequenceNumber == null && enqueuedTime == null;
     }
 
     private LocalDateTime resolveAttemptStartAt(LocalDateTime enqueuedTime) {

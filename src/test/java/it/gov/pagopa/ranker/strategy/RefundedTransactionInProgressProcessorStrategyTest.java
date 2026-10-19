@@ -15,6 +15,10 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -119,6 +123,55 @@ class RefundedTransactionInProgressProcessorStrategyTest {
                 PreallocationStatus.CAPTURED,
                 PreallocationStatus.REFUNDED);
         verify(initiativeCountersRepositoryMock).updateCounterForRefunded("INIT_1",500L);
+    }
+
+    @Test
+    void shouldSkipReplayFromPreviousAttemptUsingTrxDateWindow() {
+        TransactionInProgressDTO transactionInProgressDTO = new TransactionInProgressDTO();
+        transactionInProgressDTO.setId("ID_1");
+        transactionInProgressDTO.setInitiativeId("INIT_1");
+        transactionInProgressDTO.setRewardCents(500L);
+        transactionInProgressDTO.setUserId("USER_1");
+        transactionInProgressDTO.setTrxDate(OffsetDateTime.of(LocalDateTime.of(2026, 10, 15, 10, 0), ZoneOffset.UTC));
+        String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
+
+        when(initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatusCreatedBefore(
+                preallocationId,
+                PreallocationStatus.CAPTURED,
+                PreallocationStatus.REFUNDED,
+                transactionInProgressDTO.getTrxDate().toLocalDateTime())).thenReturn(false);
+
+        Assertions.assertDoesNotThrow(() -> refundedTransactionInProgressProcessorStrategy.processTransaction(transactionInProgressDTO));
+
+        verify(initiativeCountersPreallocationsRepository).findByIdAndStatusThenUpdateStatusCreatedBefore(
+                preallocationId,
+                PreallocationStatus.CAPTURED,
+                PreallocationStatus.REFUNDED,
+                transactionInProgressDTO.getTrxDate().toLocalDateTime());
+        verifyNoInteractions(initiativeCountersRepositoryMock);
+    }
+
+    @Test
+    void shouldFallbackToLegacyRefundUpdateWhenEventTimeMissing() {
+        TransactionInProgressDTO transactionInProgressDTO = new TransactionInProgressDTO();
+        transactionInProgressDTO.setId("ID_2");
+        transactionInProgressDTO.setInitiativeId("INIT_1");
+        transactionInProgressDTO.setRewardCents(500L);
+        transactionInProgressDTO.setUserId("USER_1");
+        String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
+
+        when(initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatus(
+                preallocationId,
+                PreallocationStatus.CAPTURED,
+                PreallocationStatus.REFUNDED)).thenReturn(true);
+
+        refundedTransactionInProgressProcessorStrategy.processTransaction(transactionInProgressDTO);
+
+        verify(initiativeCountersPreallocationsRepository).findByIdAndStatusThenUpdateStatus(
+                preallocationId,
+                PreallocationStatus.CAPTURED,
+                PreallocationStatus.REFUNDED);
+        verify(initiativeCountersRepositoryMock).updateCounterForRefunded("INIT_1", 500L);
     }
 
 }

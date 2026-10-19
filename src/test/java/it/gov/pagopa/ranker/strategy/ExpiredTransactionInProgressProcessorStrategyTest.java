@@ -178,4 +178,31 @@ public class ExpiredTransactionInProgressProcessorStrategyTest {
         verify(initiativeCountersRepository).decrementOnboardedAndBudget("INIT_1", 1000L);
     }
 
+    @Test
+    public void shouldSkipExpiredReplayFromPreviousAttemptAfterReopen() {
+        TransactionInProgressDTO transactionInProgressDTO = new TransactionInProgressDTO();
+        transactionInProgressDTO.setId("ID_1");
+        transactionInProgressDTO.setInitiativeId("INIT_1");
+        transactionInProgressDTO.setVoucherAmountCents(1000L);
+        transactionInProgressDTO.setUserId("USER_1");
+        transactionInProgressDTO.setTrxDate(OffsetDateTime.of(LocalDateTime.of(2026, 10, 15, 10, 0), ZoneOffset.UTC));
+        String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
+
+        when(paymentRestClient.existsByIdAndStatus("ID_1", SyncTrxStatus.EXPIRED)).thenReturn(true);
+        when(initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatusCreatedBefore(
+                preallocationId,
+                PreallocationStatus.PREALLOCATED,
+                PreallocationStatus.EXPIRED,
+                transactionInProgressDTO.getTrxDate().toLocalDateTime())).thenReturn(false);
+
+        expiredTransactionInProgressProcessorStrategy.processTransaction(transactionInProgressDTO);
+
+        verify(initiativeCountersPreallocationsRepository).findByIdAndStatusThenUpdateStatusCreatedBefore(
+                preallocationId,
+                PreallocationStatus.PREALLOCATED,
+                PreallocationStatus.EXPIRED,
+                transactionInProgressDTO.getTrxDate().toLocalDateTime());
+        verifyNoInteractions(initiativeCountersRepository);
+    }
+
 }

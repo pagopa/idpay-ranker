@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 import static it.gov.pagopa.utils.InitiativeCountersUtils.computePreallocationId;
 
 @Slf4j
@@ -37,10 +39,22 @@ public class RefundedTransactionInProgressProcessorStrategy implements Transacti
         String transactionInProgressId = transactionInProgress.getId();
         String preallocationId = computePreallocationId(transactionInProgress);
 
-        if (!initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatus(
+        LocalDateTime preallocationCreatedUpperBound = transactionInProgress.getTrxDate() != null
+                ? transactionInProgress.getTrxDate().atZoneSameInstant(java.time.ZoneId.systemDefault()).toLocalDateTime()
+                : transactionInProgress.getUpdateDate();
+
+        boolean updated = preallocationCreatedUpperBound != null
+                ? initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatusCreatedBefore(
                 preallocationId,
                 PreallocationStatus.CAPTURED,
-                PreallocationStatus.REFUNDED)) {
+                PreallocationStatus.REFUNDED,
+                preallocationCreatedUpperBound)
+                : initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatus(
+                preallocationId,
+                PreallocationStatus.CAPTURED,
+                PreallocationStatus.REFUNDED);
+
+        if (!updated) {
             log.warn("[RefundedTransactionInProgressProcessor] received event for a transaction having initiative {}" +
                     " and user {} that does not exist in the initiative preallocation or already processed, will not update counter",
                     transactionInProgress.getInitiativeId(), transactionInProgress.getUserId());

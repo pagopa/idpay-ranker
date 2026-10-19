@@ -93,7 +93,7 @@ public class RankerServiceImpl implements RankerService {
             }
 
             if (PreallocationStatus.PREALLOCATED.equals(status)
-                    && !Boolean.TRUE.equals(existing.getConsentSent())
+                    && Boolean.FALSE.equals(existing.getConsentSent())
                     && isSameAttempt(existing, attemptSequenceNumber, attemptEnqueuedTime)) {
                 log.info("[PREALLOCATE] Retrying pending consent send for user {} and initiative {}",
                         sanitizeString(dto.getUserId()),

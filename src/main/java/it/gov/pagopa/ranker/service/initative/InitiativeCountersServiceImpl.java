@@ -59,6 +59,7 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
     @Transactional
     public void addPreallocatedUser(String initiativeId, String userId, List<VerifyDTO> verifies, Long sequenceNumber, LocalDateTime enqueuedTime) {
         long reservationCents = calculateReservationCents(verifies, initiativeId);
+        LocalDateTime attemptStartAt = resolveAttemptStartAt(enqueuedTime);
         try {
             initiativeCountersRepository.incrementOnboardedAndBudget(
                     initiativeId,
@@ -72,6 +73,7 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
                             .userId(userId)
                             .sequenceNumber(sequenceNumber)
                             .enqueuedTime(enqueuedTime)
+                            .attemptStartAt(attemptStartAt)
                             .consentSent(false)
                             .createdAt(LocalDateTime.now())
                             .updateDate(LocalDateTime.now())
@@ -91,6 +93,7 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
     @Transactional
     public boolean reopenPreallocatedUser(String initiativeId, String userId, List<VerifyDTO> verifies, Long sequenceNumber, LocalDateTime enqueuedTime) {
         String preallocationId = userId + ID_SEPARATOR + initiativeId;
+        LocalDateTime attemptStartAt = resolveAttemptStartAt(enqueuedTime);
         Optional<InitiativeCountersPreallocations> existingOpt = initiativeCountersPreallocationsRepository.findById(preallocationId);
         if (existingOpt.isEmpty()) {
             log.warn("[RANKER] Cannot reopen preallocation for user {} and initiative {}: preallocation not found",
@@ -134,6 +137,7 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
         existing.setStatus(PreallocationStatus.PREALLOCATED);
         existing.setSequenceNumber(sequenceNumber);
         existing.setEnqueuedTime(enqueuedTime);
+        existing.setAttemptStartAt(attemptStartAt);
         existing.setConsentSent(false);
         existing.setPreallocatedAmountCents(reservationCents);
         existing.setUpdateDate(LocalDateTime.now(ZoneId.of("Europe/Rome")));
@@ -153,6 +157,10 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
         // Without attempt identity we cannot distinguish replay from new request safely.
         return existing.getSequenceNumber() == null && existing.getEnqueuedTime() == null
                 && sequenceNumber == null && enqueuedTime == null;
+    }
+
+    private LocalDateTime resolveAttemptStartAt(LocalDateTime enqueuedTime) {
+        return enqueuedTime != null ? enqueuedTime : LocalDateTime.now(ZoneId.of("Europe/Rome"));
     }
 
     @Override

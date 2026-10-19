@@ -40,11 +40,18 @@ public class InitiativeCountersPreallocationsRepositoryExtImpl implements Initia
             PreallocationStatus currentStatus,
             PreallocationStatus newStatus,
             LocalDateTime createdAtUpperBound) {
+        Criteria currentAttemptCriteria = Criteria.where(InitiativeCountersPreallocations.Fields.attemptStartAt)
+                .lte(createdAtUpperBound);
+        Criteria legacyAttemptCriteria = new Criteria().andOperator(
+                Criteria.where(InitiativeCountersPreallocations.Fields.attemptStartAt).exists(false),
+                Criteria.where(InitiativeCountersPreallocations.Fields.createdAt).lte(createdAtUpperBound)
+        );
+        Criteria idAndStatusCriteria = Criteria.where(InitiativeCountersPreallocations.Fields.id).is(id)
+                .and(InitiativeCountersPreallocations.Fields.status).is(currentStatus);
+        Criteria attemptWindowCriteria = new Criteria().orOperator(currentAttemptCriteria, legacyAttemptCriteria);
+
         InitiativeCountersPreallocations initiativeCountersPreallocations = mongoTemplate.findAndModify(
-                Query.query(
-                        Criteria.where(InitiativeCountersPreallocations.Fields.id).is(id)
-                                .and(InitiativeCountersPreallocations.Fields.status).is(currentStatus)
-                                .and(InitiativeCountersPreallocations.Fields.createdAt).lte(createdAtUpperBound)),
+                Query.query(new Criteria().andOperator(idAndStatusCriteria, attemptWindowCriteria)),
                 new Update()
                         .set(InitiativeCountersPreallocations.Fields.status, newStatus)
                         .set(InitiativeCountersPreallocations.Fields.updateDate, LocalDateTime.now(ZoneId.of("Europe/Rome"))),

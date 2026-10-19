@@ -13,9 +13,11 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -83,6 +85,7 @@ class InitiativeCountersPreallocationsRepositoryExtImplTest  {
     @Test
     void findByIdAndStatusThenUpdateStatusCreatedBefore() {
         InitiativeCountersPreallocations expected = new InitiativeCountersPreallocations();
+        LocalDateTime upperBound = LocalDateTime.of(2026, 10, 15, 10, 0);
 
         when(mongoTemplate.findAndModify(
                 any(Query.class),
@@ -95,12 +98,19 @@ class InitiativeCountersPreallocationsRepositoryExtImplTest  {
                 "initiative1",
                 PreallocationStatus.PREALLOCATED,
                 PreallocationStatus.EXPIRED,
-                LocalDateTime.of(2026, 10, 15, 10, 0)
+                upperBound
         );
 
         assertTrue(result);
         verify(mongoTemplate, times(1)).findAndModify(
-                any(Query.class),
+                argThat(query -> {
+                    assertNotNull(query);
+                    String queryString = Objects.toString(query.getQueryObject());
+                    return queryString.contains(InitiativeCountersPreallocations.Fields.attemptStartAt)
+                            && queryString.contains(InitiativeCountersPreallocations.Fields.createdAt)
+                            && queryString.contains("$or")
+                            && queryString.contains("$lte");
+                }),
                 any(Update.class),
                 any(FindAndModifyOptions.class),
                 eq(InitiativeCountersPreallocations.class)

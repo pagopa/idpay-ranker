@@ -109,6 +109,7 @@ class InitiativeCountersServiceImplTest {
 
         assertEquals("USER123_INITIATIVE_ID", captor.getValue().getId());
         assertEquals(PreallocationStatus.PREALLOCATED, captor.getValue().getStatus());
+        assertEquals(time, captor.getValue().getAttemptStartAt());
         assertEquals(20000L, captor.getValue().getPreallocatedAmountCents());
         assertFalse(Boolean.TRUE.equals(captor.getValue().getConsentSent()));
     }
@@ -179,6 +180,7 @@ class InitiativeCountersServiceImplTest {
         assertEquals(PreallocationStatus.PREALLOCATED, saved.getStatus());
         assertEquals(sequenceNumber, saved.getSequenceNumber());
         assertEquals(enqueuedTime, saved.getEnqueuedTime());
+        assertEquals(enqueuedTime, saved.getAttemptStartAt());
         assertEquals(20000L, saved.getPreallocatedAmountCents());
         assertFalse(Boolean.TRUE.equals(saved.getConsentSent()));
     }

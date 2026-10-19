@@ -27,6 +27,7 @@ public class InitiativeCountersPreallocations {
     private String userId;
     private PreallocationStatus status;
     private LocalDateTime createdAt;
+    private LocalDateTime attemptStartAt;
     private Long sequenceNumber;
     private LocalDateTime enqueuedTime;
     private Boolean consentSent;

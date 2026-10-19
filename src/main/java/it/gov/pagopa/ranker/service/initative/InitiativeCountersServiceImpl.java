@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import static it.gov.pagopa.ranker.connector.event.producer.RankerProducer.sanitizeField;
+import static it.gov.pagopa.utils.CommonConstants.ZONEID;
 
 @Slf4j
 @Service
@@ -71,8 +72,8 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
                             .userId(userId)
                             .sequenceNumber(sequenceNumber)
                             .enqueuedTime(enqueuedTime)
-                            .createdAt(LocalDateTime.now())
-                            .updateDate(LocalDateTime.now())
+                            .createdAt(LocalDateTime.now(ZONEID))
+                            .updateDate(LocalDateTime.now(ZONEID))
                             .status(PreallocationStatus.PREALLOCATED)
                             .preallocatedAmountCents(reservationCents)
                             .build()
@@ -122,7 +123,7 @@ public class InitiativeCountersServiceImpl implements InitiativeCountersService 
         existing.setSequenceNumber(sequenceNumber);
         existing.setEnqueuedTime(enqueuedTime);
         existing.setPreallocatedAmountCents(reservationCents);
-        existing.setUpdateDate(LocalDateTime.now());
+        existing.setUpdateDate(LocalDateTime.now(ZONEID));
         initiativeCountersPreallocationsRepository.save(existing);
         return true;
     }

@@ -198,6 +198,22 @@ class InitiativeCountersServiceImplTest {
     }
 
     @Test
+    void testCalculateReservationCents_withFixedBudgetNull_shouldFallbackToVerifyAmount() {
+        VerifyDTO verify = new VerifyDTO();
+        verify.setBeneficiaryBudgetCentsMax(7000L);
+
+        InitiativeConfig config = InitiativeConfig.builder()
+                .initiativeId(INITIATIVE_ID.getFirst())
+                .beneficiaryBudgetFixedCents(null)
+                .build();
+        when(initiativeBeneficiaryRuleServiceMock.getInitiativeConfig(INITIATIVE_ID.getFirst())).thenReturn(config);
+
+        long result = initiativeCountersService.calculateReservationCents(List.of(verify), INITIATIVE_ID.getFirst());
+
+        assertEquals(7000L, result);
+    }
+
+    @Test
     void testCalculateReservationCents_withEmptyVerifiesShouldThrowException() {
         List<VerifyDTO> verifies = List.of();
 
@@ -382,6 +398,23 @@ class InitiativeCountersServiceImplTest {
     }
 
     @Test
+    void testUpdateInitiativeCounters_success() {
+        TransactionInProgressDTO dto = new TransactionInProgressDTO();
+        dto.setId("ID_1");
+        dto.setInitiativeId("INIT_1");
+        dto.setVoucherAmountCents(1000L);
+        dto.setUserId("USER_1");
+
+        String preallocationId = InitiativeCountersUtils.computePreallocationId(dto);
+        when(initiativeCountersPreallocationsRepository.existsById(preallocationId)).thenReturn(true);
+
+        initiativeCountersService.updateInitiativeCounters(dto, preallocationId, "ID_1");
+
+        verify(initiativeCountersPreallocationsRepository).deleteById(preallocationId);
+        verify(initiativeCountersRepositoryMock).decrementOnboardedAndBudget("INIT_1", 1000L);
+    }
+
+    @Test
     void testUpdateInitiativeCounters_decrementError() {
         TransactionInProgressDTO dto = new TransactionInProgressDTO();
         dto.setId("ID_1");
@@ -405,6 +438,20 @@ class InitiativeCountersServiceImplTest {
         verify(initiativeCountersPreallocationsRepository).deleteById(preallocationId);
         verify(initiativeCountersRepositoryMock)
                 .decrementOnboardedAndBudget("INIT_1", 1000L);
+    }
+
+    @Test
+    void testSanitizeString_whenNull_shouldReturnNull() {
+        assertNull(InitiativeCountersServiceImpl.sanitizeString(null));
+    }
+
+    @Test
+    void testSanitizeString_whenContainsLineBreaksAndSpecialChars_shouldCleanValue() {
+        String input = "ab\r\ncd!@#$%";
+
+        String result = InitiativeCountersServiceImpl.sanitizeString(input);
+
+        assertEquals("abcd", result);
     }
 
 

@@ -75,6 +75,16 @@ class RankerServiceTest {
         return message;
     }
 
+    private ServiceBusReceivedMessage buildMessage(OnboardingDTO dto, long sequenceNumber, OffsetDateTime enqueuedTime) {
+        String json = objectMapper.writeValueAsString(dto);
+        ServiceBusMessage sbMessage = new ServiceBusMessage(json);
+        ServiceBusReceivedMessage message = mock(ServiceBusReceivedMessage.class);
+        when(message.getBody()).thenReturn(sbMessage.getBody());
+        when(message.getSequenceNumber()).thenReturn(sequenceNumber);
+        when(message.getEnqueuedTime()).thenReturn(enqueuedTime);
+        return message;
+    }
+
     @Test
     void testExecute_whenNewPreallocation_shouldAddAndSend() {
         List<VerifyDTO> mockVerifies = List.of();
@@ -176,6 +186,96 @@ class RankerServiceTest {
         rankerService.execute(message);
 
         verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void testExecute_whenRefundedAndReopenSucceeds_shouldResendConsent() {
+        OnboardingDTO dto = new OnboardingDTO();
+        dto.setInitiativeId(initiatives.getFirst());
+        dto.setUserId("USR_REFUNDED");
+        dto.setVerifies(List.of());
+
+        InitiativeCountersPreallocations preallocation = new InitiativeCountersPreallocations();
+        preallocation.setStatus(PreallocationStatus.REFUNDED);
+
+        ServiceBusReceivedMessage message = buildMessage(dto);
+        when(initiativeCountersService.findById(initiatives.getFirst(), "USR_REFUNDED"))
+                .thenReturn(Optional.of(preallocation));
+        when(initiativeCountersService.reopenPreallocatedUser(eq(initiatives.getFirst()), eq("USR_REFUNDED"), any(), eq(99L), any(LocalDateTime.class)))
+                .thenReturn(true);
+
+        rankerService.execute(message);
+
+        verify(initiativeCountersService).reopenPreallocatedUser(eq(initiatives.getFirst()), eq("USR_REFUNDED"), any(), eq(99L), any(LocalDateTime.class));
+        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), anyLong(), any());
+        verify(rankerProducer).sendSaveConsent(any(OnboardingDTO.class));
+    }
+
+    @Test
+    void testExecute_whenExpiredAndReopenFails_shouldNotResendConsent() {
+        OnboardingDTO dto = new OnboardingDTO();
+        dto.setInitiativeId(initiatives.getFirst());
+        dto.setUserId("USR_EXPIRED");
+        dto.setVerifies(List.of());
+
+        InitiativeCountersPreallocations preallocation = new InitiativeCountersPreallocations();
+        preallocation.setStatus(PreallocationStatus.EXPIRED);
+
+        ServiceBusReceivedMessage message = buildMessage(dto);
+        when(initiativeCountersService.findById(initiatives.getFirst(), "USR_EXPIRED"))
+                .thenReturn(Optional.of(preallocation));
+        when(initiativeCountersService.reopenPreallocatedUser(eq(initiatives.getFirst()), eq("USR_EXPIRED"), any(), eq(99L), any(LocalDateTime.class)))
+                .thenReturn(false);
+
+        rankerService.execute(message);
+
+        verify(initiativeCountersService).reopenPreallocatedUser(eq(initiatives.getFirst()), eq("USR_EXPIRED"), any(), eq(99L), any(LocalDateTime.class));
+        verify(rankerProducer, never()).sendSaveConsent(any(OnboardingDTO.class));
+        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), anyLong(), any());
+    }
+
+    @Test
+    void testExecute_whenRejectedAndReopenSucceeds_shouldResendConsent() {
+        OnboardingDTO dto = new OnboardingDTO();
+        dto.setInitiativeId(initiatives.getFirst());
+        dto.setUserId("USR_REJECTED");
+        dto.setVerifies(List.of());
+
+        InitiativeCountersPreallocations preallocation = new InitiativeCountersPreallocations();
+        preallocation.setStatus(PreallocationStatus.REJECTED);
+
+        ServiceBusReceivedMessage message = buildMessage(dto);
+        when(initiativeCountersService.findById(initiatives.getFirst(), "USR_REJECTED"))
+                .thenReturn(Optional.of(preallocation));
+        when(initiativeCountersService.reopenPreallocatedUser(eq(initiatives.getFirst()), eq("USR_REJECTED"), any(), eq(99L), any(LocalDateTime.class)))
+                .thenReturn(true);
+
+        rankerService.execute(message);
+
+        verify(initiativeCountersService).reopenPreallocatedUser(eq(initiatives.getFirst()), eq("USR_REJECTED"), any(), eq(99L), any(LocalDateTime.class));
+        verify(rankerProducer).sendSaveConsent(any(OnboardingDTO.class));
+    }
+
+    @Test
+    void testExecute_shouldPropagateMessageHeaderInAddPreallocatedUser() {
+        OnboardingDTO dto = new OnboardingDTO();
+        dto.setInitiativeId(initiatives.getFirst());
+        dto.setUserId("USR_HEADER");
+        dto.setVerifies(List.of());
+
+        OffsetDateTime enqueuedTimeUtc = OffsetDateTime.of(2025, 6, 1, 10, 0, 0, 0, ZoneOffset.UTC);
+        ServiceBusReceivedMessage message = buildMessage(dto, 123L, enqueuedTimeUtc);
+        when(initiativeCountersService.findById(initiatives.getFirst(), "USR_HEADER")).thenReturn(Optional.empty());
+
+        rankerService.execute(message);
+
+        verify(initiativeCountersService).addPreallocatedUser(
+                eq(initiatives.getFirst()),
+                eq("USR_HEADER"),
+                any(),
+                eq(123L),
+                eq(LocalDateTime.of(2025, 6, 1, 12, 0))
+        );
     }
 
     @Test

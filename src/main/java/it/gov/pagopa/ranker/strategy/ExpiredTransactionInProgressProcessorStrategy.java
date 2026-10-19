@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 import static it.gov.pagopa.utils.InitiativeCountersUtils.computePreallocationId;
 
 @Slf4j
@@ -49,10 +51,22 @@ public class ExpiredTransactionInProgressProcessorStrategy implements Transactio
             return;
         }
 
-        if (!initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatus(
+        LocalDateTime preallocationCreatedUpperBound = transactionInProgress.getTrxDate() != null
+                ? transactionInProgress.getTrxDate().toLocalDateTime()
+                : transactionInProgress.getUpdateDate();
+
+        boolean updated = preallocationCreatedUpperBound != null
+                ? initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatusCreatedBefore(
+                        preallocationId,
+                        PreallocationStatus.PREALLOCATED,
+                        PreallocationStatus.EXPIRED,
+                        preallocationCreatedUpperBound)
+                : initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatus(
                 preallocationId,
                 PreallocationStatus.PREALLOCATED,
-                PreallocationStatus.EXPIRED)) {
+                PreallocationStatus.EXPIRED);
+
+        if (!updated) {
             log.warn("[ExpiredTransactionInProgressProcessor] received event for a transaction having initiative {}" +
                             " and user {} that does not exist in the initiative preallocation or already processed, will not update counter",
                     transactionInProgress.getInitiativeId(), transactionInProgress.getUserId());

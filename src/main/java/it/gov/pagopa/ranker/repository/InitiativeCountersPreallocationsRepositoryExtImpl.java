@@ -33,4 +33,23 @@ public class InitiativeCountersPreallocationsRepositoryExtImpl implements Initia
                 InitiativeCountersPreallocations.class);
         return initiativeCountersPreallocations != null;
     }
+
+    @Override
+    public boolean findByIdAndStatusThenUpdateStatusCreatedBefore(
+            String id,
+            PreallocationStatus currentStatus,
+            PreallocationStatus newStatus,
+            LocalDateTime createdAtUpperBound) {
+        InitiativeCountersPreallocations initiativeCountersPreallocations = mongoTemplate.findAndModify(
+                Query.query(
+                        Criteria.where(InitiativeCountersPreallocations.Fields.id).is(id)
+                                .and(InitiativeCountersPreallocations.Fields.status).is(currentStatus)
+                                .and(InitiativeCountersPreallocations.Fields.createdAt).lte(createdAtUpperBound)),
+                new Update()
+                        .set(InitiativeCountersPreallocations.Fields.status, newStatus)
+                        .set(InitiativeCountersPreallocations.Fields.updateDate, LocalDateTime.now(ZoneId.of("Europe/Rome"))),
+                FindAndModifyOptions.options().returnNew(true),
+                InitiativeCountersPreallocations.class);
+        return initiativeCountersPreallocations != null;
+    }
 }

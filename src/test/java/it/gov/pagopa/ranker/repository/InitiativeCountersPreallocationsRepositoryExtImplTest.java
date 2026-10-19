@@ -12,6 +12,8 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
+import java.time.LocalDateTime;
+
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
@@ -76,5 +78,32 @@ class InitiativeCountersPreallocationsRepositoryExtImplTest  {
         );
 
         assertFalse(result);
+    }
+
+    @Test
+    void findByIdAndStatusThenUpdateStatusCreatedBefore() {
+        InitiativeCountersPreallocations expected = new InitiativeCountersPreallocations();
+
+        when(mongoTemplate.findAndModify(
+                any(Query.class),
+                any(Update.class),
+                any(FindAndModifyOptions.class),
+                eq(InitiativeCountersPreallocations.class)
+        )).thenReturn(expected);
+
+        boolean result = repository.findByIdAndStatusThenUpdateStatusCreatedBefore(
+                "initiative1",
+                PreallocationStatus.PREALLOCATED,
+                PreallocationStatus.EXPIRED,
+                LocalDateTime.of(2026, 10, 15, 10, 0)
+        );
+
+        assertTrue(result);
+        verify(mongoTemplate, times(1)).findAndModify(
+                any(Query.class),
+                any(Update.class),
+                any(FindAndModifyOptions.class),
+                eq(InitiativeCountersPreallocations.class)
+        );
     }
 }

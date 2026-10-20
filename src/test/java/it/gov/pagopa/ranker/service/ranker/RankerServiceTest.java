@@ -20,11 +20,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DuplicateKeyException;
 import tools.jackson.databind.ObjectMapper;
 
-import java.time.*;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
 import static it.gov.pagopa.ranker.constants.OnboardingConstant.ON_EVALUATION;
+import static it.gov.pagopa.ranker.constants.OnboardingConstant.UNSUBSCRIBED;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -235,7 +238,7 @@ class RankerServiceTest {
     }
 
     @Test
-    void testExecute_whenRejectedAndReopenSucceeds_shouldResendConsent() {
+    void testExecute_whenRejected_shouldNotReopenAndShouldNotResendConsent() {
         OnboardingDTO dto = new OnboardingDTO();
         dto.setInitiativeId(initiatives.getFirst());
         dto.setUserId("USR_REJECTED");
@@ -247,14 +250,14 @@ class RankerServiceTest {
         ServiceBusReceivedMessage message = buildMessage(dto);
         when(initiativeCountersService.findById(initiatives.getFirst(), "USR_REJECTED"))
                 .thenReturn(Optional.of(preallocation));
-        when(initiativeCountersService.reopenPreallocatedUser(eq(initiatives.getFirst()), eq("USR_REJECTED"), any(), eq(99L), any(LocalDateTime.class)))
-                .thenReturn(true);
 
         rankerService.execute(message);
 
-        verify(initiativeCountersService).reopenPreallocatedUser(eq(initiatives.getFirst()), eq("USR_REJECTED"), any(), eq(99L), any(LocalDateTime.class));
-        verify(rankerProducer).sendSaveConsent(any(OnboardingDTO.class));
+        verify(initiativeCountersService, never()).reopenPreallocatedUser(anyString(), anyString(), any(), anyLong(), any());
+        verify(rankerProducer, never()).sendSaveConsent(any(OnboardingDTO.class));
+        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), anyLong(), any());
     }
+
 
     @Test
     void testExecute_shouldPropagateMessageHeaderInAddPreallocatedUser() {
@@ -308,6 +311,33 @@ class RankerServiceTest {
     }
 
     @Test
+    void testRecovery_whenStatusUnsubscribed_shouldResendConsent() {
+        OnboardingDTO input = new OnboardingDTO();
+        input.setInitiativeId("INITIATIVE_ID");
+        input.setUserId("USER777");
+        input.setServiceId("SRV777");
+
+        InitiativeCountersPreallocations pre = new InitiativeCountersPreallocations();
+        pre.setPreallocatedAmountCents(15000L);
+
+        Onboarding onboarding = new Onboarding("INITIATIVE_ID", "USER777");
+        onboarding.setStatus(UNSUBSCRIBED);
+
+        when(initiativeCountersService.findById("INITIATIVE_ID", "USER777"))
+                .thenReturn(Optional.of(pre));
+        when(onboardingRepository.findById("USER777_INITIATIVE_ID"))
+                .thenReturn(Optional.of(onboarding));
+
+        OnboardingDTO mapped = new OnboardingDTO();
+        when(consentMapper.map(onboarding)).thenReturn(mapped);
+
+        rankerService.recovery(input);
+
+        assertEquals("SRV777", mapped.getServiceId());
+        verify(rankerProducer).sendSaveConsent(mapped);
+    }
+
+    @Test
     void testRecovery_whenInvalidData_shouldLogError() {
         OnboardingDTO input = new OnboardingDTO();
         input.setInitiativeId("INITIATIVE_ID");
@@ -357,6 +387,25 @@ class RankerServiceTest {
                 .thenReturn(Optional.of(pre));
         when(onboardingRepository.findById(any()))
                 .thenReturn(Optional.empty());
+
+        rankerService.recovery(input);
+
+        verify(rankerProducer, never()).sendSaveConsent(any());
+    }
+
+    @Test
+    void testRecovery_whenPreallocationMissingAndOnboardingPresent_shouldGoToErrorBranch() {
+        OnboardingDTO input = new OnboardingDTO();
+        input.setInitiativeId("INITIATIVE_ID");
+        input.setUserId("USR_PRE_MISSING");
+
+        Onboarding onboarding = new Onboarding("INITIATIVE_ID", "USR_PRE_MISSING");
+        onboarding.setStatus(ON_EVALUATION);
+
+        when(initiativeCountersService.findById("INITIATIVE_ID", "USR_PRE_MISSING"))
+                .thenReturn(Optional.empty());
+        when(onboardingRepository.findById("USR_PRE_MISSING_INITIATIVE_ID"))
+                .thenReturn(Optional.of(onboarding));
 
         rankerService.recovery(input);
 

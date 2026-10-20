@@ -88,15 +88,12 @@ public class ManualDequeueOrchestratorImpl implements ManualDequeueOrchestrator 
 
     private void handleManualOnlyClaim(ManualDequeueRequest request, UUID claimId) {
         try {
-            log.info("[MANUAL_DEQUEUE_ORCHESTRATOR] No active NormalSessionWorker was found, running a new manual only one | initiativeId={}",
-                    request.initiativeId());
+            log.info("[MANUAL_DEQUEUE_ORCHESTRATOR] No active NormalSessionWorker was found, running a new manual only one | initiativeId={} requested={}",
+                    request.initiativeId(), request.size());
 
             ManualOnlySessionWorker manualOnlySessionWorker = sessionWorkerFactory.createManualOnly(
                     request.initiativeId(),
                     request.size());
-
-            log.info("[MANUAL_DEQUEUE_ORCHESTRATOR] Starting ManualOnlySessionWorker | initiativeId={} requested={}",
-                    request.initiativeId(), request.size());
 
             /*
              * This runs on the current manualDequeueOrchestratorExecutor thread,

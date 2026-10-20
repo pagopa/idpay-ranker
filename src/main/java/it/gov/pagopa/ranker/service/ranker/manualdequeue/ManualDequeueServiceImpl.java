@@ -30,7 +30,7 @@ public class ManualDequeueServiceImpl implements ManualDequeueService {
     @Override
     public ManualDequeueResponseDTO requestDequeue(String initiativeId, int size) {
         if (size < 1) {
-            log.error("[MANUAL_DEQUEUE] Error when calling manualDequeue | size is not positive, its value is: {}", size);
+            log.error("[MANUAL_DEQUEUE_SERVICE] Error when calling manualDequeue | size is not positive, its value is: {}", size);
             throw new ManualDequeueSizeNotValidException(INVALID_SIZE_NOT_POSITIVE);
         }
 
@@ -48,10 +48,10 @@ public class ManualDequeueServiceImpl implements ManualDequeueService {
                     () -> manualDequeueOrchestrator.orchestrate(request)
             );
 
-            log.info("[MANUAL_DEQUEUE] Manual dequeue orchestration submitted | initiativeId={} requested={}",
+            log.info("[MANUAL_DEQUEUE_SERVICE] Manual dequeue orchestration submitted | initiativeId={} requested={}",
                     initiativeId, size);
         } catch (Exception ex) {
-            log.error("[MANUAL_DEQUEUE] Failed to submit manual dequeue orchestration | initiativeId={} requested={}",
+            log.error("[MANUAL_DEQUEUE_SERVICE] Failed to submit manual dequeue orchestration | initiativeId={} requested={}",
                     initiativeId, size, ex);
         }
 

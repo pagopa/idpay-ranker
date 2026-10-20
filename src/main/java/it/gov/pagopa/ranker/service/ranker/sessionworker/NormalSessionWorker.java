@@ -143,6 +143,9 @@ public final class NormalSessionWorker extends AbstractSessionWorker {
     ) {
         String previousTraceId = MDC.get(MDC_TRACE_ID);
 
+        log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Normal with traceId={} will give leeway to manual with traceId={} | session={} requested={}",
+                previousTraceId, request.traceId(), sessionId, request.size());
+
         try {
             setMdcTraceId(request.traceId());
 

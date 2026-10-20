@@ -180,7 +180,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
             SessionOwner existingOwner,
             SessionOwner attemptedOwner
     ) {
-        log.debug(
+        log.info(
                 "[SESSION_WORKER_REGISTRY][CLAIM_REJECTED] "
                         + "sessionId={} "
                         + "existingOwnerType={} existingClaimId={} existingTraceId={} "
@@ -210,7 +210,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
             SessionOwner observedOwner,
             String reason
     ) {
-        log.debug(
+        log.warn(
                 "[SESSION_WORKER_REGISTRY][RELEASE_REJECTED] "
                         + "sessionId={} "
                         + "reason={} "

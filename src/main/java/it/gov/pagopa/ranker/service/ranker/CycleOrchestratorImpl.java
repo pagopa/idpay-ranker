@@ -2,12 +2,17 @@ package it.gov.pagopa.ranker.service.ranker;
 
 import it.gov.pagopa.ranker.config.RankerProcessorProperties;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
+import it.gov.pagopa.ranker.service.ranker.sessionworker.NormalSessionWorker;
+import it.gov.pagopa.ranker.service.ranker.sessionworker.SessionWorkerFactory;
+import it.gov.pagopa.ranker.service.ranker.sessionworker.registry.SessionWorkerRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 
 @Slf4j
 @Service
@@ -19,15 +24,20 @@ public class CycleOrchestratorImpl implements CycleOrchestrator{
     private final RankerProcessorProperties properties;
     private final SessionWorkerFactory sessionWorkerFactory;
     private final InitiativeCountersService initiativeCountersService;
+    private final SessionWorkerRegistry sessionWorkerRegistry;
 
     public CycleOrchestratorImpl(CycleHandlerState cycleHandlerState,
                                  @Qualifier("sessionExecutor") Executor executor,
-                                 RankerProcessorProperties properties, SessionWorkerFactory sessionWorkerFactory, InitiativeCountersService initiativeCountersService) {
+                                 RankerProcessorProperties properties,
+                                 SessionWorkerFactory sessionWorkerFactory,
+                                 InitiativeCountersService initiativeCountersService,
+                                 SessionWorkerRegistry sessionWorkerRegistry) {
         this.cycleHandlerState = cycleHandlerState;
         this.executor = executor;
         this.properties = properties;
         this.sessionWorkerFactory = sessionWorkerFactory;
         this.initiativeCountersService = initiativeCountersService;
+        this.sessionWorkerRegistry =  sessionWorkerRegistry;
     }
 
     @Override
@@ -35,7 +45,7 @@ public class CycleOrchestratorImpl implements CycleOrchestrator{
         List<String> initiativesAvailableBudget = initiativeCountersService.retrieveInitiativesAvailableBudget();
 
         if (initiativesAvailableBudget.isEmpty()) {
-            log.info("[{}}] No initiatives with available budget to process.", INITIATIVES_ONBOARDING_HANDLER_FLOW);
+            log.info("[{}] No initiatives with available budget to process.", INITIATIVES_ONBOARDING_HANDLER_FLOW);
             return;
         }
 
@@ -75,8 +85,31 @@ public class CycleOrchestratorImpl implements CycleOrchestrator{
                 continue;
             }
 
-            SessionWorker worker = sessionWorkerFactory.create(initiativeId, () -> onWorkerClose(initiativeId));
-            cycleHandlerState.getActiveSessions().put(initiativeId, worker);
+            // Generate UUID to be used to try claim session from the common registry.
+            UUID claimId = UUID.randomUUID();
+            // Create NormalSessionWorker.
+            NormalSessionWorker worker = sessionWorkerFactory.create(initiativeId, () -> onWorkerClose(initiativeId, claimId));
+            // Try claiming the session for itself.
+            boolean claimed = sessionWorkerRegistry.tryClaimNormal(initiativeId, claimId, worker);
+
+            // Skip scheduling if session hasn't been claimed.
+            if (!claimed) {
+                log.info("[{}] Initiative {} is already owned by another session worker in the registry. Skipping scheduling for worker with claimId={}.",
+                        INITIATIVES_ONBOARDING_HANDLER_FLOW, initiativeId, claimId);
+            } else {
+                cycleHandlerState.getActiveSessions().put(initiativeId, worker);
+                boolean workerExecuted = tryExecutingWorker(initiativeId, worker, claimId);
+                if (!workerExecuted) {
+                    return;
+                }
+            }
+        }
+    }
+
+    private synchronized boolean tryExecutingWorker(String initiativeId, NormalSessionWorker worker, UUID claimId) {
+        boolean result = true;
+
+        try {
             executor.execute(worker);
 
             log.info("[{}] Scheduled worker for initiative {}. Active={} Pending={}",
@@ -84,14 +117,54 @@ public class CycleOrchestratorImpl implements CycleOrchestrator{
                     initiativeId,
                     cycleHandlerState.getActiveSessions().keySet(),
                     cycleHandlerState.getPendingSessions());
+        } catch (RejectedExecutionException ex) {
+            cycleHandlerState.getActiveSessions().remove(initiativeId, worker);
+            boolean released = sessionWorkerRegistry.release(initiativeId, claimId);
+
+            if (!released) {
+                log.error("[{}] Could not release session-worker claim for initiative {} and claimId={}.",
+                        INITIATIVES_ONBOARDING_HANDLER_FLOW,
+                        initiativeId,
+                        claimId
+                );
+            }
+
+            cycleHandlerState.getPendingSessions().addFirst(initiativeId);
+
+            log.error("[{}] Worker execution was rejected for initiative {} and claimId={}. The initiative was returned to the pending queue.",
+                    INITIATIVES_ONBOARDING_HANDLER_FLOW, initiativeId, claimId, ex);
+
+            result = false;
         }
+
+        return result;
     }
 
-    private synchronized void onWorkerClose(String sessionId) {
-        cycleHandlerState.getActiveSessions().remove(sessionId);
+    private synchronized void onWorkerClose(String sessionId, UUID claimId) {
+        try {
+            boolean released = sessionWorkerRegistry.release(sessionId, claimId);
 
-        log.info("[{}] Worker completed for initiative {}. Active={} Pending={}",
+            if (!released) {
+                log.warn("[{}] Could not release session-worker claim for initiative {} and claimId={}.",
+                        INITIATIVES_ONBOARDING_HANDLER_FLOW,
+                        sessionId,
+                        claimId
+                );
+            }
+        } catch (Exception ex) {
+            log.error("[{}] Unexpected error while releasing session-worker claim for initiative {} and claimId={}",
+                    INITIATIVES_ONBOARDING_HANDLER_FLOW,
+                    sessionId,
+                    claimId,
+                    ex
+            );
+        } finally {
+            cycleHandlerState.getActiveSessions().remove(sessionId);
+        }
+
+        log.info("[{}] Worker with claimId={} completed for initiative {}. Active={} Pending={}",
                 INITIATIVES_ONBOARDING_HANDLER_FLOW,
+                claimId,
                 sessionId,
                 cycleHandlerState.getActiveSessions().keySet(),
                 cycleHandlerState.getPendingSessions());

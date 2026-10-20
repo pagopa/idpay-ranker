@@ -32,4 +32,15 @@ public class ServiceBusConfig {
         executor.initialize();
         return executor;
     }
+
+    @Bean(name = "manualDequeueOrchestratorExecutor")
+    public Executor manualDequeueOrchestratorExecutor(RankerManualDequeueProperties properties) {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(properties.getCorePoolSize());
+        executor.setMaxPoolSize(properties.getMaxPoolSize());
+        executor.setQueueCapacity(properties.getQueueCapacity());
+        executor.setThreadNamePrefix("manual-dequeue-orchestrator-");
+        executor.initialize();
+        return executor;
+    }
 }

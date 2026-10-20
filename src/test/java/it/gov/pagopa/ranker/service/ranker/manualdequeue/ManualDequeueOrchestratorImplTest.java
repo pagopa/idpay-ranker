@@ -156,7 +156,7 @@ class ManualDequeueOrchestratorImplTest {
 
         verify(sessionWorkerRegistryMock).release(
                 INITIATIVE_ID,
-                eq(claimIdCaptor.getValue())
+                claimIdCaptor.getValue()
         );
     }
 
@@ -196,7 +196,7 @@ class ManualDequeueOrchestratorImplTest {
 
         verify(sessionWorkerRegistryMock).release(
                 INITIATIVE_ID,
-                eq(claimIdCaptor.getValue())
+                claimIdCaptor.getValue()
         );
     }
 
@@ -245,7 +245,7 @@ class ManualDequeueOrchestratorImplTest {
 
         verify(sessionWorkerRegistryMock).release(
                 INITIATIVE_ID,
-                eq(claimIdCaptor.getValue())
+                claimIdCaptor.getValue()
         );
     }
 

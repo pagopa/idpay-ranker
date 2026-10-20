@@ -214,7 +214,7 @@ class CycleOrchestratorTest {
 
         verify(sessionWorkerRegistryMock).release(
                 initiativeId,
-                eq(claimIdCaptor.getValue())
+                claimIdCaptor.getValue()
         );
 
         verify(executorMock).execute(workerMock);
@@ -278,7 +278,7 @@ class CycleOrchestratorTest {
 
         verify(sessionWorkerRegistryMock).release(
                 initiativeId,
-                eq(claimIdCaptor.getValue())
+                claimIdCaptor.getValue()
         );
 
         assertFalse(activeSessions.containsKey(initiativeId));

@@ -132,17 +132,26 @@ public class CycleOrchestratorImpl implements CycleOrchestrator{
     }
 
     private synchronized void onWorkerClose(String sessionId, UUID claimId) {
-        boolean released = sessionWorkerRegistry.release(sessionId, claimId);
+        try {
+            boolean released = sessionWorkerRegistry.release(sessionId, claimId);
 
-        if (!released) {
-            log.warn("[{}] Could not release session-worker claim for initiative {} and claimId={}.",
+            if (!released) {
+                log.warn("[{}] Could not release session-worker claim for initiative {} and claimId={}.",
+                        INITIATIVES_ONBOARDING_HANDLER_FLOW,
+                        sessionId,
+                        claimId
+                );
+            }
+        } catch (Exception ex) {
+            log.error("[{}] Unexpected error while releasing session-worker claim for initiative {} and claimId={}",
                     INITIATIVES_ONBOARDING_HANDLER_FLOW,
                     sessionId,
-                    claimId
+                    claimId,
+                    ex
             );
+        } finally {
+            cycleHandlerState.getActiveSessions().remove(sessionId);
         }
-
-        cycleHandlerState.getActiveSessions().remove(sessionId);
 
         log.info("[{}] Worker with claimId={} completed for initiative {}. Active={} Pending={}",
                 INITIATIVES_ONBOARDING_HANDLER_FLOW,

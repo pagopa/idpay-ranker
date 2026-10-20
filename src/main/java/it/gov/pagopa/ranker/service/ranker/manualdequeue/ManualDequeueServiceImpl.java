@@ -12,6 +12,7 @@ import java.util.concurrent.Executor;
 import static it.gov.pagopa.ranker.constants.ErrorMessages.INVALID_SIZE_NOT_POSITIVE;
 import static it.gov.pagopa.ranker.constants.RankerConstants.MDC_TRACE_ID;
 import static it.gov.pagopa.ranker.constants.RankerConstants.STATUS_ACCEPTED;
+import static it.gov.pagopa.utils.CommonUtils.sanitizeString;
 
 @Slf4j
 @Service
@@ -30,7 +31,8 @@ public class ManualDequeueServiceImpl implements ManualDequeueService {
     @Override
     public ManualDequeueResponseDTO requestDequeue(String initiativeId, int size) {
         if (size < 1) {
-            log.error("[MANUAL_DEQUEUE_SERVICE] Error when calling manualDequeue | size is not positive, its value is: {}", size);
+            log.error("[MANUAL_DEQUEUE_SERVICE] Error when calling manualDequeue for initiativeId={} | size is not positive, its value is: {}",
+                    sanitizeString(initiativeId), size);
             throw new ManualDequeueSizeNotValidException(INVALID_SIZE_NOT_POSITIVE);
         }
 
@@ -49,10 +51,10 @@ public class ManualDequeueServiceImpl implements ManualDequeueService {
             );
 
             log.info("[MANUAL_DEQUEUE_SERVICE] Manual dequeue orchestration submitted | initiativeId={} requested={}",
-                    initiativeId, size);
+                    sanitizeString(initiativeId), size);
         } catch (Exception ex) {
             log.error("[MANUAL_DEQUEUE_SERVICE] Failed to submit manual dequeue orchestration | initiativeId={} requested={}",
-                    initiativeId, size, ex);
+                    sanitizeString(initiativeId), size, ex);
         }
 
         return response;

@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 import static it.gov.pagopa.ranker.constants.ErrorMessages.INVALID_SIZE_NOT_POSITIVE;
+import static it.gov.pagopa.utils.CommonUtils.sanitizeString;
 
 @RestController
 @Slf4j
@@ -38,7 +39,8 @@ public class RankerControllerImpl implements RankerController {
     public ResponseEntity<ManualDequeueResponseDTO> manualDequeue(String initiativeId, int size) {
         // Checking if size parameter is valid.
         if (size < 1) {
-            log.error("[MANUAL_DEQUEUE] Error when calling manualDequeue | size is not positive, its value is: {}", size);
+            log.error("[MANUAL_DEQUEUE] Error when calling manualDequeue for initiativeId={} | size is not positive, its value is: {}",
+                    sanitizeString(initiativeId), size);
             throw new ManualDequeueSizeNotValidException(INVALID_SIZE_NOT_POSITIVE);
         }
 

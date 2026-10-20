@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import static it.gov.pagopa.ranker.constants.ErrorMessages.INVALID_SIZE_NOT_POSITIVE;
+import static it.gov.pagopa.utils.CommonUtils.sanitizeString;
 
 @Slf4j
 @Getter
@@ -27,6 +28,12 @@ public final class ManualOnlySessionWorker extends AbstractSessionWorker {
             int requestedMessages,
             Runnable onCompleted
     ) {
+        if (requestedMessages < 1) {
+            log.error("[MANUAL_ONLY_SESSION_WORKER] Error when calling manualDequeue for initiativeId={} | size is not positive, its value is: {}",
+                    sanitizeString(sessionId), requestedMessages);
+            throw new ManualDequeueSizeNotValidException(INVALID_SIZE_NOT_POSITIVE);
+        }
+
         super(
                 sessionId,
                 queueName,
@@ -37,22 +44,17 @@ public final class ManualOnlySessionWorker extends AbstractSessionWorker {
                 onCompleted
         );
 
-        if (requestedMessages < 1) {
-            log.error("[MANUAL_ONLY_SESSION_WORKER] Error when calling manualDequeue | size is not positive, its value is: {}", requestedMessages);
-            throw new ManualDequeueSizeNotValidException(INVALID_SIZE_NOT_POSITIVE);
-        }
-
         this.requestedMessages = requestedMessages;
     }
 
     @Override
     protected void execute(ServiceBusReceiverClient receiver) {
         log.info("[MANUAL_ONLY_SESSION_WORKER][START] session={} requested={}",
-                sessionId, requestedMessages);
+                sanitizeString(sessionId), requestedMessages);
 
         int processedMessages = processManualBatch(receiver, requestedMessages);
 
         log.info("[MANUAL_ONLY_SESSION_WORKER][END] session={} processed={} requested={} stopRequested={}",
-                sessionId, processedMessages, requestedMessages, isStopRequested());
+                sanitizeString(sessionId), processedMessages, requestedMessages, isStopRequested());
     }
 }

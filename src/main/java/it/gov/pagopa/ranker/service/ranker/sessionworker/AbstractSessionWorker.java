@@ -16,6 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static it.gov.pagopa.utils.CommonUtils.sanitizeString;
+
 @Slf4j
 @Getter
 public abstract class AbstractSessionWorker implements Runnable {
@@ -62,21 +64,22 @@ public abstract class AbstractSessionWorker implements Runnable {
              ServiceBusReceiverClient receiver = lockSession(sessionClient))
         {
             if (!initiativeCountersService.hasAvailableBudget(sessionId)) {
-                log.info("[SESSION_WORKER][CHECK_BUDGET] Stop processing message because the initiative for session {} has not budget", sessionId);
+                log.info("[SESSION_WORKER][CHECK_BUDGET] Stop processing message because the initiative for session {} has not budget",
+                        sanitizeString(sessionId));
                 return;
             }
 
-            log.info("[SESSION_WORKER][START] Start processing session {}",sessionId);
+            log.info("[SESSION_WORKER][START] Start processing session {}", sanitizeString(sessionId));
 
             execute(receiver);
 
         } catch (Exception ex) {
-            log.error("[SESSION_WORKER][STOP] Stop session {} because of unrecoverable error", sessionId, ex);
+            log.error("[SESSION_WORKER][STOP] Stop session {} because of unrecoverable error", sanitizeString(sessionId), ex);
         } finally {
             try {
                 onWorkerStopping();
             } catch (Exception ex) {
-                log.error("[SESSION_WORKER][CLEANUP] Cleanup failed for session {}", sessionId, ex);
+                log.error("[SESSION_WORKER][CLEANUP] Cleanup failed for session {}", sanitizeString(sessionId), ex);
             }
 
             onCompleted.run();
@@ -106,7 +109,7 @@ public abstract class AbstractSessionWorker implements Runnable {
     ) {
         try {
             log.info("[SESSION_WORKER][RECEIVE_MESSAGE] Receive message for initiative with session {}: sequenceNumber={} messageId={} body={}",
-                    sessionId, message.getSequenceNumber(), message.getMessageId(), message.getBody());
+                    sanitizeString(sessionId), message.getSequenceNumber(), message.getMessageId(), message.getBody());
 
             rankerService.execute(message);
             receiver.complete(message);
@@ -115,7 +118,7 @@ public abstract class AbstractSessionWorker implements Runnable {
 
         } catch (BudgetExhaustedException budgetExhaustedException) {
             log.error("[SESSION_WORKER][BUDGET] Budget exhausted for session {}",
-                    sessionId, budgetExhaustedException);
+                    sanitizeString(sessionId), budgetExhaustedException);
 
             receiver.abandon(message);
             requestStop();
@@ -124,7 +127,7 @@ public abstract class AbstractSessionWorker implements Runnable {
 
         } catch (Exception ex) {
             log.error("[SESSION_WORKER][MESSAGE] Error processing message {} for session {}",
-                    message.getMessageId(), sessionId, ex);
+                    message.getMessageId(), sanitizeString(sessionId), ex);
 
             receiver.abandon(message);
 
@@ -153,7 +156,7 @@ public abstract class AbstractSessionWorker implements Runnable {
                 if (idleSeconds >= properties.getIdleTimeoutSeconds()) {
                     log.info("[SESSION_WORKER][MANUAL_DEQUEUE] Idle timeout reached for session {}. " +
                                     "Processed {} of {} requested messages",
-                            sessionId, completedMessages, requestedMessages);
+                            sanitizeString(sessionId), completedMessages, requestedMessages);
 
                     break;
                 }
@@ -177,7 +180,7 @@ public abstract class AbstractSessionWorker implements Runnable {
         try {
             return sessionClient.acceptSession(sessionId);
         } catch (AmqpException ex) {
-            log.error("[SESSION_WORKER][LOCK_SESSION] Lock denied for session {}",sessionId);
+            log.error("[SESSION_WORKER][LOCK_SESSION] Lock denied for session {}", sanitizeString(sessionId));
 
             throw ex;
         }

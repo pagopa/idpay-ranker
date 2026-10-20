@@ -6,10 +6,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static it.gov.pagopa.utils.CommonUtils.sanitizeString;
 import static it.gov.pagopa.ranker.constants.RankerConstants.MDC_TRACE_ID;
 
 @Slf4j
@@ -37,7 +39,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
         Objects.requireNonNull(claimId, LOG_CLAIM_ID_MUST_NOT_BE_NULL);
         Objects.requireNonNull(normalWorker, "normalWorker must not be null");
 
-        log.debug("[SESSION_WORKER_REGISTRY][CURRENT_STATE] tryClaimNormal, before state: {}", sessionOwners);
+        logDebugSanitizedMapState("[SESSION_WORKER_REGISTRY][CURRENT_STATE] tryClaimNormal, before state: {}");
 
         // Prepare the attempted owner object to put inside the map.
         SessionOwner attemptedOwner = SessionOwner.normal(
@@ -55,7 +57,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
         // If there's no existing owner then the attempted owner acquires the claim.
         if (existingOwner == null) {
             logClaimAcquired(sessionId, attemptedOwner);
-            log.debug(LOG_TRY_CLAIM_NORMAL_AFTER_STATE, sessionOwners);
+            logDebugSanitizedMapState(LOG_TRY_CLAIM_NORMAL_AFTER_STATE);
             return true;
         }
 
@@ -65,7 +67,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
                 attemptedOwner
         );
 
-        log.debug(LOG_TRY_CLAIM_NORMAL_AFTER_STATE, sessionOwners);
+        logDebugSanitizedMapState(LOG_TRY_CLAIM_NORMAL_AFTER_STATE);
         return false;
     }
 
@@ -77,7 +79,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
         Objects.requireNonNull(sessionId, LOG_SESSION_ID_MUST_NOT_BE_NULL);
         Objects.requireNonNull(claimId, LOG_CLAIM_ID_MUST_NOT_BE_NULL);
 
-        log.debug("[SESSION_WORKER_REGISTRY][CURRENT_STATE] tryClaimManual, before state: {}", sessionOwners);
+        logDebugSanitizedMapState("[SESSION_WORKER_REGISTRY][CURRENT_STATE] tryClaimManual, before state: {}");
 
         // Prepare the attempted owner object to put inside the map.
         SessionOwner attemptedOwner = SessionOwner.manual(
@@ -94,7 +96,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
         // If there's no existing owner then the attempted owner acquires the claim.
         if (existingOwner == null) {
             logClaimAcquired(sessionId, attemptedOwner);
-            log.debug(LOG_TRY_CLAIM_MANUAL_AFTER_STATE, sessionOwners);
+            logDebugSanitizedMapState(LOG_TRY_CLAIM_MANUAL_AFTER_STATE);
             return ManualClaimResult.claimed();
         }
 
@@ -105,13 +107,13 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
         );
 
         if (existingOwner.ownerType() == SessionOwnerType.NORMAL) {
-            log.debug(LOG_TRY_CLAIM_MANUAL_AFTER_STATE, sessionOwners);
+            logDebugSanitizedMapState(LOG_TRY_CLAIM_MANUAL_AFTER_STATE);
             return ManualClaimResult.ownedByNormal(
                     existingOwner.normalWorker()
             );
         }
 
-        log.debug(LOG_TRY_CLAIM_MANUAL_AFTER_STATE, sessionOwners);
+        logDebugSanitizedMapState(LOG_TRY_CLAIM_MANUAL_AFTER_STATE);
         return ManualClaimResult.ownedByManual();
     }
 
@@ -123,7 +125,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
         Objects.requireNonNull(sessionId, LOG_SESSION_ID_MUST_NOT_BE_NULL);
         Objects.requireNonNull(claimId, LOG_CLAIM_ID_MUST_NOT_BE_NULL);
 
-        log.debug("[SESSION_WORKER_REGISTRY][CURRENT_STATE] release, before state: {}", sessionOwners);
+        logDebugSanitizedMapState("[SESSION_WORKER_REGISTRY][CURRENT_STATE] release, before state: {}");
 
         SessionOwner observedOwner = sessionOwners.get(sessionId);
 
@@ -134,7 +136,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
                     null,
                     "NO_OWNER"
             );
-            log.debug(LOG_RELEASE_AFTER_STATE, sessionOwners);
+            logDebugSanitizedMapState(LOG_RELEASE_AFTER_STATE);
             return false;
         }
 
@@ -145,7 +147,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
                     observedOwner,
                     "CLAIM_ID_MISMATCH"
             );
-            log.debug(LOG_RELEASE_AFTER_STATE, sessionOwners);
+            logDebugSanitizedMapState(LOG_RELEASE_AFTER_STATE);
             return false;
         }
 
@@ -156,7 +158,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
 
         if (released) {
             logClaimReleased(sessionId, observedOwner);
-            log.debug(LOG_RELEASE_AFTER_STATE, sessionOwners);
+            logDebugSanitizedMapState(LOG_RELEASE_AFTER_STATE);
             return true;
         }
 
@@ -167,7 +169,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
                 "OWNER_CHANGED_CONCURRENTLY"
         );
 
-        log.debug(LOG_RELEASE_AFTER_STATE, sessionOwners);
+        logDebugSanitizedMapState(LOG_RELEASE_AFTER_STATE);
         return false;
     }
 
@@ -179,7 +181,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
                 "[SESSION_WORKER_REGISTRY][CLAIM_ACQUIRED] "
                         + "sessionId={} "
                         + "ownerType={} claimId={} traceId={}",
-                sessionId,
+                sanitizeString(sessionId),
                 owner.ownerType(), owner.claimId(), owner.traceId()
         );
     }
@@ -194,7 +196,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
                         + "sessionId={} "
                         + "existingOwnerType={} existingClaimId={} existingTraceId={} "
                         + "attemptedOwnerType={} attemptedClaimId={} attemptedTraceId={}",
-                sessionId,
+                sanitizeString(sessionId),
                 existingOwner.ownerType(), existingOwner.claimId(), existingOwner.traceId(),
                 attemptedOwner.ownerType(), attemptedOwner.claimId(), attemptedOwner.traceId()
         );
@@ -208,7 +210,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
                 "[SESSION_WORKER_REGISTRY][CLAIM_RELEASED] "
                         + "sessionId={} "
                         + "ownerType={} claimId={} ownerTraceId={}",
-                sessionId,
+                sanitizeString(sessionId),
                 releasedOwner.ownerType(), releasedOwner.claimId(), releasedOwner.traceId()
         );
     }
@@ -227,12 +229,27 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
                         + "observedOwnerType={} "
                         + "observedClaimId={} "
                         + "observedOwnerTraceId={}",
-                sessionId,
+                sanitizeString(sessionId),
                 reason,
                 attemptedClaimId,
                 observedOwner != null ? observedOwner.ownerType() : null,
                 observedOwner != null ? observedOwner.claimId() : null,
                 observedOwner != null ? observedOwner.traceId() : null
         );
+    }
+
+    private void logDebugSanitizedMapState(String message) {
+        if (log.isDebugEnabled()) {
+            StringBuilder sanitizedMapLogBuilder = new StringBuilder();
+            sanitizedMapLogBuilder.append("[");
+            for (Map.Entry<String, SessionOwner> entry : sessionOwners.entrySet()) {
+                sanitizedMapLogBuilder.append("{ sessionId=")
+                        .append(sanitizeString(entry.getKey()))
+                        .append(" : owner=")
+                        .append(entry.getValue().toString());
+            }
+            sanitizedMapLogBuilder.append("]");
+            log.debug(message, sanitizedMapLogBuilder);
+        }
     }
 }

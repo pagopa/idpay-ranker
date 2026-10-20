@@ -98,36 +98,46 @@ public class CycleOrchestratorImpl implements CycleOrchestrator{
                         INITIATIVES_ONBOARDING_HANDLER_FLOW, initiativeId, claimId);
             } else {
                 cycleHandlerState.getActiveSessions().put(initiativeId, worker);
-
-                try {
-                    executor.execute(worker);
-                } catch (RejectedExecutionException ex) {
-                    cycleHandlerState.getActiveSessions().remove(initiativeId, worker);
-                    boolean released = sessionWorkerRegistry.release(initiativeId, claimId);
-
-                    if (!released) {
-                        log.error("[{}] Could not release session-worker claim for initiative {} and claimId={}.",
-                                INITIATIVES_ONBOARDING_HANDLER_FLOW,
-                                initiativeId,
-                                claimId
-                        );
-                    }
-
-                    cycleHandlerState.getPendingSessions().addFirst(initiativeId);
-
-                    log.error("[{}] Worker execution was rejected for initiative {} and claimId={}. The initiative was returned to the pending queue.",
-                            INITIATIVES_ONBOARDING_HANDLER_FLOW, initiativeId, claimId, ex);
-
+                boolean workerExecuted = tryExecutingWorker(initiativeId, worker, claimId);
+                if (!workerExecuted) {
                     return;
                 }
-
-                log.info("[{}] Scheduled worker for initiative {}. Active={} Pending={}",
-                        INITIATIVES_ONBOARDING_HANDLER_FLOW,
-                        initiativeId,
-                        cycleHandlerState.getActiveSessions().keySet(),
-                        cycleHandlerState.getPendingSessions());
             }
         }
+    }
+
+    private synchronized boolean tryExecutingWorker(String initiativeId, NormalSessionWorker worker, UUID claimId) {
+        boolean result = true;
+
+        try {
+            executor.execute(worker);
+
+            log.info("[{}] Scheduled worker for initiative {}. Active={} Pending={}",
+                    INITIATIVES_ONBOARDING_HANDLER_FLOW,
+                    initiativeId,
+                    cycleHandlerState.getActiveSessions().keySet(),
+                    cycleHandlerState.getPendingSessions());
+        } catch (RejectedExecutionException ex) {
+            cycleHandlerState.getActiveSessions().remove(initiativeId, worker);
+            boolean released = sessionWorkerRegistry.release(initiativeId, claimId);
+
+            if (!released) {
+                log.error("[{}] Could not release session-worker claim for initiative {} and claimId={}.",
+                        INITIATIVES_ONBOARDING_HANDLER_FLOW,
+                        initiativeId,
+                        claimId
+                );
+            }
+
+            cycleHandlerState.getPendingSessions().addFirst(initiativeId);
+
+            log.error("[{}] Worker execution was rejected for initiative {} and claimId={}. The initiative was returned to the pending queue.",
+                    INITIATIVES_ONBOARDING_HANDLER_FLOW, initiativeId, claimId, ex);
+
+            result = false;
+        }
+
+        return result;
     }
 
     private synchronized void onWorkerClose(String sessionId, UUID claimId) {

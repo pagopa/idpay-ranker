@@ -176,20 +176,6 @@ class RankerServiceTest {
         );
     }
 
-    //@Test
-    void testExecute_AnotherInitiative() {
-        OnboardingDTO dto = new OnboardingDTO();
-        dto.setInitiativeId("another-initiative");
-        dto.setUserId("USR002");
-        dto.setVerifies(null);
-
-        ServiceBusReceivedMessage message = buildMessage(dto);
-
-        rankerService.execute(message);
-
-        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), any(), any());
-    }
-
     @Test
     void testExecute_whenRefundedAndReopenSucceeds_shouldResendConsent() {
         OnboardingDTO dto = new OnboardingDTO();

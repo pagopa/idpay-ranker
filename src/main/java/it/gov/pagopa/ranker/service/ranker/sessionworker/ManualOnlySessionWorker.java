@@ -25,8 +25,7 @@ public final class ManualOnlySessionWorker extends AbstractSessionWorker {
             InitiativeCountersService initiativeCountersService,
             RankerService rankerService,
             RankerProcessorProperties properties,
-            int requestedMessages,
-            Runnable onCompleted
+            int requestedMessages
     ) {
         if (requestedMessages < 1) {
             log.error("[MANUAL_ONLY_SESSION_WORKER] Error when calling manualDequeue for initiativeId={} | size is not positive, its value is: {}",
@@ -41,7 +40,7 @@ public final class ManualOnlySessionWorker extends AbstractSessionWorker {
                 initiativeCountersService,
                 rankerService,
                 properties,
-                onCompleted
+                () -> {}
         );
 
         this.requestedMessages = requestedMessages;

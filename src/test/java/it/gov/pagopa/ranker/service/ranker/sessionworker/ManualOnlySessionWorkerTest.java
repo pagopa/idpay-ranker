@@ -44,9 +44,6 @@ class ManualOnlySessionWorkerTest {
     private RankerService rankerServiceMock;
 
     @Mock
-    private Runnable onCompletedMock;
-
-    @Mock
     private RankerProcessorProperties rankerProcessorPropertiesMock;
 
     private ManualOnlySessionWorker sessionWorker;
@@ -60,8 +57,7 @@ class ManualOnlySessionWorkerTest {
                 initiativeCountersServiceMock,
                 rankerServiceMock,
                 rankerProcessorPropertiesMock,
-                REQUESTED_MESSAGES,
-                onCompletedMock
+                REQUESTED_MESSAGES
         );
     }
 
@@ -76,8 +72,7 @@ class ManualOnlySessionWorkerTest {
                         initiativeCountersServiceMock,
                         rankerServiceMock,
                         rankerProcessorPropertiesMock,
-                        0,
-                        onCompletedMock
+                        0
                 )
         );
 
@@ -85,8 +80,7 @@ class ManualOnlySessionWorkerTest {
                 serviceBusClientBuilderMock,
                 initiativeCountersServiceMock,
                 rankerServiceMock,
-                rankerProcessorPropertiesMock,
-                onCompletedMock
+                rankerProcessorPropertiesMock
         );
     }
 
@@ -132,8 +126,6 @@ class ManualOnlySessionWorkerTest {
 
         verify(receiverMock).complete(firstMessageMock);
         verify(receiverMock).complete(secondMessageMock);
-
-        verify(onCompletedMock).run();
     }
 
 
@@ -157,7 +149,6 @@ class ManualOnlySessionWorkerTest {
 
         sessionWorker.run();
 
-        verify(onCompletedMock).run();
         verifyNoInteractions(rankerServiceMock);
     }
 

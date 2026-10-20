@@ -96,38 +96,37 @@ public class CycleOrchestratorImpl implements CycleOrchestrator{
             if (!claimed) {
                 log.info("[{}] Initiative {} is already owned by another session worker in the registry. Skipping scheduling for worker with claimId={}.",
                         INITIATIVES_ONBOARDING_HANDLER_FLOW, initiativeId, claimId);
-                continue;
-            }
+            } else {
+                cycleHandlerState.getActiveSessions().put(initiativeId, worker);
 
-            cycleHandlerState.getActiveSessions().put(initiativeId, worker);
+                try {
+                    executor.execute(worker);
+                } catch (RejectedExecutionException ex) {
+                    cycleHandlerState.getActiveSessions().remove(initiativeId, worker);
+                    boolean released = sessionWorkerRegistry.release(initiativeId, claimId);
 
-            try {
-                executor.execute(worker);
-            } catch (RejectedExecutionException ex) {
-                cycleHandlerState.getActiveSessions().remove(initiativeId, worker);
-                boolean released = sessionWorkerRegistry.release(initiativeId, claimId);
+                    if (!released) {
+                        log.error("[{}] Could not release session-worker claim for initiative {} and claimId={}.",
+                                INITIATIVES_ONBOARDING_HANDLER_FLOW,
+                                initiativeId,
+                                claimId
+                        );
+                    }
 
-                if (!released) {
-                    log.error("[{}] Could not release session-worker claim for initiative {} and claimId={}.",
-                            INITIATIVES_ONBOARDING_HANDLER_FLOW,
-                            initiativeId,
-                            claimId
-                    );
+                    cycleHandlerState.getPendingSessions().addFirst(initiativeId);
+
+                    log.error("[{}] Worker execution was rejected for initiative {} and claimId={}. The initiative was returned to the pending queue.",
+                            INITIATIVES_ONBOARDING_HANDLER_FLOW, initiativeId, claimId, ex);
+
+                    return;
                 }
 
-                cycleHandlerState.getPendingSessions().addFirst(initiativeId);
-
-                log.error("[{}] Worker execution was rejected for initiative {} and claimId={}. The initiative was returned to the pending queue.",
-                        INITIATIVES_ONBOARDING_HANDLER_FLOW, initiativeId, claimId, ex);
-
-                return;
+                log.info("[{}] Scheduled worker for initiative {}. Active={} Pending={}",
+                        INITIATIVES_ONBOARDING_HANDLER_FLOW,
+                        initiativeId,
+                        cycleHandlerState.getActiveSessions().keySet(),
+                        cycleHandlerState.getPendingSessions());
             }
-
-            log.info("[{}] Scheduled worker for initiative {}. Active={} Pending={}",
-                    INITIATIVES_ONBOARDING_HANDLER_FLOW,
-                    initiativeId,
-                    cycleHandlerState.getActiveSessions().keySet(),
-                    cycleHandlerState.getPendingSessions());
         }
     }
 

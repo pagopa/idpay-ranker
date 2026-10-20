@@ -50,8 +50,7 @@ public class SessionWorkerFactory {
                 initiativeCountersService,
                 rankerService,
                 properties,
-                requestedMessages,
-                () -> {}
+                requestedMessages
         );
     }
 }

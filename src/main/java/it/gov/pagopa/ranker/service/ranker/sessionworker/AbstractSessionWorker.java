@@ -158,7 +158,7 @@ public abstract class AbstractSessionWorker implements Runnable {
                                     "Processed {} of {} requested messages",
                             sanitizeString(sessionId), completedMessages, requestedMessages);
 
-                    break;
+                    return completedMessages;
                 }
 
                 continue;
@@ -167,7 +167,7 @@ public abstract class AbstractSessionWorker implements Runnable {
             idleSeconds = 0;
 
             if (!processMessage(receiver, message)) {
-                break;
+                return completedMessages;
             }
 
             completedMessages++;

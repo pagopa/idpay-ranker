@@ -258,6 +258,31 @@ class RankerServiceTest {
         verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), anyLong(), any());
     }
 
+    @Test
+    void testExecute_whenTerminalStatusButSequenceIsNotNewer_shouldIgnoreReplay() {
+        OnboardingDTO dto = new OnboardingDTO();
+        dto.setInitiativeId(initiatives.getFirst());
+        dto.setUserId("USR_OLD_SEQ");
+        dto.setVerifies(List.of());
+
+        InitiativeCountersPreallocations preallocation = new InitiativeCountersPreallocations();
+        preallocation.setStatus(PreallocationStatus.REFUNDED);
+        preallocation.setSequenceNumber(100L);
+
+        ServiceBusReceivedMessage message = buildMessage(dto, 99L, OffsetDateTime.of(
+                LocalDateTime.of(2025, 1, 1, 12, 0),
+                ZoneOffset.ofHours(1)
+        ));
+        when(initiativeCountersService.findById(initiatives.getFirst(), "USR_OLD_SEQ"))
+                .thenReturn(Optional.of(preallocation));
+
+        rankerService.execute(message);
+
+        verify(initiativeCountersService, never()).reopenPreallocatedUser(anyString(), anyString(), any(), anyLong(), any());
+        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), anyLong(), any());
+        verify(rankerProducer, never()).sendSaveConsent(any(OnboardingDTO.class));
+    }
+
 
     @Test
     void testExecute_shouldPropagateMessageHeaderInAddPreallocatedUser() {

@@ -59,7 +59,17 @@ public class RankerServiceImpl implements RankerService {
         Optional<InitiativeCountersPreallocations> existingPreallocation =
                 this.initiativeCountersService.findById(dto.getInitiativeId(), dto.getUserId());
         if (existingPreallocation.isPresent()) {
-            PreallocationStatus status = existingPreallocation.get().getStatus();
+            InitiativeCountersPreallocations currentPreallocation = existingPreallocation.get();
+            if (isReplayOrOutOfOrder(dto.getSequenceNumber(), currentPreallocation.getSequenceNumber())) {
+                log.info("[PREALLOCATE] Ignoring replay/out-of-order onboarding for user {} and initiative {} (incoming sequence {}, current sequence {})",
+                        sanitizeString(dto.getUserId()),
+                        sanitizeString(dto.getInitiativeId()),
+                        dto.getSequenceNumber(),
+                        currentPreallocation.getSequenceNumber());
+                return;
+            }
+
+            PreallocationStatus status = currentPreallocation.getStatus();
             if (List.of(PreallocationStatus.REFUNDED, PreallocationStatus.EXPIRED).contains(status)) {
                 boolean reopened = this.initiativeCountersService.reopenPreallocatedUser(
                         dto.getInitiativeId(),
@@ -158,5 +168,11 @@ public class RankerServiceImpl implements RankerService {
             log.error("[RANKER_PROCESSOR] Failed to deserialize message");
             throw new IllegalStateException("Failed to deserialize message", e);
         }
+    }
+
+    private boolean isReplayOrOutOfOrder(Long incomingSequenceNumber, Long currentSequenceNumber) {
+        return incomingSequenceNumber != null
+                && currentSequenceNumber != null
+                && incomingSequenceNumber <= currentSequenceNumber;
     }
 }

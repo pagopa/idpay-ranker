@@ -12,6 +12,8 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
+import java.time.LocalDateTime;
+
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
@@ -73,6 +75,45 @@ class InitiativeCountersPreallocationsRepositoryExtImplTest  {
                 "initiative1",
                 PreallocationStatus.CAPTURED,
                 PreallocationStatus.REFUNDED
+        );
+
+        assertFalse(result);
+    }
+
+    @Test
+    void findByIdAndStatusAndEventAfterEnqueuedThenUpdateStatusShouldReturnTrue() {
+        InitiativeCountersPreallocations expected = new InitiativeCountersPreallocations();
+        when(mongoTemplate.findAndModify(
+                any(Query.class),
+                any(Update.class),
+                any(FindAndModifyOptions.class),
+                eq(InitiativeCountersPreallocations.class)
+        )).thenReturn(expected);
+
+        boolean result = repository.findByIdAndStatusAndEventAfterEnqueuedThenUpdateStatus(
+                "initiative1",
+                PreallocationStatus.CAPTURED,
+                LocalDateTime.of(2026, 1, 1, 10, 0),
+                PreallocationStatus.REFUNDED
+        );
+
+        assertTrue(result);
+    }
+
+    @Test
+    void findByIdAndStatusAndEventAfterEnqueuedThenUpdateStatusShouldReturnFalseWhenNoDocumentMatches() {
+        when(mongoTemplate.findAndModify(
+                any(Query.class),
+                any(Update.class),
+                any(FindAndModifyOptions.class),
+                eq(InitiativeCountersPreallocations.class)
+        )).thenReturn(null);
+
+        boolean result = repository.findByIdAndStatusAndEventAfterEnqueuedThenUpdateStatus(
+                "initiative1",
+                PreallocationStatus.PREALLOCATED,
+                LocalDateTime.of(2026, 1, 1, 10, 0),
+                PreallocationStatus.EXPIRED
         );
 
         assertFalse(result);

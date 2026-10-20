@@ -34,11 +34,11 @@ public class ServiceBusConfig {
     }
 
     @Bean(name = "manualDequeueOrchestratorExecutor")
-    public Executor manualDequeueOrchestratorExecutor(RankerProcessorProperties properties) {
+    public Executor manualDequeueOrchestratorExecutor(RankerManualDequeueProperties properties) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(properties.getMaxParallelSessions());
-        executor.setMaxPoolSize(properties.getMaxParallelSessions());
-        executor.setQueueCapacity(50);
+        executor.setCorePoolSize(properties.getCorePoolSize());
+        executor.setMaxPoolSize(properties.getMaxPoolSize());
+        executor.setQueueCapacity(properties.getQueueCapacity());
         executor.setThreadNamePrefix("manual-dequeue-orchestrator-");
         executor.initialize();
         return executor;

@@ -3,7 +3,6 @@ package it.gov.pagopa.ranker.service.initative;
 import it.gov.pagopa.ranker.domain.model.DroolsRule;
 import it.gov.pagopa.ranker.domain.model.InitiativeConfig;
 import it.gov.pagopa.ranker.repository.DroolsRuleRepository;
-import it.gov.pagopa.utils.CommonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

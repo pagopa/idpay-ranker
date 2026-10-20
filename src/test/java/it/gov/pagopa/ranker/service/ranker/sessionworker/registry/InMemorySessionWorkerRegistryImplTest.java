@@ -257,11 +257,12 @@ class InMemorySessionWorkerRegistryImplTest {
 
     @Test
     void tryClaimNormal_whenSessionIdIsNull_shouldThrowException() {
+        UUID claimId = UUID.randomUUID();
         assertThrows(
                 NullPointerException.class,
                 () -> registry.tryClaimNormal(
                         null,
-                        UUID.randomUUID(),
+                        claimId,
                         mock(NormalSessionWorker.class)
                 )
         );
@@ -280,11 +281,12 @@ class InMemorySessionWorkerRegistryImplTest {
 
     @Test
     void release_whenSessionIdIsNull_shouldThrowException() {
+        UUID claimId = UUID.randomUUID();
         assertThrows(
                 NullPointerException.class,
                 () -> registry.release(
                         null,
-                        UUID.randomUUID()
+                        claimId
                 )
         );
     }

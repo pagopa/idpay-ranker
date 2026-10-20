@@ -213,7 +213,7 @@ class CycleOrchestratorTest {
         );
 
         verify(sessionWorkerRegistryMock).release(
-                eq(initiativeId),
+                initiativeId,
                 eq(claimIdCaptor.getValue())
         );
 
@@ -277,7 +277,7 @@ class CycleOrchestratorTest {
         onCompletedCaptor.getValue().run();
 
         verify(sessionWorkerRegistryMock).release(
-                eq(initiativeId),
+                initiativeId,
                 eq(claimIdCaptor.getValue())
         );
 

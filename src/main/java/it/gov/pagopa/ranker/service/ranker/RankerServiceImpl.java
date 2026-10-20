@@ -50,11 +50,17 @@ public class RankerServiceImpl implements RankerService {
 
     @Override
     public void preallocate(OnboardingDTO dto) {
+
+        if(!this.initiativesId.contains(dto.getInitiativeId())){
+            log.error("[RANKER_SERVICE] Skipped processing for initiativeId={} because it is not configured among handled initiatives", sanitizeString(dto.getInitiativeId()));
+            return;
+        }
+
         Optional<InitiativeCountersPreallocations> existingPreallocation =
                 this.initiativeCountersService.findById(dto.getInitiativeId(), dto.getUserId());
         if (existingPreallocation.isPresent()) {
             PreallocationStatus status = existingPreallocation.get().getStatus();
-            if (List.of(PreallocationStatus.REFUNDED, PreallocationStatus.EXPIRED, PreallocationStatus.REJECTED).contains(status)) {
+            if (List.of(PreallocationStatus.REFUNDED, PreallocationStatus.EXPIRED).contains(status)) {
                 boolean reopened = this.initiativeCountersService.reopenPreallocatedUser(
                         dto.getInitiativeId(),
                         dto.getUserId(),
@@ -80,11 +86,6 @@ public class RankerServiceImpl implements RankerService {
                     sanitizeString(dto.getUserId()),
                     sanitizeString(dto.getInitiativeId()),
                     status);
-            return;
-        }
-
-        if(!this.initiativesId.contains(dto.getInitiativeId())){
-            log.error("[RANKER_SERVICE] Skipped processing for initiativeId={} because it is not configured among handled initiatives", sanitizeString(dto.getInitiativeId()));
             return;
         }
 

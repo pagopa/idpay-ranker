@@ -16,6 +16,15 @@ import static it.gov.pagopa.ranker.constants.RankerConstants.MDC_TRACE_ID;
 @Service
 public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry {
 
+    private static final String LOG_SESSION_ID_MUST_NOT_BE_NULL = "sessionId must not be null";
+    private static final String LOG_CLAIM_ID_MUST_NOT_BE_NULL = "claimId must not be null";
+    private static final String LOG_RELEASE_AFTER_STATE =
+            "[SESSION_WORKER_REGISTRY][CURRENT_STATE] release, after state: {}";
+    private static final String LOG_TRY_CLAIM_MANUAL_AFTER_STATE =
+            "[SESSION_WORKER_REGISTRY][CURRENT_STATE] tryClaimManual, after state: {}";
+    private static final String LOG_TRY_CLAIM_NORMAL_AFTER_STATE =
+            "[SESSION_WORKER_REGISTRY][CURRENT_STATE] tryClaimNormal, after state: {}";
+
     private final ConcurrentHashMap<String, SessionOwner> sessionOwners = new ConcurrentHashMap<>();
 
     @Override
@@ -24,8 +33,8 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
             UUID claimId,
             NormalSessionWorker normalWorker
     ) {
-        Objects.requireNonNull(sessionId, "sessionId must not be null");
-        Objects.requireNonNull(claimId, "claimId must not be null");
+        Objects.requireNonNull(sessionId, LOG_SESSION_ID_MUST_NOT_BE_NULL);
+        Objects.requireNonNull(claimId, LOG_CLAIM_ID_MUST_NOT_BE_NULL);
         Objects.requireNonNull(normalWorker, "normalWorker must not be null");
 
         log.debug("[SESSION_WORKER_REGISTRY][CURRENT_STATE] tryClaimNormal, before state: {}", sessionOwners);
@@ -46,7 +55,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
         // If there's no existing owner then the attempted owner acquires the claim.
         if (existingOwner == null) {
             logClaimAcquired(sessionId, attemptedOwner);
-            log.debug("[SESSION_WORKER_REGISTRY][CURRENT_STATE] tryClaimNormal, after state: {}", sessionOwners);
+            log.debug(LOG_TRY_CLAIM_NORMAL_AFTER_STATE, sessionOwners);
             return true;
         }
 
@@ -56,7 +65,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
                 attemptedOwner
         );
 
-        log.debug("[SESSION_WORKER_REGISTRY][CURRENT_STATE] tryClaimNormal, after state: {}", sessionOwners);
+        log.debug(LOG_TRY_CLAIM_NORMAL_AFTER_STATE, sessionOwners);
         return false;
     }
 
@@ -65,8 +74,8 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
             String sessionId,
             UUID claimId
     ) {
-        Objects.requireNonNull(sessionId, "sessionId must not be null");
-        Objects.requireNonNull(claimId, "claimId must not be null");
+        Objects.requireNonNull(sessionId, LOG_SESSION_ID_MUST_NOT_BE_NULL);
+        Objects.requireNonNull(claimId, LOG_CLAIM_ID_MUST_NOT_BE_NULL);
 
         log.debug("[SESSION_WORKER_REGISTRY][CURRENT_STATE] tryClaimManual, before state: {}", sessionOwners);
 
@@ -85,7 +94,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
         // If there's no existing owner then the attempted owner acquires the claim.
         if (existingOwner == null) {
             logClaimAcquired(sessionId, attemptedOwner);
-            log.debug("[SESSION_WORKER_REGISTRY][CURRENT_STATE] tryClaimManual, after state: {}", sessionOwners);
+            log.debug(LOG_TRY_CLAIM_MANUAL_AFTER_STATE, sessionOwners);
             return ManualClaimResult.claimed();
         }
 
@@ -96,13 +105,13 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
         );
 
         if (existingOwner.ownerType() == SessionOwnerType.NORMAL) {
-            log.debug("[SESSION_WORKER_REGISTRY][CURRENT_STATE] tryClaimManual, after state: {}", sessionOwners);
+            log.debug(LOG_TRY_CLAIM_MANUAL_AFTER_STATE, sessionOwners);
             return ManualClaimResult.ownedByNormal(
                     existingOwner.normalWorker()
             );
         }
 
-        log.debug("[SESSION_WORKER_REGISTRY][CURRENT_STATE] tryClaimManual, after state: {}", sessionOwners);
+        log.debug(LOG_TRY_CLAIM_MANUAL_AFTER_STATE, sessionOwners);
         return ManualClaimResult.ownedByManual();
     }
 
@@ -111,8 +120,8 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
             String sessionId,
             UUID claimId
     ) {
-        Objects.requireNonNull(sessionId, "sessionId must not be null");
-        Objects.requireNonNull(claimId, "claimId must not be null");
+        Objects.requireNonNull(sessionId, LOG_SESSION_ID_MUST_NOT_BE_NULL);
+        Objects.requireNonNull(claimId, LOG_CLAIM_ID_MUST_NOT_BE_NULL);
 
         log.debug("[SESSION_WORKER_REGISTRY][CURRENT_STATE] release, before state: {}", sessionOwners);
 
@@ -125,7 +134,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
                     null,
                     "NO_OWNER"
             );
-            log.debug("[SESSION_WORKER_REGISTRY][CURRENT_STATE] release, after state: {}", sessionOwners);
+            log.debug(LOG_RELEASE_AFTER_STATE, sessionOwners);
             return false;
         }
 
@@ -136,7 +145,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
                     observedOwner,
                     "CLAIM_ID_MISMATCH"
             );
-            log.debug("[SESSION_WORKER_REGISTRY][CURRENT_STATE] release, after state: {}", sessionOwners);
+            log.debug(LOG_RELEASE_AFTER_STATE, sessionOwners);
             return false;
         }
 
@@ -147,7 +156,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
 
         if (released) {
             logClaimReleased(sessionId, observedOwner);
-            log.debug("[SESSION_WORKER_REGISTRY][CURRENT_STATE] release, after state: {}", sessionOwners);
+            log.debug(LOG_RELEASE_AFTER_STATE, sessionOwners);
             return true;
         }
 
@@ -158,7 +167,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
                 "OWNER_CHANGED_CONCURRENTLY"
         );
 
-        log.debug("[SESSION_WORKER_REGISTRY][CURRENT_STATE] release, after state: {}", sessionOwners);
+        log.debug(LOG_RELEASE_AFTER_STATE, sessionOwners);
         return false;
     }
 

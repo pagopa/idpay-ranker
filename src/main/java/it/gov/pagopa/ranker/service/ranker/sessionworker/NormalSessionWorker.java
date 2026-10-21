@@ -15,6 +15,7 @@ import org.slf4j.MDC;
 import java.time.Duration;
 
 import static it.gov.pagopa.ranker.constants.RankerConstants.MDC_TRACE_ID;
+import static it.gov.pagopa.utils.CommonUtils.getSpanContextTraceId;
 
 @Slf4j
 public final class NormalSessionWorker extends AbstractSessionWorker {
@@ -141,10 +142,11 @@ public final class NormalSessionWorker extends AbstractSessionWorker {
             ServiceBusReceiverClient receiver,
             ManualDequeueRequest request
     ) {
-        String previousTraceId = MDC.get(MDC_TRACE_ID);
+        String normalTraceId = getSpanContextTraceId(); // For the handoff log.
+        String previousMdcTraceId = MDC.get(MDC_TRACE_ID); // For MDC restoration.
 
         log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Normal with traceId={} will give leeway to manual with traceId={} | session={} requested={}",
-                previousTraceId, request.traceId(), sessionId, request.size());
+                normalTraceId, request.traceId(), sessionId, request.size());
 
         try {
             setMdcTraceId(request.traceId());
@@ -166,7 +168,7 @@ public final class NormalSessionWorker extends AbstractSessionWorker {
                 workerState = WorkerState.NORMAL;
             }
 
-            setMdcTraceId(previousTraceId);
+            setMdcTraceId(previousMdcTraceId);
         }
     }
 

@@ -1,9 +1,7 @@
 package it.gov.pagopa.ranker.service.ranker.sessionworker.registry;
 
-import it.gov.pagopa.ranker.constants.RankerConstants;
 import it.gov.pagopa.ranker.enums.ManualClaimOutcome;
 import it.gov.pagopa.ranker.service.ranker.sessionworker.NormalSessionWorker;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

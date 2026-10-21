@@ -85,11 +85,15 @@ class ManualDequeueServiceImplTest {
 
         ManualDequeueResponseDTO response;
 
-        try (Scope ignored = Span.wrap(spanContext).makeCurrent()) {
+        Scope scope = Span.wrap(spanContext).makeCurrent();
+
+        try {
             response = manualDequeueService.requestDequeue(
                     INITIATIVE_ID,
                     REQUESTED_MESSAGES
             );
+        } finally {
+            scope.close();
         }
 
         Assertions.assertEquals(INITIATIVE_ID, response.getInitiativeId());

@@ -61,8 +61,7 @@ class RankerServiceTest {
                 initiativeCountersService,
                 onboardingRepository,
                 consentMapper,
-                objectMapper,
-                initiatives
+                objectMapper
         );
     }
 
@@ -175,20 +174,6 @@ class RankerServiceTest {
                 eq(99L),
                 any(LocalDateTime.class)
         );
-    }
-
-    @Test
-    void testExecute_AnotherInitiative() {
-        OnboardingDTO dto = new OnboardingDTO();
-        dto.setInitiativeId("another-initiative");
-        dto.setUserId("USR002");
-        dto.setVerifies(null);
-
-        ServiceBusReceivedMessage message = buildMessage(dto);
-
-        rankerService.execute(message);
-
-        verify(initiativeCountersService, never()).addPreallocatedUser(any(), any(), any(), any(), any());
     }
 
     @Test

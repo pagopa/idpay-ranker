@@ -10,11 +10,10 @@ import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
 import it.gov.pagopa.ranker.service.ranker.RankerService;
 import it.gov.pagopa.ranker.service.ranker.manualdequeue.ManualDequeueRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 
 import java.time.Duration;
 
-import static it.gov.pagopa.ranker.constants.RankerConstants.MDC_TRACE_ID;
+import static it.gov.pagopa.utils.CommonUtils.getSpanContextTraceId;
 
 @Slf4j
 public final class NormalSessionWorker extends AbstractSessionWorker {
@@ -141,32 +140,28 @@ public final class NormalSessionWorker extends AbstractSessionWorker {
             ServiceBusReceiverClient receiver,
             ManualDequeueRequest request
     ) {
-        String previousTraceId = MDC.get(MDC_TRACE_ID);
+        String normalTraceId = getSpanContextTraceId();
 
         log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Normal with traceId={} will give leeway to manual with traceId={} | session={} requested={}",
-                previousTraceId, request.traceId(), sessionId, request.size());
+                normalTraceId, request.traceId(), sessionId, request.size());
 
         try {
-            setMdcTraceId(request.traceId());
+            log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Start session={} requestedMessages={} requestTraceId={}",
+                    sessionId, request.size(), request.traceId());
 
-            log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Start session={} requested={}",
-                    sessionId, request.size());
+            int processedMessages = processManualBatch(receiver, request.size(), request.traceId());
 
-            int processedMessages = processManualBatch(receiver, request.size());
-
-            log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] End session={} processed={} requested={} stopRequested={}",
-                    sessionId, processedMessages, request.size(), isStopRequested());
+            log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] End session={} processed={} requested={} stopRequested={} requestTraceId={}",
+                    sessionId, processedMessages, request.size(), isStopRequested(), request.traceId());
         } catch (Exception ex) {
-            log.error("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Manual processing failed; worker will stop | session={}",
-                    sessionId, ex);
+            log.error("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Manual processing failed; worker will stop | session={} requestTraceId={}",
+                    sessionId, request.traceId(), ex);
 
             requestStop();
         } finally {
             synchronized (manualRequestMonitor) {
                 workerState = WorkerState.NORMAL;
             }
-
-            setMdcTraceId(previousTraceId);
         }
     }
 
@@ -184,14 +179,6 @@ public final class NormalSessionWorker extends AbstractSessionWorker {
             log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Pending manual request discarded because worker is stopping " +
                             "| session={} manualRequestTraceId={}",
                     sessionId, discardedManualRequest.traceId());
-        }
-    }
-
-    private void setMdcTraceId(String traceId) {
-        if (traceId == null) {
-            MDC.remove(MDC_TRACE_ID);
-        } else {
-            MDC.put(MDC_TRACE_ID, traceId);
         }
     }
 }

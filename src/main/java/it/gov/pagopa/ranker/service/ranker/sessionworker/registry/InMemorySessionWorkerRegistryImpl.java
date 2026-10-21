@@ -3,7 +3,6 @@ package it.gov.pagopa.ranker.service.ranker.sessionworker.registry;
 import it.gov.pagopa.ranker.enums.SessionOwnerType;
 import it.gov.pagopa.ranker.service.ranker.sessionworker.NormalSessionWorker;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -11,8 +10,8 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static it.gov.pagopa.utils.CommonUtils.getSpanContextTraceId;
 import static it.gov.pagopa.utils.CommonUtils.sanitizeString;
-import static it.gov.pagopa.ranker.constants.RankerConstants.MDC_TRACE_ID;
 
 @Slf4j
 @Service
@@ -44,7 +43,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
         // Prepare the attempted owner object to put inside the map.
         SessionOwner attemptedOwner = SessionOwner.normal(
                 claimId,
-                MDC.get(MDC_TRACE_ID),
+                getSpanContextTraceId(),
                 normalWorker
         );
 
@@ -84,7 +83,7 @@ public class InMemorySessionWorkerRegistryImpl implements SessionWorkerRegistry 
         // Prepare the attempted owner object to put inside the map.
         SessionOwner attemptedOwner = SessionOwner.manual(
                 claimId,
-                MDC.get(MDC_TRACE_ID)
+                getSpanContextTraceId()
         );
 
         // Tries to put the attempted owner in the map, returning the existing owner.

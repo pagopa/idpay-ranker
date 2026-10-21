@@ -3,15 +3,14 @@ package it.gov.pagopa.ranker.service.ranker.manualdequeue;
 import it.gov.pagopa.ranker.domain.dto.ManualDequeueResponseDTO;
 import it.gov.pagopa.ranker.exception.ManualDequeueSizeNotValidException;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.Executor;
 
 import static it.gov.pagopa.ranker.constants.ErrorMessages.INVALID_SIZE_NOT_POSITIVE;
-import static it.gov.pagopa.ranker.constants.RankerConstants.MDC_TRACE_ID;
 import static it.gov.pagopa.ranker.constants.RankerConstants.STATUS_ACCEPTED;
+import static it.gov.pagopa.utils.CommonUtils.getSpanContextTraceId;
 import static it.gov.pagopa.utils.CommonUtils.sanitizeString;
 
 @Slf4j
@@ -37,7 +36,7 @@ public class ManualDequeueServiceImpl implements ManualDequeueService {
         }
 
         // Extract current context traceId.
-        String traceId = MDC.get(MDC_TRACE_ID);
+        String traceId = getSpanContextTraceId();
 
         // Build response to return.
         ManualDequeueResponseDTO response = buildDequeueResponse(initiativeId, size, traceId);

@@ -140,7 +140,7 @@ public abstract class AbstractSessionWorker implements Runnable {
      * a normal worker.
      * A failed or abandoned message is not counted as processed.
      */
-    protected final int processManualBatch(ServiceBusReceiverClient receiver, int requestedMessages) {
+    protected final int processManualBatch(ServiceBusReceiverClient receiver, int requestedMessages, String requestTraceId) {
         int completedMessages = 0;
         int idleSeconds = 0;
 
@@ -155,8 +155,8 @@ public abstract class AbstractSessionWorker implements Runnable {
 
                 if (idleSeconds >= properties.getIdleTimeoutSeconds()) {
                     log.info("[SESSION_WORKER][MANUAL_DEQUEUE] Idle timeout reached for session {}. " +
-                                    "Processed {} of {} requested messages",
-                            sanitizeString(sessionId), completedMessages, requestedMessages);
+                                    "Processed {} of {} requested messages | requestTraceId={}",
+                            sanitizeString(sessionId), completedMessages, requestedMessages, requestTraceId);
 
                     return completedMessages;
                 }

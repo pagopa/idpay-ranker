@@ -1,8 +1,12 @@
 package it.gov.pagopa.ranker.service.ranker.manualdequeue;
 
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.api.trace.TraceFlags;
+import io.opentelemetry.api.trace.TraceState;
+import io.opentelemetry.context.Scope;
 import it.gov.pagopa.ranker.domain.dto.ManualDequeueResponseDTO;
 import it.gov.pagopa.ranker.exception.ManualDequeueSizeNotValidException;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,12 +14,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.slf4j.MDC;
 
 import java.util.List;
 import java.util.concurrent.Executor;
 
-import static it.gov.pagopa.ranker.constants.RankerConstants.MDC_TRACE_ID;
 import static it.gov.pagopa.ranker.constants.RankerConstants.STATUS_ACCEPTED;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -28,7 +30,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 class ManualDequeueServiceImplTest {
 
     private static final String INITIATIVE_ID = "INITIATIVE_ID";
-    private static final String TRACE_ID = "TRACE_ID";
+    private static final String TRACE_ID = "0123456789abcdef0123456789abcdef";
+    private static final String SPAN_ID = "0123456789abcdef";
     private static final int REQUESTED_MESSAGES = 10;
 
     @Mock
@@ -45,11 +48,6 @@ class ManualDequeueServiceImplTest {
                 manualDequeueOrchestratorExecutorMock,
                 manualDequeueOrchestratorMock
         );
-    }
-
-    @AfterEach
-    void tearDown() {
-        MDC.remove(MDC_TRACE_ID);
     }
 
     @Test
@@ -70,7 +68,12 @@ class ManualDequeueServiceImplTest {
 
     @Test
     void requestDequeue_validRequest_returnsAcceptedResponseAndOrchestratesRequest() {
-        MDC.put(MDC_TRACE_ID, TRACE_ID);
+        SpanContext spanContext = SpanContext.create(
+                TRACE_ID,
+                SPAN_ID,
+                TraceFlags.getSampled(),
+                TraceState.getDefault()
+        );
 
         doAnswer(invocation -> {
             Runnable task = invocation.getArgument(0);
@@ -80,10 +83,18 @@ class ManualDequeueServiceImplTest {
         }).when(manualDequeueOrchestratorExecutorMock)
                 .execute(any(Runnable.class));
 
-        ManualDequeueResponseDTO response = manualDequeueService.requestDequeue(
-                INITIATIVE_ID,
-                REQUESTED_MESSAGES
-        );
+        ManualDequeueResponseDTO response;
+
+        Scope scope = Span.wrap(spanContext).makeCurrent();
+
+        try {
+            response = manualDequeueService.requestDequeue(
+                    INITIATIVE_ID,
+                    REQUESTED_MESSAGES
+            );
+        } finally {
+            scope.close();
+        }
 
         Assertions.assertEquals(INITIATIVE_ID, response.getInitiativeId());
         Assertions.assertEquals(
@@ -109,7 +120,10 @@ class ManualDequeueServiceImplTest {
                 REQUESTED_MESSAGES,
                 capturedRequest.size()
         );
-        Assertions.assertEquals(TRACE_ID, capturedRequest.traceId());
+        Assertions.assertEquals(
+                TRACE_ID,
+                capturedRequest.traceId()
+        );
     }
 
     @Test

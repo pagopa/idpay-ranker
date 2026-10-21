@@ -107,19 +107,14 @@ public class CycleOrchestratorImpl implements CycleOrchestrator{
     }
 
     private synchronized boolean tryExecutingWorker(String initiativeId, NormalSessionWorker worker, UUID claimId) {
-        boolean result = true;
-
         try {
             executor.execute(worker);
-
-            log.info("[{}] Scheduled worker for initiative {}. Active={} Pending={}",
-                    INITIATIVES_ONBOARDING_HANDLER_FLOW,
-                    initiativeId,
-                    cycleHandlerState.getActiveSessions().keySet(),
-                    cycleHandlerState.getPendingSessions());
         } catch (RejectedExecutionException ex) {
-            cycleHandlerState.getActiveSessions().remove(initiativeId, worker);
+
             boolean released = sessionWorkerRegistry.release(initiativeId, claimId);
+
+            cycleHandlerState.getActiveSessions().remove(initiativeId, worker);
+            cycleHandlerState.getPendingSessions().addFirst(initiativeId);
 
             if (!released) {
                 log.error("[{}] Could not release session-worker claim for initiative {} and claimId={}.",
@@ -129,15 +124,19 @@ public class CycleOrchestratorImpl implements CycleOrchestrator{
                 );
             }
 
-            cycleHandlerState.getPendingSessions().addFirst(initiativeId);
-
             log.error("[{}] Worker execution was rejected for initiative {} and claimId={}. The initiative was returned to the pending queue.",
                     INITIATIVES_ONBOARDING_HANDLER_FLOW, initiativeId, claimId, ex);
 
-            result = false;
+            return false;
         }
 
-        return result;
+        log.info("[{}] Scheduled worker for initiative {}. Active={} Pending={}",
+                INITIATIVES_ONBOARDING_HANDLER_FLOW,
+                initiativeId,
+                cycleHandlerState.getActiveSessions().keySet(),
+                cycleHandlerState.getPendingSessions());
+
+        return true;
     }
 
     private synchronized void onWorkerClose(String sessionId, UUID claimId) {

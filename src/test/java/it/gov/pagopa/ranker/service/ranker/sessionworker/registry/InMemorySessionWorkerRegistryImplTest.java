@@ -1,12 +1,9 @@
 package it.gov.pagopa.ranker.service.ranker.sessionworker.registry;
 
-import it.gov.pagopa.ranker.constants.RankerConstants;
 import it.gov.pagopa.ranker.enums.ManualClaimOutcome;
 import it.gov.pagopa.ranker.service.ranker.sessionworker.NormalSessionWorker;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.MDC;
 
 import java.util.UUID;
 
@@ -24,11 +21,6 @@ class InMemorySessionWorkerRegistryImplTest {
     @BeforeEach
     void setUp() {
         registry = new InMemorySessionWorkerRegistryImpl();
-    }
-
-    @AfterEach
-    void tearDown() {
-        MDC.clear();
     }
 
     @Test
@@ -94,8 +86,6 @@ class InMemorySessionWorkerRegistryImplTest {
     void tryClaimManual_whenSessionIsNotOwned_shouldReturnClaimed() {
         String sessionId = "SESSION_ID";
         UUID claimId = UUID.randomUUID();
-
-        MDC.put(RankerConstants.MDC_TRACE_ID, "manual-trace-id");
 
         ManualClaimResult result = registry.tryClaimManual(
                 sessionId,

@@ -10,7 +10,6 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import static it.gov.pagopa.ranker.constants.ErrorMessages.INVALID_SIZE_NOT_POSITIVE;
-import static it.gov.pagopa.utils.CommonUtils.getSpanContextTraceId;
 import static it.gov.pagopa.utils.CommonUtils.sanitizeString;
 
 @Slf4j
@@ -49,12 +48,12 @@ public final class ManualOnlySessionWorker extends AbstractSessionWorker {
 
     @Override
     protected void execute(ServiceBusReceiverClient receiver) {
-        log.info("[MANUAL_ONLY_SESSION_WORKER][START] session={} requested={}",
+        log.info("[MANUAL_ONLY_SESSION_WORKER][START] session={} requestedMessages={}",
                 sanitizeString(sessionId), requestedMessages);
 
-        int processedMessages = processManualBatch(receiver, requestedMessages, getSpanContextTraceId());
+        int processedMessages = processManualBatch(receiver, requestedMessages, "traceId");
 
-        log.info("[MANUAL_ONLY_SESSION_WORKER][END] session={} processed={} requested={} stopRequested={}",
+        log.info("[MANUAL_ONLY_SESSION_WORKER][END] session={} processedMessages={} requestedMessages={} stopRequested={}",
                 sanitizeString(sessionId), processedMessages, requestedMessages, isStopRequested());
     }
 }

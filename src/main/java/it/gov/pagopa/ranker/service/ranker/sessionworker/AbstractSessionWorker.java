@@ -105,11 +105,12 @@ public abstract class AbstractSessionWorker implements Runnable {
 
     protected final boolean processMessage(
             ServiceBusReceiverClient receiver,
-            ServiceBusReceivedMessage message
+            ServiceBusReceivedMessage message,
+            String requestTraceId
     ) {
         try {
-            log.info("[SESSION_WORKER][RECEIVE_MESSAGE] Receive message for initiative with session {}: sequenceNumber={} messageId={} body={}",
-                    sanitizeString(sessionId), message.getSequenceNumber(), message.getMessageId(), message.getBody());
+            log.info("[SESSION_WORKER][RECEIVE_MESSAGE] Receive message for initiative with session {}: sequenceNumber={} messageId={} body={} | requestTraceId={}",
+                    sanitizeString(sessionId), message.getSequenceNumber(), message.getMessageId(), message.getBody(), requestTraceId);
 
             rankerService.execute(message);
             receiver.complete(message);
@@ -117,8 +118,8 @@ public abstract class AbstractSessionWorker implements Runnable {
             return true;
 
         } catch (BudgetExhaustedException budgetExhaustedException) {
-            log.error("[SESSION_WORKER][BUDGET] Budget exhausted for session {}",
-                    sanitizeString(sessionId), budgetExhaustedException);
+            log.error("[SESSION_WORKER][BUDGET] Budget exhausted for session {} | requestTraceId={}",
+                    sanitizeString(sessionId), requestTraceId, budgetExhaustedException);
 
             receiver.abandon(message);
             requestStop();
@@ -126,8 +127,8 @@ public abstract class AbstractSessionWorker implements Runnable {
             return false;
 
         } catch (Exception ex) {
-            log.error("[SESSION_WORKER][MESSAGE] Error processing message {} for session {}",
-                    message.getMessageId(), sanitizeString(sessionId), ex);
+            log.error("[SESSION_WORKER][MESSAGE] Error processing message {} for session {} | requestTraceId={}",
+                    message.getMessageId(), sanitizeString(sessionId), requestTraceId, ex);
 
             receiver.abandon(message);
 
@@ -166,7 +167,7 @@ public abstract class AbstractSessionWorker implements Runnable {
 
             idleSeconds = 0;
 
-            if (!processMessage(receiver, message)) {
+            if (!processMessage(receiver, message, requestTraceId)) {
                 return completedMessages;
             }
 

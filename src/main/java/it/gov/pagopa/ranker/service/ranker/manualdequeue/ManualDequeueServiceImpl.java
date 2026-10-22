@@ -49,10 +49,10 @@ public class ManualDequeueServiceImpl implements ManualDequeueService {
                     () -> manualDequeueOrchestrator.orchestrate(request)
             );
 
-            log.info("[MANUAL_DEQUEUE_SERVICE] Manual dequeue orchestration submitted | initiativeId={} requested={}",
+            log.info("[MANUAL_DEQUEUE_SERVICE] Manual dequeue orchestration submitted | initiativeId={} requestedMessages={}",
                     sanitizeString(initiativeId), size);
         } catch (Exception ex) {
-            log.error("[MANUAL_DEQUEUE_SERVICE] Failed to submit manual dequeue orchestration | initiativeId={} requested={}",
+            log.error("[MANUAL_DEQUEUE_SERVICE] Processed 0 messages, cause: Failed to submit manual dequeue orchestration | initiativeId={} requestedMessages={}",
                     sanitizeString(initiativeId), size, ex);
         }
 

@@ -48,19 +48,19 @@ public class ManualDequeueOrchestratorImpl implements ManualDequeueOrchestrator 
                 );
 
                 case OWNED_BY_MANUAL -> log.info(
-                        "[MANUAL_DEQUEUE_ORCHESTRATOR] A ManualOnlySessionWorker already owns the initiative. "
+                        "[MANUAL_DEQUEUE_ORCHESTRATOR] Processed 0 messages, cause: A ManualOnlySessionWorker already owns the initiative. "
                                 + "Manual request cannot be processed now | initiativeId={}",
                         sanitizeString(initiativeId)
                 );
 
                 default -> log.error(
-                        "[MANUAL_DEQUEUE_ORCHESTRATOR] Unsupported manual-claim outcome {} | initiativeId={}",
+                        "[MANUAL_DEQUEUE_ORCHESTRATOR] Processed 0 messages, cause: Unsupported manual-claim outcome {} | initiativeId={}",
                         claimResult.outcome(),
                         sanitizeString(initiativeId)
                 );
             }
         } catch (Exception ex) {
-            log.error("[MANUAL_DEQUEUE_ORCHESTRATOR] Unexpected orchestration failure | initiativeId={}",
+            log.error("[MANUAL_DEQUEUE_ORCHESTRATOR] Processed 0 messages, cause: Unexpected orchestration failure | initiativeId={}",
                     sanitizeString(request.initiativeId()), ex);
         }
     }
@@ -68,7 +68,7 @@ public class ManualDequeueOrchestratorImpl implements ManualDequeueOrchestrator 
     private void handleActiveNormalWorker(NormalSessionWorker activeWorker, ManualDequeueRequest request) {
         if (activeWorker == null) {
             log.error(
-                    "[MANUAL_DEQUEUE_ORCHESTRATOR] Registry returned OWNED_BY_NORMAL without a NormalSessionWorker | initiativeId={}",
+                    "[MANUAL_DEQUEUE_ORCHESTRATOR] Processed 0 messages, cause: Registry returned OWNED_BY_NORMAL without a NormalSessionWorker | initiativeId={}",
                     sanitizeString(request.initiativeId())
             );
             return;
@@ -79,7 +79,7 @@ public class ManualDequeueOrchestratorImpl implements ManualDequeueOrchestrator 
         boolean accepted = activeWorker.tryEnqueueManualRequest(request);
 
         if (!accepted) {
-            log.info("[MANUAL_DEQUEUE_ORCHESTRATOR] Manual request could not be queued on active NormalSessionWorker | initiativeId={}",
+            log.info("[MANUAL_DEQUEUE_ORCHESTRATOR] Processed 0 messages, cause: Manual request could not be queued on active NormalSessionWorker | initiativeId={}",
                     sanitizeString(request.initiativeId()));
 
             return;
@@ -104,7 +104,7 @@ public class ManualDequeueOrchestratorImpl implements ManualDequeueOrchestrator 
              */
             manualOnlySessionWorker.run();
         } catch (Exception ex) {
-            log.error("[MANUAL_DEQUEUE_ORCHESTRATOR] ManualOnlySessionWorker could not be scheduled | initiativeId={}",
+            log.error("[MANUAL_DEQUEUE_ORCHESTRATOR] Processed 0 messages, cause: ManualOnlySessionWorker could not be scheduled | initiativeId={}",
                     sanitizeString(request.initiativeId()), ex);
         } finally {
             releaseManualClaim(request.initiativeId(), claimId);

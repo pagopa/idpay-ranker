@@ -13,8 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
 
-import static it.gov.pagopa.utils.CommonUtils.getSpanContextTraceId;
-
 @Slf4j
 public final class NormalSessionWorker extends AbstractSessionWorker {
 
@@ -131,7 +129,7 @@ public final class NormalSessionWorker extends AbstractSessionWorker {
             return updatedIdleSeconds;
         }
 
-        processMessage(receiver, message);
+        processMessage(receiver, message, "traceId");
 
         return 0;
     }
@@ -140,10 +138,8 @@ public final class NormalSessionWorker extends AbstractSessionWorker {
             ServiceBusReceiverClient receiver,
             ManualDequeueRequest request
     ) {
-        String normalTraceId = getSpanContextTraceId();
-
-        log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Normal with traceId={} will give leeway to manual with traceId={} | session={} requested={}",
-                normalTraceId, request.traceId(), sessionId, request.size());
+        log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Normal worker will give leeway to a manual request with traceId={} | session={} requested={}",
+                request.traceId(), sessionId, request.size());
 
         try {
             log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Start session={} requestedMessages={} requestTraceId={}",
@@ -151,7 +147,7 @@ public final class NormalSessionWorker extends AbstractSessionWorker {
 
             int processedMessages = processManualBatch(receiver, request.size(), request.traceId());
 
-            log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] End session={} processed={} requested={} stopRequested={} requestTraceId={}",
+            log.info("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] End session={} processedMessages={} requestedMessages={} stopRequested={} requestTraceId={}",
                     sessionId, processedMessages, request.size(), isStopRequested(), request.traceId());
         } catch (Exception ex) {
             log.error("[NORMAL_SESSION_WORKER][MANUAL_DEQUEUE] Manual processing failed; worker will stop | session={} requestTraceId={}",

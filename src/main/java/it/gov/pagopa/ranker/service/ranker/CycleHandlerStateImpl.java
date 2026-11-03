@@ -1,5 +1,6 @@
 package it.gov.pagopa.ranker.service.ranker;
 
+import it.gov.pagopa.ranker.service.ranker.sessionworker.NormalSessionWorker;
 import org.springframework.stereotype.Service;
 
 import java.util.Deque;
@@ -12,7 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class CycleHandlerStateImpl implements CycleHandlerState{
     private final AtomicBoolean cycleProcessing = new AtomicBoolean(false);
     private final Deque<String> pendingSessions = new ConcurrentLinkedDeque<>();
-   private final Map<String, SessionWorker> activeSessions = new ConcurrentHashMap<>();
+    private final Map<String, NormalSessionWorker> activeSessions = new ConcurrentHashMap<>();
 
     @Override
     public boolean isCycleProcessing() {
@@ -36,7 +37,7 @@ public class CycleHandlerStateImpl implements CycleHandlerState{
     }
 
     @Override
-    public Map<String, SessionWorker> getActiveSessions() {
+    public Map<String, NormalSessionWorker> getActiveSessions() {
         return activeSessions;
     }
 

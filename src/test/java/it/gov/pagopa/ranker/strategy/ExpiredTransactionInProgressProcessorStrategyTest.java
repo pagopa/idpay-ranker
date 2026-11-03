@@ -14,6 +14,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
+
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -53,18 +55,21 @@ public class ExpiredTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setInitiativeId("INIT_1");
         transactionInProgressDTO.setVoucherAmountCents(1000L);
         transactionInProgressDTO.setUserId("USER_1");
+        transactionInProgressDTO.setUpdateDate(LocalDateTime.of(2026, 1, 1, 10, 0));
         String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
-        when(initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatus(
+        when(initiativeCountersPreallocationsRepository.findByIdAndStatusAndEventAfterEnqueuedThenUpdateStatus(
                 preallocationId,
                 PreallocationStatus.PREALLOCATED,
+                LocalDateTime.of(2026, 1, 1, 10, 0),
                 PreallocationStatus.EXPIRED)).thenReturn(true);
         when(paymentRestClient.existsByIdAndStatus("ID_1", SyncTrxStatus.EXPIRED))
                 .thenReturn(true);
         Assertions.assertDoesNotThrow(() -> expiredTransactionInProgressProcessorStrategy
                 .processTransaction(transactionInProgressDTO));
-        verify(initiativeCountersPreallocationsRepository).findByIdAndStatusThenUpdateStatus(
+        verify(initiativeCountersPreallocationsRepository).findByIdAndStatusAndEventAfterEnqueuedThenUpdateStatus(
                 preallocationId,
                 PreallocationStatus.PREALLOCATED,
+                LocalDateTime.of(2026, 1, 1, 10, 0),
                 PreallocationStatus.EXPIRED);
         verify(initiativeCountersRepository).decrementOnboardedAndBudget("INIT_1", 1000L);
 
@@ -92,20 +97,23 @@ public class ExpiredTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setInitiativeId("INIT_1");
         transactionInProgressDTO.setVoucherAmountCents(1000L);
         transactionInProgressDTO.setUserId("USER_1");
+        transactionInProgressDTO.setUpdateDate(LocalDateTime.of(2026, 1, 1, 10, 0));
         String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
         when(paymentRestClient.existsByIdAndStatus("ID_1", SyncTrxStatus.EXPIRED))
                 .thenReturn(true);
-        when(initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatus(
+        when(initiativeCountersPreallocationsRepository.findByIdAndStatusAndEventAfterEnqueuedThenUpdateStatus(
                 preallocationId,
                 PreallocationStatus.PREALLOCATED,
+                LocalDateTime.of(2026, 1, 1, 10, 0),
                 PreallocationStatus.EXPIRED)).thenReturn(false);
 
         Assertions.assertDoesNotThrow(() -> expiredTransactionInProgressProcessorStrategy
                 .processTransaction(transactionInProgressDTO));
         verify(paymentRestClient).existsByIdAndStatus(any(),any());
-        verify(initiativeCountersPreallocationsRepository).findByIdAndStatusThenUpdateStatus(
+        verify(initiativeCountersPreallocationsRepository).findByIdAndStatusAndEventAfterEnqueuedThenUpdateStatus(
                 preallocationId,
                 PreallocationStatus.PREALLOCATED,
+                LocalDateTime.of(2026, 1, 1, 10, 0),
                 PreallocationStatus.EXPIRED);
         verifyNoInteractions(initiativeCountersRepository);
     }
@@ -117,12 +125,14 @@ public class ExpiredTransactionInProgressProcessorStrategyTest {
         transactionInProgressDTO.setInitiativeId("INIT_1");
         transactionInProgressDTO.setVoucherAmountCents(1000L);
         transactionInProgressDTO.setUserId("USER_1");
+        transactionInProgressDTO.setUpdateDate(LocalDateTime.of(2026, 1, 1, 10, 0));
         String preallocationId = InitiativeCountersUtils.computePreallocationId(transactionInProgressDTO);
         when(paymentRestClient.existsByIdAndStatus("ID_1", SyncTrxStatus.EXPIRED))
                 .thenReturn(true);
-        when(initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatus(
+        when(initiativeCountersPreallocationsRepository.findByIdAndStatusAndEventAfterEnqueuedThenUpdateStatus(
                 preallocationId,
                 PreallocationStatus.PREALLOCATED,
+                LocalDateTime.of(2026, 1, 1, 10, 0),
                 PreallocationStatus.EXPIRED)).thenReturn(true);
         doThrow(new RuntimeException("error")).when(initiativeCountersRepository)
                 .decrementOnboardedAndBudget("INIT_1", 1000L);
@@ -130,12 +140,28 @@ public class ExpiredTransactionInProgressProcessorStrategyTest {
         Assertions.assertThrows(RuntimeException.class,
                 () -> expiredTransactionInProgressProcessorStrategy.processTransaction(transactionInProgressDTO));
         verify(paymentRestClient).existsByIdAndStatus("ID_1", SyncTrxStatus.EXPIRED);
-        verify(initiativeCountersPreallocationsRepository).findByIdAndStatusThenUpdateStatus(
+        verify(initiativeCountersPreallocationsRepository).findByIdAndStatusAndEventAfterEnqueuedThenUpdateStatus(
                 preallocationId,
                 PreallocationStatus.PREALLOCATED,
+                LocalDateTime.of(2026, 1, 1, 10, 0),
                 PreallocationStatus.EXPIRED);
         verify(initiativeCountersRepository).decrementOnboardedAndBudget("INIT_1", 1000L);
         verifyNoMoreInteractions(paymentRestClient, initiativeCountersPreallocationsRepository, initiativeCountersRepository);
+    }
+
+    @Test
+    public void shouldSkipExpiredEventWithoutTrxDateAndUpdateDate() {
+        TransactionInProgressDTO transactionInProgressDTO = new TransactionInProgressDTO();
+        transactionInProgressDTO.setId("ID_1");
+        transactionInProgressDTO.setInitiativeId("INIT_1");
+        transactionInProgressDTO.setUserId("USER_1");
+
+        when(paymentRestClient.existsByIdAndStatus("ID_1", SyncTrxStatus.EXPIRED)).thenReturn(true);
+
+        Assertions.assertDoesNotThrow(() -> expiredTransactionInProgressProcessorStrategy.processTransaction(transactionInProgressDTO));
+
+        verify(paymentRestClient).existsByIdAndStatus("ID_1", SyncTrxStatus.EXPIRED);
+        verifyNoInteractions(initiativeCountersPreallocationsRepository, initiativeCountersRepository);
     }
 
 }

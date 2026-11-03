@@ -11,7 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 import static it.gov.pagopa.utils.InitiativeCountersUtils.computePreallocationId;
+import static it.gov.pagopa.utils.CommonConstants.ZONEID;
 
 @Slf4j
 @Service
@@ -49,9 +52,17 @@ public class ExpiredTransactionInProgressProcessorStrategy implements Transactio
             return;
         }
 
-        if (!initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatus(
+        LocalDateTime eventDate = resolveEventDate(transactionInProgress);
+        if (eventDate == null) {
+            log.warn("[ExpiredTransactionInProgressProcessor] received event without trxDate/updateDate for id {}, skipping to avoid cross-attempt replay",
+                    transactionInProgressId);
+            return;
+        }
+
+        if (!initiativeCountersPreallocationsRepository.findByIdAndStatusAndEventAfterEnqueuedThenUpdateStatus(
                 preallocationId,
                 PreallocationStatus.PREALLOCATED,
+                eventDate,
                 PreallocationStatus.EXPIRED)) {
             log.warn("[ExpiredTransactionInProgressProcessor] received event for a transaction having initiative {}" +
                             " and user {} that does not exist in the initiative preallocation or already processed, will not update counter",
@@ -77,5 +88,12 @@ public class ExpiredTransactionInProgressProcessorStrategy implements Transactio
             throw e;
         }
 
+    }
+
+    private LocalDateTime resolveEventDate(TransactionInProgressDTO transactionInProgress) {
+        if (transactionInProgress.getTrxDate() != null) {
+            return transactionInProgress.getTrxDate().atZoneSameInstant(ZONEID).toLocalDateTime();
+        }
+        return transactionInProgress.getUpdateDate();
     }
 }

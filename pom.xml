@@ -127,6 +127,12 @@
             <artifactId>azure-messaging-servicebus</artifactId>
             <version>7.17.17</version>
         </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-api</artifactId>
+            <version>1.67.0</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
     <dependencyManagement>
@@ -194,5 +200,5 @@
             </plugin>
         </plugins>
     </build>
-         
+
 </project>

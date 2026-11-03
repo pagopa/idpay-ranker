@@ -1,8 +1,9 @@
-package it.gov.pagopa.ranker.service.ranker;
+package it.gov.pagopa.ranker.service.ranker.sessionworker;
 
 import com.azure.messaging.servicebus.ServiceBusClientBuilder;
 import it.gov.pagopa.ranker.config.RankerProcessorProperties;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
+import it.gov.pagopa.ranker.service.ranker.RankerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,21 +19,28 @@ class SessionWorkerFactoryTest {
     @Mock private RankerProcessorProperties propertiesMock;
     @Mock private InitiativeCountersService initiativeCountersServiceMock;
     @Mock private RankerService rankerServiceMock;
-    private final String queueName = "QUEUE_NAME";
 
     private SessionWorkerFactory factory;
 
     @BeforeEach
     void setUp() {
+        String queueName = "QUEUE_NAME";
         factory = new SessionWorkerFactory(clientBuilderMock, propertiesMock, initiativeCountersServiceMock, rankerServiceMock, queueName);
     }
 
     @Test
     void create() {
         Runnable runnableMock = mock(Runnable.class);
-        SessionWorker result = factory.create("INITIATIVE_ID", runnableMock);
+        NormalSessionWorker result = factory.create("INITIATIVE_ID", runnableMock);
 
         assertNotNull(result);
 
+    }
+
+    @Test
+    void createManualOnly() {
+        ManualOnlySessionWorker result = factory.createManualOnly("INITIATIVE_ID", 1);
+
+        assertNotNull(result);
     }
 }

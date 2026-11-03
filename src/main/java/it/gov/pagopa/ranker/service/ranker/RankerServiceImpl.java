@@ -7,10 +7,10 @@ import it.gov.pagopa.ranker.domain.dto.OnboardingDTO;
 import it.gov.pagopa.ranker.domain.mapper.ConsentMapper;
 import it.gov.pagopa.ranker.domain.model.InitiativeCountersPreallocations;
 import it.gov.pagopa.ranker.domain.model.Onboarding;
+import it.gov.pagopa.ranker.enums.PreallocationStatus;
 import it.gov.pagopa.ranker.repository.OnboardingRepository;
 import it.gov.pagopa.ranker.service.initative.InitiativeCountersService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.ObjectReader;
@@ -31,31 +31,61 @@ public class RankerServiceImpl implements RankerService {
     private final OnboardingRepository onboardingRepository;
     private final ConsentMapper consentMapper;
     private final ObjectReader objectReader;
-    private final List<String> initiativesId;
 
     public RankerServiceImpl(RankerProducer rankerProducer,
                              InitiativeCountersService initiativeCountersService,
                              OnboardingRepository onboardingRepository,
                              ConsentMapper consentMapper,
-                             ObjectMapper objectMapper,
-                             @Value("${app.initiative.identified}") List<String> initiativesId) {
+                             ObjectMapper objectMapper) {
         this.rankerProducer = rankerProducer;
         this.initiativeCountersService = initiativeCountersService;
         this.onboardingRepository = onboardingRepository;
         this.consentMapper = consentMapper;
         this.objectReader = objectMapper.readerFor(OnboardingDTO.class);
-        this.initiativesId = initiativesId;
     }
 
     @Override
     public void preallocate(OnboardingDTO dto) {
-        if (this.initiativeCountersService.existsByInitiativeIdAndUserId(dto.getInitiativeId(), dto.getUserId())) {
-            log.info("[PREALLOCATE] User {} already preallocated for initiative {}", sanitizeString(dto.getUserId()), sanitizeString(dto.getInitiativeId()));
-            return;
-        }
+        Optional<InitiativeCountersPreallocations> existingPreallocation =
+                this.initiativeCountersService.findById(dto.getInitiativeId(), dto.getUserId());
+        if (existingPreallocation.isPresent()) {
+            InitiativeCountersPreallocations currentPreallocation = existingPreallocation.get();
+            if (isReplayOrOutOfOrder(dto.getSequenceNumber(), currentPreallocation.getSequenceNumber())) {
+                log.info("[PREALLOCATE] Ignoring replay/out-of-order onboarding for user {} and initiative {} (incoming sequence {}, current sequence {})",
+                        sanitizeString(dto.getUserId()),
+                        sanitizeString(dto.getInitiativeId()),
+                        dto.getSequenceNumber(),
+                        currentPreallocation.getSequenceNumber());
+                return;
+            }
 
-        if(!this.initiativesId.contains(dto.getInitiativeId())){
-            log.error("[RANKER_SERVICE] Skipped processing for initiativeId={} because it is not configured among handled initiatives", sanitizeString(dto.getInitiativeId()));
+            PreallocationStatus status = currentPreallocation.getStatus();
+            if (List.of(PreallocationStatus.REFUNDED, PreallocationStatus.EXPIRED).contains(status)) {
+                boolean reopened = this.initiativeCountersService.reopenPreallocatedUser(
+                        dto.getInitiativeId(),
+                        dto.getUserId(),
+                        dto.getVerifies(),
+                        dto.getSequenceNumber(),
+                        dto.getEnqueuedTime()
+                );
+                if (reopened) {
+                    log.info("[PREALLOCATE] User {} has terminal status {} for initiative {}. Reopening preallocation and re-sending consent.",
+                            sanitizeString(dto.getUserId()),
+                            status,
+                            sanitizeString(dto.getInitiativeId()));
+                    this.rankerProducer.sendSaveConsent(dto);
+                } else {
+                    log.warn("[PREALLOCATE] Cannot reopen preallocation for user {} and initiative {}.",
+                            sanitizeString(dto.getUserId()),
+                            sanitizeString(dto.getInitiativeId()));
+                }
+                return;
+            }
+
+            log.info("[PREALLOCATE] User {} already preallocated for initiative {} with status {}",
+                    sanitizeString(dto.getUserId()),
+                    sanitizeString(dto.getInitiativeId()),
+                    status);
             return;
         }
 
@@ -128,5 +158,11 @@ public class RankerServiceImpl implements RankerService {
             log.error("[RANKER_PROCESSOR] Failed to deserialize message");
             throw new IllegalStateException("Failed to deserialize message", e);
         }
+    }
+
+    private boolean isReplayOrOutOfOrder(Long incomingSequenceNumber, Long currentSequenceNumber) {
+        return incomingSequenceNumber != null
+                && currentSequenceNumber != null
+                && incomingSequenceNumber <= currentSequenceNumber;
     }
 }

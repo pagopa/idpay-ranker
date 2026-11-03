@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.Executor;
 
-
 class ServiceBusConfigTest {
 
     private ServiceBusConfig serviceBusConfig;
@@ -34,6 +33,21 @@ class ServiceBusConfigTest {
 
         // Given
         Executor result = serviceBusConfig.sessionExecutor(properties);
+
+        // Then
+        Assertions.assertNotNull(result);
+    }
+
+    @Test
+    void manualDequeueOrchestratorExecutor() {
+        // When
+        RankerManualDequeueProperties properties = new RankerManualDequeueProperties();
+        properties.setCorePoolSize(1);
+        properties.setMaxPoolSize(1);
+        properties.setQueueCapacity(0);
+
+        // Given
+        Executor result = serviceBusConfig.manualDequeueOrchestratorExecutor(properties);
 
         // Then
         Assertions.assertNotNull(result);

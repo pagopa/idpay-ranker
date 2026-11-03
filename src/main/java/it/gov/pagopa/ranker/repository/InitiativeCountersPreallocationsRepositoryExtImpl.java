@@ -14,6 +14,8 @@ import java.time.ZoneId;
 
 public class InitiativeCountersPreallocationsRepositoryExtImpl implements InitiativeCountersPreallocationsRepositoryExt {
 
+    private static final ZoneId EUROPE_ROME_ZONE_ID = ZoneId.of("Europe/Rome");
+
     private final MongoTemplate mongoTemplate;
 
     public InitiativeCountersPreallocationsRepositoryExtImpl(MongoTemplate mongoTemplate) {
@@ -28,7 +30,28 @@ public class InitiativeCountersPreallocationsRepositoryExtImpl implements Initia
                                 .and(InitiativeCountersPreallocations.Fields.status).is(currentStatus)),
                 new Update()
                         .set(InitiativeCountersPreallocations.Fields.status, newStatus)
-                        .set(InitiativeCountersPreallocations.Fields.updateDate, LocalDateTime.now(ZoneId.of("Europe/Rome"))),
+                        .set(InitiativeCountersPreallocations.Fields.updateDate, LocalDateTime.now(EUROPE_ROME_ZONE_ID)),
+                FindAndModifyOptions.options().returnNew(true),
+                InitiativeCountersPreallocations.class);
+        return initiativeCountersPreallocations != null;
+    }
+
+    @Override
+    public boolean findByIdAndStatusAndEventAfterEnqueuedThenUpdateStatus(String id, PreallocationStatus currentStatus, LocalDateTime eventDate, PreallocationStatus newStatus) {
+        Criteria matchingAttemptCriteria = new Criteria().orOperator(
+                Criteria.where(InitiativeCountersPreallocations.Fields.enqueuedTime).is(null),
+                Criteria.where(InitiativeCountersPreallocations.Fields.enqueuedTime).lte(eventDate)
+        );
+
+        InitiativeCountersPreallocations initiativeCountersPreallocations = mongoTemplate.findAndModify(
+                Query.query(
+                        Criteria.where(InitiativeCountersPreallocations.Fields.id).is(id)
+                                .and(InitiativeCountersPreallocations.Fields.status).is(currentStatus)
+                                .andOperator(matchingAttemptCriteria)
+                ),
+                new Update()
+                        .set(InitiativeCountersPreallocations.Fields.status, newStatus)
+                        .set(InitiativeCountersPreallocations.Fields.updateDate, LocalDateTime.now(EUROPE_ROME_ZONE_ID)),
                 FindAndModifyOptions.options().returnNew(true),
                 InitiativeCountersPreallocations.class);
         return initiativeCountersPreallocations != null;

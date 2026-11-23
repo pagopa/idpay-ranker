@@ -16,14 +16,13 @@ import static it.gov.pagopa.utils.InitiativeCountersUtils.computePreallocationId
 public class CapturedTransactionInProgressProcessorStrategy implements TransactionInProgressProcessorStrategy {
     private final InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository;
     private final InitiativeCountersRepository initiativeCountersRepository;
-    private final PaymentRestClient paymentRestClient;
 
     public CapturedTransactionInProgressProcessorStrategy(
-            InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository, InitiativeCountersRepository initiativeCountersRepository,
+            InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository, 
+            InitiativeCountersRepository initiativeCountersRepository,
             PaymentRestClient paymentRestClient) {
         this.initiativeCountersPreallocationsRepository = initiativeCountersPreallocationsRepository;
         this.initiativeCountersRepository = initiativeCountersRepository;
-        this.paymentRestClient = paymentRestClient;
     }
 
     @Override
@@ -33,15 +32,6 @@ public class CapturedTransactionInProgressProcessorStrategy implements Transacti
 
     @Override
     public void processTransaction(TransactionInProgressDTO transactionInProgress) {
-
-        String transactionInProgressId = transactionInProgress.getId();
-        if (!paymentRestClient.existsByIdAndStatus(
-                transactionInProgressId, SyncTrxStatus.CAPTURED)) {
-            log.warn("[CapturedTransactionInProgressProcessor] Provided transaction with id {} with status EXPIRED" +
-                            " not found, no counter will be updated",
-                    transactionInProgressId);
-            return;
-        }
 
         if (!initiativeCountersPreallocationsRepository.findByIdAndStatusThenUpdateStatus(
                 computePreallocationId(transactionInProgress),
@@ -57,12 +47,13 @@ public class CapturedTransactionInProgressProcessorStrategy implements Transacti
                         transactionInProgress.getRewardCents(),
                         transactionInProgress.getVoucherAmountCents());
 
-                log.info("[CapturedTransactionInProgressProcessor] Updated counter for captured transaction {}", transactionInProgressId);
+                log.info("[CapturedTransactionInProgressProcessor] Updated counter for captured transaction {}", 
+                        transactionInProgress.getId());
 
             } catch (Exception e) {
                 log.error("[CapturedTransactionInProgressProcessor] Error attempting to " +
                           "alter initiativeCounters given id {} initiativeId {} and userId {}",
-                        transactionInProgressId,
+                        transactionInProgress.getId(),
                         transactionInProgress.getInitiativeId(),
                         transactionInProgress.getUserId(),
                         e

@@ -1,7 +1,6 @@
 package it.gov.pagopa.ranker.strategy;
 
 import it.gov.pagopa.ranker.domain.dto.TransactionInProgressDTO;
-import it.gov.pagopa.ranker.connector.rest.PaymentRestClient;
 import it.gov.pagopa.ranker.enums.PreallocationStatus;
 import it.gov.pagopa.ranker.enums.SyncTrxStatus;
 import it.gov.pagopa.ranker.repository.InitiativeCountersPreallocationsRepository;
@@ -19,8 +18,7 @@ public class CapturedTransactionInProgressProcessorStrategy implements Transacti
 
     public CapturedTransactionInProgressProcessorStrategy(
             InitiativeCountersPreallocationsRepository initiativeCountersPreallocationsRepository, 
-            InitiativeCountersRepository initiativeCountersRepository,
-            PaymentRestClient paymentRestClient) {
+            InitiativeCountersRepository initiativeCountersRepository) {
         this.initiativeCountersPreallocationsRepository = initiativeCountersPreallocationsRepository;
         this.initiativeCountersRepository = initiativeCountersRepository;
     }
